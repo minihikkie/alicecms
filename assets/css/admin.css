@@ -59,86 +59,80 @@
   .form-row { grid-template-columns: 1fr; }
 }
 
-/* ── หน้า login ── */
 /* ══════════════════════════════════════════════════════════════
    หน้ายืนยันตัวตน — เข้าสู่ระบบ / ลืมรหัสผ่าน / ตั้งรหัสผ่านใหม่
-   แบ่งสองฝั่ง: แผงแบรนด์ (ไล่สีตามธีมของหน่วยงาน) + แผงฟอร์ม
-   ทุกสีดึงจาก --blue / --blue-700 จึงเปลี่ยนตามธีมที่ผู้ดูแลตั้งไว้เอง
+
+   ใช้ภาษาออกแบบชุดเดียวกับ alicentia.me ซึ่งเป็นผลิตภัณฑ์ตระกูลเดียวกัน:
+   พื้นขาวอมฟ้า #F6F8FC + แสงฟุ้งน้ำเงินสองจุด, การ์ดขาวมุมมน 24px ขอบฟ้าจาง
+   และ "เงาอมน้ำเงิน" ไม่ใช่เงาเทา — โปร่งและสว่าง ไม่ใช่แผ่นสีทึบเต็มครึ่งจอ
+
+   ไม่ตามธีมสีของหน่วยงาน เพราะหน้านี้คือหน้าตาของตัวระบบ ไม่ใช่หน้าเว็บสาธารณะ
+   (แนวเดียวกับที่ WordPress ใช้โทนของตัวเองไม่ตามธีมเว็บ)
    ══════════════════════════════════════════════════════════════ */
 .auth-shell {
-  /* โทนสีของหน้ายืนยันตัวตนเป็นเอกลักษณ์ของตัว CMS เอง ไม่ตามธีมของหน่วยงาน
-     เหตุผล: หน้านี้คือ "หน้าตาของระบบ" ไม่ใช่หน้าเว็บสาธารณะของหน่วยงาน และถ้าปล่อยให้ตามธีม
-     หน่วยงานที่ตั้งสีจัดๆ จะได้แผงสีทึบเต็มครึ่งจอซึ่งกลืนกันยาก (แบบเดียวกับที่ WordPress
-     ใช้โทนของตัวเองไม่ตามธีมเว็บ) — ใช้ตระกูลน้ำเงิน Google Material ซึ่งเป็นธีมเริ่มต้นของระบบอยู่แล้ว
-     ประกาศทับ --blue ตรงนี้ ทุกอย่างข้างในจึงเปลี่ยนตาม ทั้งปุ่ม ลิงก์ และวงแหวนโฟกัส
-     อยากให้กลับไปตามธีมหน่วยงานเมื่อไหร่ ลบสองบรรทัดนี้ทิ้งบรรทัดเดียวจบ
-     โทนเขียวมิ้นต์นี้คือสีประจำตระกูล Alice (Alicentia / Alicetools) ให้ผลงานชุดเดียวกันดูเป็นพวกเดียวกัน */
-  --blue: #0E9A94;
-  --blue-700: #0A6F78;
+  /* ประกาศทับตรงนี้ ทุกอย่างข้างในเปลี่ยนตาม ทั้งปุ่ม ลิงก์ และวงแหวนโฟกัส */
+  --blue: #1A73E8;
+  --blue-700: #1557B0;
 
-  min-height: 100vh; min-height: 100dvh; display: grid;
-  grid-template-columns: minmax(0, 1fr); background: var(--card);
+  min-height: 100vh; min-height: 100dvh;
+  display: grid; grid-template-columns: minmax(0, 1fr);
+  align-content: center; justify-items: center; gap: 38px; padding: 44px 24px;
+  background:
+    radial-gradient(1200px 700px at 15% 0%, rgba(26,115,232,.14), rgba(0,0,0,0) 58%),
+    radial-gradient(900px 520px at 85% 10%, rgba(26,115,232,.11), rgba(0,0,0,0) 55%),
+    #F6F8FC;
 }
-@media (min-width: 920px) { .auth-shell { grid-template-columns: 45% minmax(0, 1fr); } }
-
-/* ── แผงแบรนด์ (ซ่อนบนจอเล็ก เพราะฟอร์มสำคัญกว่าพื้นที่) ── */
-.auth-brand { display: none; position: relative; overflow: hidden;
-  padding: 60px 56px; color: #fff;
-  /* ไล่สี่ระดับในตระกูลเขียวมิ้นต์ — มิ้นต์สดมุมบนซ้าย ลงไปเขียวน้ำทะเลเข้มมุมล่างขวา
-     เลือกเฉดที่ลึกพอให้ตัวอักษรขาวอ่านออกทั้งแผง (เฉดพาสเทลสวยแต่ตัวหนังสือขาวจะจม) */
-  background: linear-gradient(158deg, #23BAB0 0%, #12A19D 34%, #0A7580 70%, #06576A 100%); }
-@media (min-width: 920px) {
-  .auth-brand { display: flex; flex-direction: column; justify-content: space-between; }
+@media (min-width: 1020px) {
+  .auth-shell { grid-template-columns: minmax(0, 470px) 428px;
+    justify-content: center; align-items: center; gap: 6vw; padding: 48px 5vw; }
 }
-/* แสงนวลมุมบนขวา ให้พื้นมีทิศทางของแสง */
-.auth-brand::before { content: ""; position: absolute; pointer-events: none;
-  width: 520px; height: 520px; top: -200px; right: -170px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,.22) 0%, rgba(255,255,255,.05) 48%, transparent 72%); }
-.auth-brand > * { position: relative; z-index: 1; }
 
-/* ตราหน่วยงานขนาดใหญ่เป็นลายน้ำ — ของชิ้นนี้คือสิ่งที่ทำให้หน้านี้เป็นของหน่วยงานนี้จริงๆ
-   ไม่ใช่เทมเพลตที่ใครก็ใช้ได้ วางล้นขอบล่างขวาแบบตราประทับบนเอกสารราชการ */
-/* ใหญ่มากและจางมาก ล้นออกสองด้าน — ตั้งใจให้อ่านเป็น "พื้นผิว" เหมือนตราดุนนูนบนกระดาษ
-   ไม่ใช่รูปภาพชิ้นหนึ่งที่วางไว้ ตราของแต่ละหน่วยงานรูปทรงไม่เหมือนกัน (บางอันมีด้าม บางอันเป็นวงกลม)
-   ขนาดใหญ่พอจะล้นขอบทั้งสองด้านจึงปลอดภัยกับทุกรูปทรง */
+/* ── ฝั่งแบรนด์ — อยู่บนพื้นโปร่งเดียวกัน ใช้ตัวอักษรสีเข้ม ไม่ใช่แผ่นสีทึบ ── */
+.auth-brand { display: none; position: relative; }
+@media (min-width: 1020px) { .auth-brand { display: block; } }
+
+/* ตราหน่วยงานจางมากเป็นพื้นผิวด้านหลัง ผูกหน้านี้เข้ากับหน่วยงานโดยไม่รบกวนความโปร่ง */
 .auth-seal { position: absolute; z-index: 0; pointer-events: none; user-select: none;
-  right: -150px; bottom: -170px; width: 620px; height: auto;
-  opacity: .10; filter: saturate(0) brightness(2.2); }
+  left: -80px; bottom: -130px; width: 400px; height: auto; opacity: .06; }
+.auth-brand > *:not(.auth-seal) { position: relative; z-index: 1; }
 
-/* ตราเล็กด้านบน — สี่เหลี่ยมมุมมนขาว ไม่ใช้วงกลมเพราะตราที่มีด้ามหรือทรงสูงจะถูกตัดขอบ */
-.auth-mark { width: 76px; height: 76px; border-radius: 20px; overflow: hidden;
-  background: #fff; box-shadow: 0 10px 30px rgba(4,30,66,.30);
+/* ตราหน่วยงาน — การ์ดขาวขอบฟ้าจาง เงาน้ำเงิน ตามภาษาการ์ดของ Alicentia */
+.auth-mark { width: 74px; height: 74px; border-radius: 20px; overflow: hidden;
+  background: #fff; border: 1px solid rgba(26,115,232,.12);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 12px 30px rgba(26,115,232,.14);
   display: grid; place-items: center; flex-shrink: 0; }
 .auth-mark img { width: 100%; height: 100%; object-fit: contain; padding: 11px; }
-.auth-mark .material-symbols-rounded { font-size: 37px; color: #1B73E8; }
+.auth-mark .material-symbols-rounded { font-size: 36px; color: var(--blue); }
 
-.auth-org  { font-size: 32px; font-weight: 600; line-height: 1.22; margin: 32px 0 0; letter-spacing: -.025em; }
-/* เส้นคั่นบางๆ คั่นชื่อกับสังกัด ให้ลำดับชั้นอ่านออกโดยไม่ต้องเพิ่มสี */
-.auth-dept { font-size: 15px; opacity: .82; margin: 18px 0 0; padding-top: 18px; line-height: 1.65;
-  border-top: 1px solid rgba(255,255,255,.22); max-width: 38ch; }
-.auth-foot { font-size: 12.5px; opacity: .66; line-height: 1.65; }
-.auth-foot a { color: #fff; border-bottom: 1px solid rgba(255,255,255,.32); text-decoration: none; }
-.auth-foot a:hover { border-bottom-color: #fff; }
+.auth-org  { font-size: 34px; font-weight: 700; line-height: 1.22; margin: 28px 0 0;
+  letter-spacing: -.03em; color: var(--ink); }
+.auth-dept { font-size: 15px; color: var(--muted); margin: 16px 0 0; padding-top: 16px;
+  line-height: 1.7; border-top: 1px solid var(--border); max-width: 40ch; }
+.auth-foot { font-size: 12.5px; color: var(--muted); line-height: 1.7; margin: 38px 0 0; }
+.auth-foot a { color: var(--blue-700); font-weight: 500; text-decoration: none; }
+.auth-foot a:hover { text-decoration: underline; }
 
-/* ── แผงฟอร์ม ── */
-.auth-main { display: grid; place-items: center; padding: 40px 24px; background: var(--card); }
-.auth-box { width: 100%; max-width: 396px; }
+/* ── ฝั่งฟอร์ม — การ์ดขาวลอยบนพื้นโปร่ง เงาอมน้ำเงินแบบการ์ดของ Alicentia ── */
+.auth-main { width: 100%; max-width: 428px; }
+.auth-box { width: 100%; background: #fff; border-radius: 24px;
+  border: 1px solid rgba(26,115,232,.12); padding: 36px 32px 30px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 14px 40px rgba(26,115,232,.11); }
 
-/* หัวแบรนด์ย่อ — โผล่เฉพาะจอเล็กที่แผงซ้ายถูกซ่อน */
-.auth-mini { display: flex; align-items: center; gap: 13px; margin-bottom: 32px; }
-@media (min-width: 920px) { .auth-mini { display: none; } }
-/* พื้นขาวเหมือนตราฝั่งเดสก์ท็อป แต่ใช้เงาเบากว่าเพราะวางบนพื้นขาวไม่ใช่พื้นน้ำเงิน */
-.auth-mini .auth-mark { width: 48px; height: 48px; border-radius: 14px;
-  box-shadow: 0 2px 10px rgba(4,30,66,.12); border: 1px solid var(--border); }
+/* หัวแบรนด์ย่อ — โผล่เฉพาะจอเล็กที่ฝั่งซ้ายถูกซ่อน */
+.auth-mini { display: flex; align-items: center; gap: 13px; margin-bottom: 28px;
+  padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+@media (min-width: 1020px) { .auth-mini { display: none; } }
+.auth-mini .auth-mark { width: 46px; height: 46px; border-radius: 13px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 6px 16px rgba(26,115,232,.12); }
 .auth-mini .auth-mark img { padding: 6px; }
-.auth-mini .auth-mark .material-symbols-rounded { font-size: 25px; }
+.auth-mini .auth-mark .material-symbols-rounded { font-size: 24px; }
 .auth-mini-name { font-weight: 600; font-size: 16px; color: var(--ink); line-height: 1.3; }
 .auth-mini-sub  { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
 
-.auth-title { font-size: 26px; font-weight: 600; color: var(--ink); margin: 0 0 7px; letter-spacing: -.02em; }
-.auth-sub   { font-size: 14.5px; color: var(--muted); margin: 0 0 28px; line-height: 1.6; }
+.auth-title { font-size: 24px; font-weight: 700; color: var(--ink); margin: 0 0 6px; letter-spacing: -.025em; }
+.auth-sub   { font-size: 14px; color: var(--muted); margin: 0 0 26px; line-height: 1.6; }
 
-.auth-field { margin-bottom: 18px; }
+.auth-field { margin-bottom: 17px; }
 .auth-box label { font-size: 13.5px; font-weight: 500; margin-bottom: 7px; }
 .auth-box input[type="text"], .auth-box input[type="password"],
 .auth-box input[type="email"], .auth-box input[type="number"] {
@@ -159,10 +153,12 @@
 /* ช่องรหัส 6 หลักของการยืนยันสองชั้น */
 .auth-otp { letter-spacing: .3em; text-align: center; font-size: 21px; font-weight: 600; }
 
-.auth-submit { width: 100%; justify-content: center; padding: 13px; font-size: 15.5px; }
-.auth-links { text-align: center; margin: 18px 0 0; font-size: 13.5px; }
+/* ปุ่มหลักทรงแคปซูล เงาอมน้ำเงิน ตามปุ่ม CTA ของ Alicentia */
+.auth-submit { width: 100%; justify-content: center; padding: 13px; font-size: 15.5px;
+  font-weight: 700; box-shadow: 0 14px 26px rgba(26,115,232,.22); }
+.auth-links { text-align: center; margin: 16px 0 0; font-size: 13.5px; }
 .auth-note { display: flex; align-items: center; justify-content: center; gap: 7px;
-  margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border);
+  margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);
   font-size: 12.5px; color: var(--muted); line-height: 1.55;
   /* จัดกึ่งกลางไว้ด้วย เผื่อข้อความตัดบรรทัดบนจอแคบ จะได้ไม่เหลือคำเดียวลอยบรรทัดล่าง */
   text-align: center; text-wrap: balance; }
