@@ -46,6 +46,16 @@ Options -Indexes
   Require all denied
 </FilesMatch>
 
+# ห้ามเข้าถึงเอกสารประกอบโปรเจกต์ (README / CHANGELOG / SECURITY / LICENSE / docs)
+#
+# ไฟล์พวกนี้ต้องมากับแพ็กเกจ — สัญญาอนุญาต MIT กำหนดให้แนบ LICENSE ไปกับทุกสำเนาที่แจกจ่าย
+# และคนที่โหลด .zip ไปควรอ่านวิธีติดตั้งได้โดยไม่ต้องเปิด GitHub
+# แต่ "ไม่ควรเสิร์ฟจากเว็บจริง" เพราะเปิดอ่านได้เมื่อไหร่ก็บอกคนที่กำลังมองหาช่องโจมตีว่า
+# เว็บนี้รันระบบอะไร เวอร์ชันไหน และเพิ่งแก้ช่องโหว่อะไรไปบ้าง (CHANGELOG เขียนไว้ละเอียด)
+<FilesMatch "\.md$|^LICENSE$">
+  Require all denied
+</FilesMatch>
+
 # Security headers สำรอง (กรณี PHP ไม่ได้ส่ง)
 <IfModule mod_headers.c>
   Header always set X-Frame-Options "SAMEORIGIN"
