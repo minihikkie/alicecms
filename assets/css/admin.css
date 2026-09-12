@@ -88,13 +88,8 @@
 }
 
 /* ── ฝั่งแบรนด์ — อยู่บนพื้นโปร่งเดียวกัน ใช้ตัวอักษรสีเข้ม ไม่ใช่แผ่นสีทึบ ── */
-.auth-brand { display: none; position: relative; }
+.auth-brand { display: none; }
 @media (min-width: 1020px) { .auth-brand { display: block; } }
-
-/* ตราหน่วยงานจางมากเป็นพื้นผิวด้านหลัง ผูกหน้านี้เข้ากับหน่วยงานโดยไม่รบกวนความโปร่ง */
-.auth-seal { position: absolute; z-index: 0; pointer-events: none; user-select: none;
-  left: -80px; bottom: -130px; width: 400px; height: auto; opacity: .06; }
-.auth-brand > *:not(.auth-seal) { position: relative; z-index: 1; }
 
 /* ตราหน่วยงาน — การ์ดขาวขอบฟ้าจาง เงาน้ำเงิน ตามภาษาการ์ดของ Alicentia */
 .auth-mark { width: 74px; height: 74px; border-radius: 20px; overflow: hidden;

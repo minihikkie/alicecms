@@ -166,9 +166,6 @@ $markInner = $logo
 
   <!-- แผงแบรนด์ (จอ ≥920px) -->
   <aside class="auth-brand">
-    <?php if ($logo): ?>
-    <img class="auth-seal" src="<?= e(url($logo)) ?>" alt="" aria-hidden="true">
-    <?php endif; ?>
     <div>
       <div class="auth-mark"><?= $markInner ?></div>
       <h1 class="auth-org"><?= e($org) ?></h1>
