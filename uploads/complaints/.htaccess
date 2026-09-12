@@ -1,0 +1,8 @@
+# ไฟล์แนบเรื่องร้องเรียนเป็นข้อมูลส่วนบุคคล — ห้ามเข้าถึงจากเว็บโดยตรงทุกกรณี
+# เจ้าหน้าที่ดูได้ผ่าน admin/complaint-file.php ซึ่งตรวจสอบสิทธิ์ก่อน
+Require all denied
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>
+Options -Indexes

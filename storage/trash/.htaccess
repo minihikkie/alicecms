@@ -1,0 +1,7 @@
+# ไฟล์ที่ถูกลบลงถังขยะ — ห้ามเข้าถึงจากเว็บโดยตรง
+Require all denied
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>
+Options -Indexes

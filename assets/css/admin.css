@@ -1,0 +1,233 @@
+/* ════════════════════════════════════════════════════════════
+   admin.css — สไตล์เฉพาะระบบจัดการ (โครงจาก mockup-admin.html)
+   ════════════════════════════════════════════════════════════ */
+
+.topbar .logo { width: 50px; height: 50px; font-size: 26px; border-radius: 16px; overflow: hidden; }
+.topbar .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.topbar .brand { font-size: 26px; }
+.topbar .brand small { font-size: 13px; margin-top: -3px; }
+
+/* ── ตาราง admin ── */
+.admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.admin-table th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .5px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.admin-table td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-table tr:hover td { background: color-mix(in srgb, var(--blue) 3%, transparent); }
+.admin-table .thumb-sm { width: 64px; height: 42px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); display: block; }
+
+/* ── การ์ดสถิติ ── */
+.stat-card { display: flex; align-items: center; gap: 14px; }
+.stat-card .si { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; flex-shrink: 0; }
+.stat-card b { font-size: 26px; color: var(--ink); display: block; line-height: 1.1; }
+.stat-card span { font-size: 13px; color: var(--muted); }
+
+/* ── กราฟผู้เข้าชม (CSS bar chart) ── */
+.chart { display: flex; align-items: flex-end; gap: 8px; height: 150px; padding-top: 22px; }
+.chart .bar { flex: 1; border-radius: 8px 8px 4px 4px; background: linear-gradient(180deg, var(--blue), color-mix(in srgb, var(--blue) 45%, transparent));
+  position: relative; min-width: 10px; }
+.chart .bar:hover { opacity: .8; }
+.chart .bar i { position: absolute; top: -20px; left: 0; right: 0; text-align: center; font-style: normal; font-size: 10px; color: var(--muted); }
+.chart-x { display: flex; gap: 8px; margin-top: 6px; }
+.chart-x span { flex: 1; text-align: center; font-size: 11px; color: var(--muted); min-width: 10px; overflow: hidden; }
+
+/* ── เมนูซ้าย (จัดกลุ่ม) ── */
+.side-menu { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+.side-menu a { display: flex; align-items: center; gap: 10px; padding: 9px 13px; border-radius: 10px;
+  font-size: 14px; font-weight: 500; color: var(--text); }
+.side-menu a:hover { background: color-mix(in srgb, var(--blue) 7%, transparent); color: var(--blue-700); }
+.side-menu a.on { background: var(--blue); color: #fff; box-shadow: var(--shadow-blue); }
+.side-menu a .material-symbols-rounded { flex-shrink: 0; }
+.menu-group-label { font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--muted); padding: 14px 13px 5px; }
+.side-menu > .menu-group-label:first-child { padding-top: 4px; }
+
+/* ── layout admin ── */
+.admin-grid { display: grid; grid-template-columns: 230px 1fr; gap: 16px; align-items: start; }
+/* กัน grid blowout: ให้ grid item ย่อได้ตามพื้นที่ (ไม่ขยายตามเนื้อหา) */
+.admin-grid > * { min-width: 0; }
+@media (max-width: 980px) {
+  .admin-grid { grid-template-columns: 1fr; }
+  .side-menu { display: flex; flex-wrap: wrap; gap: 4px; position: static; max-height: none; overflow: visible; }
+  .side-menu a { padding: 8px 12px; font-size: 13px; }
+  .menu-group-label { width: 100%; padding: 8px 4px 1px; }
+  .side-menu > .menu-group-label:first-child { padding-top: 2px; }
+  /* ตาราง admin หลายคอลัมน์: ให้เลื่อนแนวนอนได้บนจอแคบ ไม่ดันหน้าเกินจอ */
+  .admin-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .admin-table td, .admin-table th { white-space: nowrap; } /* ปุ่ม/ค่าในเซลล์ไม่ตกบรรทัด เลื่อนแนวนอนแทน */
+  /* ฟอร์ม 2 คอลัมน์ใน admin → stack เมื่อแคบมาก */
+  .form-row { grid-template-columns: 1fr; }
+}
+
+/* ── หน้า login ── */
+.login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.login-card { width: 100%; max-width: 400px; }
+.login-card .logo { width: 64px; height: 64px; font-size: 32px; border-radius: 20px; margin: 0 auto 14px; }
+
+/* ── ตัวเลือกสีธีม ── */
+.swatch { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+input[type="color"] { width: 46px; height: 34px; padding: 2px; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); background: #fff; }
+
+/* ── อื่นๆ ── */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
+.sort-input { width: 76px !important; text-align: center; padding: 8px !important; }
+.inline-check { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.inline-check input { width: auto; }
+input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--blue); cursor: pointer; }
+.file-hint { font-size: 12px; color: var(--muted); margin-top: -10px; margin-bottom: 14px; }
+.current-file { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text);
+  background: rgba(255,255,255,.7); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; margin-bottom: 12px; }
+.current-file img { width: 56px; height: 38px; object-fit: cover; border-radius: 6px; }
+.dropzone input[type="file"] { display: none; }
+.dropzone.dragover { background: rgba(26,115,232,.12); border-color: var(--blue); }
+.dz-filename { font-size: 13px; color: var(--blue-700); font-weight: 600; margin-top: 6px; }
+textarea { resize: vertical; min-height: 90px; }
+
+/* ── ตัวจัดสไลด์มืออาชีพ (พรีวิวสด) ── */
+.slide-prev { position: relative; width: 100%; aspect-ratio: 5 / 2; border-radius: var(--r16); overflow: hidden;
+  background: linear-gradient(120deg, var(--blue), var(--special)); cursor: grab; --ov: .35; --ov-rgb: 0,0,0;
+  box-shadow: var(--shadow-soft); border: 1px solid var(--border); touch-action: none; user-select: none; }
+.slide-prev.grabbing { cursor: grabbing; }
+.crop-bar { display: flex; align-items: center; gap: 10px; margin: 8px 0 4px; }
+.crop-bar .material-symbols-rounded { color: var(--blue); }
+.slide-prev.txt-dark { --ov-rgb: 255,255,255; }
+.slide-prev #spImg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.slide-prev .sp-grad { position: absolute; inset: 0; background: rgba(var(--ov-rgb), var(--ov)); pointer-events: none; }
+.slide-prev .sp-text { position: absolute; inset: 0; padding: 5%; display: flex; flex-direction: column; gap: 8px;
+  justify-content: center; align-items: center; text-align: center; color: #fff; pointer-events: none; }
+.slide-prev.txt-dark .sp-text { color: var(--ink); }
+.slide-prev .sp-text h2 { color: inherit; margin: 0; font-size: clamp(16px, 3.4vw, 30px); line-height: 1.2; text-shadow: 0 2px 10px rgba(0,0,0,.28); white-space: pre-line; }
+.slide-prev.txt-dark .sp-text h2 { text-shadow: none; }
+.slide-prev .sp-text p { margin: 0; font-size: clamp(11px, 1.7vw, 15px); opacity: .96; white-space: pre-line; }
+.slide-prev .sp-btn { background: #fff; color: var(--blue-700); font-weight: 700; font-size: 13px; padding: 7px 16px; border-radius: 999px; width: max-content; }
+.slide-prev .sp-focus { position: absolute; width: 22px; height: 22px; border: 2px solid #fff; border-radius: 50%;
+  transform: translate(-50%, -50%); box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.4); pointer-events: none; }
+.slide-prev .sp-focus::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: #fff; }
+/* ตาราง 3×3 เลือกตำแหน่งข้อความ */
+.pos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; max-width: 130px; }
+.pos-cell { aspect-ratio: 1; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,.7);
+  cursor: pointer; display: grid; place-items: center; transition: all .15s; padding: 0; }
+.pos-cell::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: all .15s; }
+.pos-cell:hover { border-color: color-mix(in srgb, var(--blue) 40%, transparent); }
+.pos-cell.on { background: var(--blue); border-color: var(--blue); }
+.pos-cell.on::after { background: #fff; transform: scale(1.3); }
+/* ── ตัวจัดสไลด์จัดเต็ม ── */
+.slide-prev.has-grad { background: linear-gradient(120deg, var(--gf, var(--blue)), var(--gt, var(--special))); }
+.slide-prev.no-shadow .sp-text h2, .slide-prev.no-shadow .sp-text p { text-shadow: none; }
+.slide-prev.kb #spImg { animation: kbprev 14s ease-out infinite alternate; }
+@keyframes kbprev { from { transform: scale(1); } to { transform: scale(1.12) translate(-1.5%, -1%); } }
+.slide-prev .sp-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: inherit; }
+.slide-fieldset { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; background: rgba(255,255,255,.45); }
+.sf-head { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); margin-bottom: 8px; font-size: 14px; }
+.sf-head .material-symbols-rounded { color: var(--blue); }
+.color-field { display: flex; align-items: center; gap: 6px; }
+.color-field input[type=color] { width: 46px; height: 34px; padding: 2px; border: 1px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; }
+.color-field.cleared input[type=color] { opacity: .4; }
+/* ── Media Library (คลังสื่อ) ── */
+.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.media-card { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: #fff;
+  display: flex; flex-direction: column; transition: box-shadow .15s, transform .15s; }
+.media-card:hover { box-shadow: 0 8px 22px rgba(2,6,23,.1); }
+.media-thumb { position: relative; aspect-ratio: 4 / 3; display: grid; place-items: center; overflow: hidden;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--blue) 8%, transparent), color-mix(in srgb, var(--special) 6%, transparent)); }
+.media-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.media-thumb.pickable { cursor: pointer; }
+.media-thumb.pickable:hover::after { content: "เลือก"; position: absolute; inset: 0; display: grid; place-items: center;
+  background: rgba(26,115,232,.55); color: #fff; font-weight: 600; }
+.media-ficon { font-size: 42px; color: color-mix(in srgb, var(--blue) 55%, transparent); }
+.media-ext { position: absolute; bottom: 8px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.media-meta { padding: 8px 10px 4px; }
+.media-name { font-size: 12.5px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.media-sub { font-size: 11px; color: var(--muted); }
+.media-actions { display: flex; gap: 3px; padding: 6px 8px 9px; flex-wrap: wrap; }
+.media-actions .btn.small { padding: 5px 8px; font-size: 12px; }
+
+/* ── Block Builder (ตัวแก้ไขหน้าเพจ) ── */
+.blocks-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.block-item { border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,.6); overflow: hidden; }
+.block-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(2,6,23,.03); border-bottom: 1px solid var(--border); }
+.block-label { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; color: var(--ink); }
+.block-label .material-symbols-rounded { color: var(--blue); }
+.block-tools { margin-left: auto; display: flex; gap: 3px; }
+.block-tools .btn.small { padding: 4px 7px; }
+.block-body { padding: 11px 12px; }
+.block-body textarea { min-height: 68px; }
+.block-add { padding: 12px 14px; border: 1px dashed var(--border); border-radius: 12px; background: rgba(26,115,232,.04); }
+.block-add-title { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; color: var(--ink); margin-bottom: 9px; }
+.block-add-title .material-symbols-rounded { color: var(--blue); }
+.block-add-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.block-add .btn.small { font-size: 12.5px; }
+.blocks-empty { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 26px; color: var(--muted);
+  font-size: 14px; border: 1px dashed var(--border); border-radius: 12px; margin-bottom: 12px; }
+.blocks-empty .material-symbols-rounded { font-size: 32px; opacity: .55; }
+#blockEditor:has(.block-item) .blocks-empty { display: none; }
+
+/* ── Menu Builder (ลากจัดลำดับ) ── */
+#menuBuilder .menu-sort { list-style: none; margin: 0; padding: 0; }
+#menuBuilder .menu-li { margin: 0; }
+#menuBuilder .menu-row { display: flex; align-items: center; gap: 9px; padding: 10px 12px; margin: 6px 0;
+  background: rgba(255,255,255,.7); border: 1px solid var(--border); border-radius: 12px; transition: border-color .15s; }
+#menuBuilder .menu-row:hover { border-color: color-mix(in srgb, var(--blue) 30%, transparent); }
+#menuBuilder .menu-row.is-off { opacity: .55; }
+#menuBuilder .menu-grip { color: var(--muted); cursor: grab; font-size: 20px; flex-shrink: 0; }
+#menuBuilder .menu-name { font-weight: 600; color: var(--ink); }
+#menuBuilder .menu-actions { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+#menuBuilder .menu-sub { margin: -2px 0 8px 34px; padding-left: 12px; border-left: 2px dashed var(--border); min-height: 6px; }
+#menuBuilder .menu-li.dragging > .menu-row { opacity: .45; border-style: dashed; }
+
+/* ── ลากจัดลำดับรายการแถวเดียว — ใช้ร่วมกันทุกหน้าที่มี [data-sortlist] (เอกสาร/วิดีโอ/เมนูท้ายเว็บ ฯลฯ)
+   เดิม scope ด้วย #docSort ตัวเดียว พอเอาไปใช้หน้าอื่นที่ไม่มี id นี้ (เช่น admin/videos.php) จะไม่ติดสไตล์เลย
+   จึงถอด scope ออกให้เป็นคลาสระดับบนสุด — ชื่อ .doc-* ยังคงไว้เพื่อไม่ต้องแก้ markup ทุกจุดที่ใช้อยู่แล้ว */
+.doc-sort { list-style: none; margin: 0; padding: 0; }
+.doc-li { margin: 0; }
+.doc-row { display: flex; align-items: center; gap: 9px; padding: 10px 12px; margin: 6px 0;
+  background: rgba(255,255,255,.7); border: 1px solid var(--border); border-radius: 12px; transition: border-color .15s; }
+.doc-row:hover { border-color: color-mix(in srgb, var(--blue) 30%, transparent); }
+.doc-row.is-off { opacity: .55; }
+.doc-grip { color: var(--muted); cursor: grab; font-size: 20px; flex-shrink: 0; }
+.doc-name { font-weight: 600; color: var(--ink); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-actions { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0; }
+.doc-li.dragging > .doc-row { opacity: .45; border-style: dashed; }
+
+/* ตัวคั่น "หรือ" ระหว่างอัปโหลด/ลิงก์ */
+.or-divider { display: flex; align-items: center; text-align: center; color: var(--muted); font-size: 13px; margin: 6px 0 10px; }
+.or-divider::before, .or-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.or-divider span { padding: 0 12px; }
+
+/* ── ตัวเลือกไอคอน (Material Symbols) — คลิกดูตัวอย่าง/เลือกจากรายการแทนพิมพ์ชื่อเอง ── */
+.icon-pick-wrap { position: relative; display: inline-flex; align-items: center; gap: 6px; }
+.icon-pick-preview { width: 36px; height: 36px; flex: none; display: grid; place-items: center; font-size: 21px;
+  color: var(--blue); background: rgba(26,115,232,.08); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.icon-pick-panel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 60; width: 300px; max-width: 88vw;
+  background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 10px; display: none; }
+.icon-pick-panel.open { display: block; }
+.icon-pick-search { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; margin-bottom: 8px; }
+.icon-pick-body { max-height: 240px; overflow-y: auto; }
+.icon-pick-group { font-size: 10.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 8px 2px 4px; }
+.icon-pick-group:first-child { margin-top: 0; }
+.icon-pick-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.icon-pick-item { aspect-ratio: 1; display: grid; place-items: center; font-size: 19px; color: var(--ink);
+  border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+.icon-pick-item:hover, .icon-pick-item:focus-visible { background: rgba(26,115,232,.1); border-color: color-mix(in srgb, var(--blue) 30%, transparent); outline: none; }
+.icon-pick-empty { font-size: 12.5px; color: var(--muted); text-align: center; padding: 16px 0; }
+
+/* ── ตัวอย่างวิดีโอ YouTube สดในฟอร์ม (admin/videos.php) ── */
+.yt-preview { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.yt-prev-empty { display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 14px 16px; border-radius: 12px; border: 1px dashed var(--border);
+  background: rgba(15,23,42,.02); color: var(--muted); font-size: 13px; }
+.yt-prev-empty.is-bad { border-color: rgba(234,67,53,.45); background: rgba(234,67,53,.06); color: var(--danger); }
+.yt-prev-thumb { position: relative; width: 176px; aspect-ratio: 16 / 9; flex: none;
+  border-radius: 10px; overflow: hidden; background: #0b0b0f; }
+.yt-prev-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.yt-prev-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(234,67,53,.92); color: #fff; font-size: 24px; }
+.yt-prev-info { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.yt-prev-info code { background: rgba(15,23,42,.06); padding: 2px 6px; border-radius: 5px; font-size: 12px; }
+
+/* ── ช่องเลือกปลายทางลิงก์ (เมนูนำทาง / เมนูท้ายเว็บ) ── */
+.dest-modes { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 8px; }
+/* input/select ในธีมนี้เป็น display:block จึงต้องบังคับทับ ไม่งั้นแอตทริบิวต์ hidden ไม่มีผล */
+[data-dest] [hidden] { display: none !important; }

@@ -1,0 +1,93 @@
+# ════════════════════════════════════════════
+# .htaccess หลัก — ความปลอดภัยระดับ web server
+# ════════════════════════════════════════════
+
+# ปิดการแสดงรายชื่อไฟล์ในโฟลเดอร์
+Options -Indexes
+
+# ════════════════════════════════════════════
+# URL สวย — ซ่อนนามสกุล .php (/news.php → /news)
+# ระบบจะทดสอบตัวเองทุกครั้งที่ติดตั้ง/อัปเดต ถ้าเซิร์ฟเวอร์ไม่รองรับ
+# จะถอดบล็อกนี้ออกและกลับไปใช้ .php ให้อัตโนมัติ
+# ⚠ ห้ามลบบรรทัด BEGIN/END — ระบบใช้เป็นจุดอ้างอิงในการถอด/ใส่กลับ
+# ════════════════════════════════════════════
+# BEGIN PRETTY-URLS
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # ตั้งตัวแปรบอก PHP ว่า "mod_rewrite ทำงานอยู่จริงและ .htaccess ถูกอ่าน"
+  # ใช้ตรวจแบบ local ล้วน ไม่ต้องยิง HTTP ออกเน็ต — จำเป็นกับเครือข่ายที่บล็อกการเชื่อมต่อขาออก
+  # (ต้องอยู่บรรทัดแรกสุด ก่อนกฎข้าม admin เพื่อให้ตั้งค่าได้ทุกคำขอรวมถึงหน้า admin)
+  RewriteRule ^ - [E=GOVCMS_REWRITE:1]
+
+  # ไม่ยุ่งกับหลังบ้าน (admin) เพื่อลดความเสี่ยงต่อระบบจัดการ
+  RewriteRule ^admin/ - [L]
+
+  # /xxx → xxx.php (ทำงานภายใน ผู้ใช้ไม่เห็น) — ต่อเมื่อมีไฟล์จริงเท่านั้น
+  # ใช้ substitution แบบสัมพัทธ์ จึงทำงานได้ทั้งติดตั้งที่รากเว็บและในโฟลเดอร์ย่อย
+  #
+  # หมายเหตุ: การ redirect ขาเข้า (/news.php → /news) ทำฝั่ง PHP ใน includes/init.php ไม่ใช่ที่นี่
+  # เพราะ RewriteRule แบบ R=301 ที่ไม่มี RewriteBase จะเอา path ในเครื่องมาต่อท้ายโดเมน
+  # กลายเป็น URL เพี้ยน (ทดสอบกับ Apache จริงแล้วเจอ) ส่วน PHP รู้ค่า BASE_URL อยู่แล้วจึงแม่นยำกว่า
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}\.php -f
+  RewriteRule ^(.+?)/?$ $1.php [L]
+</IfModule>
+# END PRETTY-URLS
+
+# ห้ามเข้าถึงไฟล์ config และไฟล์ระบบโดยตรง
+<FilesMatch "^(config\.php|config\.sample\.php|install\.lock)$">
+  Require all denied
+</FilesMatch>
+
+# ห้ามเข้าถึงไฟล์สำรอง/ไฟล์ชั่วคราว
+<FilesMatch "\.(bak|old|tmp|log|sql|ini)$">
+  Require all denied
+</FilesMatch>
+
+# Security headers สำรอง (กรณี PHP ไม่ได้ส่ง)
+<IfModule mod_headers.c>
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set X-Content-Type-Options "nosniff"
+</IfModule>
+
+# ════════════════════════════════════════════
+# ประสิทธิภาพ — บีบอัดและแคชไฟล์สเตติก
+# ระบบใส่ ?v=เวอร์ชัน ให้ CSS/JS อยู่แล้ว จึงแคชยาวได้อย่างปลอดภัย
+# (อัปเดตเวอร์ชันใหม่ = URL เปลี่ยน = เบราว์เซอร์โหลดใหม่ทันที)
+# ════════════════════════════════════════════
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript
+  AddOutputFilterByType DEFLATE application/javascript application/x-javascript
+  AddOutputFilterByType DEFLATE application/json application/xml application/rss+xml
+  AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css                 "access plus 1 year"
+  ExpiresByType application/javascript   "access plus 1 year"
+  ExpiresByType text/javascript          "access plus 1 year"
+  ExpiresByType image/jpeg               "access plus 6 months"
+  ExpiresByType image/png                "access plus 6 months"
+  ExpiresByType image/webp               "access plus 6 months"
+  ExpiresByType image/svg+xml            "access plus 6 months"
+  ExpiresByType image/x-icon             "access plus 6 months"
+  ExpiresByType font/woff2               "access plus 1 year"
+  # ไฟล์ที่เนื้อหาเปลี่ยนบ่อย ห้ามแคชนาน
+  ExpiresByType text/html                "access plus 0 seconds"
+  ExpiresByType application/json         "access plus 0 seconds"
+</IfModule>
+
+<IfModule mod_headers.c>
+  # ไฟล์สเตติกที่มี ?v= กำกับ — แคชได้ยาวและถือว่าไม่เปลี่ยน
+  <FilesMatch "\.(css|js|woff2|jpg|jpeg|png|webp|svg|ico)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  # หน้าเว็บ/ไฟล์ที่สร้างจาก PHP — ต้องสดเสมอ
+  <FilesMatch "\.(php)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>

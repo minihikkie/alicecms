@@ -1,0 +1,25 @@
+# ════════════════════════════════════════════
+# uploads/.htaccess — โฟลเดอร์ไฟล์อัปโหลด (รูป/เอกสาร/ไฟล์แนบที่เปิดดูได้สาธารณะ)
+# หลักการ: ไฟล์ในนี้ต้องเปิดดูได้ปกติ (เป็นจุดประสงค์ของโฟลเดอร์นี้) —
+# ความปลอดภัยจึงเน้นที่ "ห้ามรันสคริปต์" ไม่ใช่ "ห้ามเข้าถึง"
+#
+# หมายเหตุ: เดิมเคยใช้ Require all denied + FilesMatch อนุญาตเฉพาะนามสกุล
+# แต่พบว่าเซิร์ฟเวอร์บางแบบ (เช่น Apache ที่ AllowOverride ไม่ครอบคลุม AuthConfig)
+# จะขึ้น 500 Internal Server Error กับคำสั่งชุดนี้ — จึงตัดออกเพื่อความเข้ากันได้กว้างสุด
+# (การกันไฟล์ประเภทอันตราย ทำที่ชั้นอัปโหลด — store_upload() ในระบบ — ตรวจนามสกุล+เนื้อไฟล์จริงอยู่แล้ว
+#  ไฟล์ .php จึงไม่มีทางถูกบันทึกลงโฟลเดอร์นี้ตั้งแต่แรก)
+# ════════════════════════════════════════════
+
+# ปิด PHP engine (กรณี mod_php) — กันไว้อีกชั้นแม้ไฟล์ .php จะหลุดเข้ามาได้
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+  php_flag engine off
+</IfModule>
+
+# ตัด handler ของสคริปต์ทุกชนิด (กรณี handler-based) — ทำให้ .php ถูกส่งเป็นไฟล์ข้อความ ไม่ถูกรัน
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phps .cgi .pl .py .asp .aspx .jsp .sh
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .phps
+
+Options -Indexes -ExecCGI

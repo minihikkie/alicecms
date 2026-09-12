@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>กองวิชาการ — สำนักงานตำรวจแห่งชาติ (Mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link rel="stylesheet" href="theme-kit.css">
+<style>
+/* ── ส่วนเสริมเฉพาะเว็บนี้ ── */
+/* ขยายโลโก้ + ชื่อหน่วยงานบนซ้าย */
+.topbar .logo { width: 50px; height: 50px; font-size: 26px; border-radius: 16px; }
+.topbar .brand { font-size: 26px; }
+.topbar .brand small { font-size: 13px; margin-top: -3px; }
+
+/* เมนูมือถือ (hamburger) */
+.menu-btn { display: none; width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 12px;
+  background: rgba(255,255,255,.85); color: var(--ink); cursor: pointer; place-items: center; margin-left: auto; }
+@media (max-width: 860px) {
+  .menu-btn { display: grid; }
+  .nav { position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; align-items: stretch;
+    background: rgba(246,248,252,.97); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border);
+    padding: 10px 16px 16px; display: none; gap: 2px; }
+  .nav.open { display: flex; }
+  .nav .navlink { display: block; padding: 13px 14px; border-radius: 12px; }
+}
+
+/* Slider */
+.slider { position: relative; border-radius: var(--r24); overflow: hidden; box-shadow: var(--shadow); margin-top: 24px; }
+.slide { display: none; height: 320px; align-items: center; justify-content: center; flex-direction: column; gap: 10px;
+  color: #fff; text-align: center; padding: 24px; }
+.slide.show { display: flex; animation: fadeIn .5s ease-out; }
+.slide h2 { color: #fff; margin: 0; text-shadow: 0 2px 12px rgba(0,0,0,.25); }
+.slide p { margin: 0; opacity: .92; font-size: 14px; max-width: 60ch; }
+.slide.s1 { background: linear-gradient(120deg, #1A73E8, #6C3FD8); }
+.slide.s2 { background: linear-gradient(120deg, #0F4C9C, #1A73E8); }
+.slide.s3 { background: linear-gradient(120deg, #6C3FD8, #B0399F); }
+.dots { position: absolute; bottom: 14px; left: 0; right: 0; display: flex; gap: 8px; justify-content: center; }
+.dots i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.45); cursor: pointer; }
+.dots i.on { background: #fff; }
+
+/* News card */
+.news-thumb { height: 160px; display: grid; place-items: center;
+  background: linear-gradient(135deg, rgba(26,115,232,.18), rgba(156,39,176,.12)); color: rgba(26,115,232,.45); }
+.news-card { padding: 0; overflow: hidden; display: flex; flex-direction: column; transition: transform .15s, box-shadow .15s; }
+.news-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.news-card .nc-body { padding: 16px 18px 18px; flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.news-card .nc-title { font-weight: 600; color: var(--ink); line-height: 1.45; font-size: 15px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* List row */
+.list-row { display: flex; align-items: flex-start; gap: 12px; padding: 11px 4px; border-bottom: 1px solid var(--border); text-decoration: none; }
+.list-row:last-child { border-bottom: none; }
+.list-row:hover .lr-title { color: var(--blue-700); }
+.lr-title { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.5; }
+.lr-date { font-size: 12px; color: var(--muted); }
+.lr-icon { width: 38px; height: 38px; border-radius: 10px; background: rgba(26,115,232,.1); color: var(--blue);
+  display: grid; place-items: center; flex-shrink: 0; }
+
+/* ทำเนียบผู้บริหาร */
+.person { text-align: center; padding: 20px 14px; }
+.avatar { width: 92px; height: 92px; border-radius: 50%; margin: 0 auto 12px; display: grid; place-items: center;
+  background: linear-gradient(145deg, rgba(26,115,232,.16), rgba(156,39,176,.12)); color: rgba(26,115,232,.5);
+  border: 3px solid rgba(255,255,255,.9); box-shadow: var(--shadow-soft); }
+.person .pn { font-weight: 600; font-size: 14px; color: var(--ink); line-height: 1.4; }
+.person .pp { font-size: 12px; color: var(--muted); }
+
+/* สารจากผู้บังคับการ */
+.chief { display: grid; grid-template-columns: 270px 1fr; gap: 32px; align-items: center; }
+.chief-photo { text-align: center; }
+.chief-photo .frame { width: 210px; height: 250px; margin: 0 auto 14px; border-radius: var(--r24);
+  display: grid; place-items: center; color: rgba(26,115,232,.45);
+  background: linear-gradient(150deg, rgba(26,115,232,.18), rgba(156,39,176,.12));
+  border: 4px solid rgba(255,255,255,.95); box-shadow: var(--shadow); }
+.chief-msg .quote { font-size: clamp(17px, 2vw, 22px); font-weight: 600; color: var(--ink); line-height: 1.55;
+  border-left: 4px solid var(--blue); padding-left: 18px; margin: 14px 0; }
+.chief-msg .body { font-size: 14px; color: var(--text); line-height: 1.8; }
+.chief-msg .sign { margin-top: 16px; font-size: 14px; }
+.chief-msg .sign b { color: var(--ink); display: block; font-size: 16px; }
+@media (max-width: 860px) { .chief { grid-template-columns: 1fr; } }
+
+/* รูปข่าวประชาสัมพันธ์ — สีผูกกับธีม */
+.pr-thumb { width: 96px; height: 64px; border-radius: 10px; flex-shrink: 0; display: grid; place-items: center;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--blue) 18%, transparent), color-mix(in srgb, var(--special) 10%, transparent));
+  color: color-mix(in srgb, var(--blue) 45%, transparent); border: 1px solid var(--border); }
+.pr-thumb-lg { width: 150px; height: 96px; border-radius: 12px; }
+
+/* Gallery */
+.gal { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.gal a { height: 130px; border-radius: var(--r16); display: grid; place-items: center; color: rgba(26,115,232,.4);
+  background: linear-gradient(135deg, rgba(26,115,232,.14), rgba(156,39,176,.1)); border: 1px solid var(--border);
+  transition: transform .15s; position: relative; overflow: hidden; }
+.gal a:hover { transform: scale(1.02); }
+.gal a span.cnt { position: absolute; bottom: 8px; right: 10px; font-size: 11px; color: #fff;
+  background: rgba(2,6,23,.55); padding: 2px 8px; border-radius: 999px; }
+
+/* FAQ */
+details.faq { border: 1px solid var(--border); border-radius: var(--r16); background: rgba(255,255,255,.86); margin-bottom: 10px; }
+details.faq summary { cursor: pointer; padding: 14px 18px; font-weight: 600; font-size: 14px; color: var(--ink);
+  list-style: none; display: flex; align-items: center; gap: 10px; }
+details.faq summary::-webkit-details-marker { display: none; }
+details.faq[open] summary { border-bottom: 1px solid var(--border); color: var(--blue-700); }
+details.faq .fa-body { padding: 14px 18px; font-size: 14px; color: var(--text); }
+
+/* Procurement table */
+.proc-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.proc-table th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.proc-table td { padding: 11px 12px; border-bottom: 1px solid var(--border); }
+.proc-table tr:last-child td { border-bottom: none; }
+
+@media (max-width: 860px) { .gal { grid-template-columns: repeat(2, 1fr); } .slide { height: 240px; } }
+
+/* Cookie consent (PDPA) */
+.cookiebar { position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 90; max-width: 720px; margin: 0 auto;
+  background: rgba(255,255,255,.97); border: 1px solid var(--border); border-radius: var(--r16);
+  box-shadow: var(--shadow); padding: 16px 20px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.cookiebar p { margin: 0; font-size: 13px; color: var(--text); flex: 1; min-width: 240px; }
+
+/* ปุ่มกลับขึ้นบน */
+.totop { position: fixed; right: 20px; bottom: 20px; z-index: 80; width: 48px; height: 48px; border-radius: 50%;
+  background: var(--blue); color: #fff; border: none; cursor: pointer; display: none; place-items: center;
+  box-shadow: var(--shadow-blue); transition: transform .15s; }
+.totop:hover { transform: translateY(-2px); background: var(--blue-700); }
+.totop.show { display: grid; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="container topbar-inner">
+    <div class="logo"><span class="material-symbols-rounded filled">local_police</span></div>
+    <div class="brand">กองวิชาการ<small>สำนักงานตำรวจแห่งชาติ</small></div>
+    <button class="menu-btn" onclick="document.querySelector('.nav').classList.toggle('open')" aria-label="เมนู">
+      <span class="material-symbols-rounded">menu</span>
+    </button>
+    <nav class="nav">
+      <a class="navlink" href="#">หน้าแรก</a>
+      <a class="navlink" href="#news">ข่าวสาร</a>
+      <a class="navlink" href="#docs">เอกสาร</a>
+      <a class="navlink" href="#proc">จัดซื้อจัดจ้าง</a>
+      <a class="navlink" href="#ita">ITA</a>
+      <a class="navlink" href="#">เกี่ยวกับ</a>
+      <a class="navlink" href="#">ติดต่อ</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- แบนเนอร์สไลด์ -->
+  <div class="slider">
+    <div class="slide s1 show">
+      <span class="eyebrow" style="background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3);color:#fff;">
+        <span class="material-symbols-rounded icon-sm filled">campaign</span> ประกาศสำคัญ</span>
+      <h2>ขอเชิญร่วมลงนามถวายพระพรชัยมงคลออนไลน์</h2>
+      <p>เนื่องในโอกาสวันเฉลิมพระชนมพรรษา — ลงนามผ่านเว็บไซต์ได้ตลอด 24 ชั่วโมง</p>
+      <a class="btn" style="background:#fff;color:var(--blue-700);">ลงนามถวายพระพร</a>
+    </div>
+    <div class="slide s2">
+      <h2>No Gift Policy ประจำปี 2569</h2>
+      <p>ผู้บังคับบัญชาและเจ้าหน้าที่ทุกนาย ไม่รับของขวัญและของกำนัลทุกชนิดจากการปฏิบัติหน้าที่</p>
+    </div>
+    <div class="slide s3">
+      <h2>E-book คู่มือการเลือกตั้งท้องถิ่น</h2>
+      <p>ดาวน์โหลดฟรี — ความรู้สำหรับประชาชนและเจ้าหน้าที่ผู้ปฏิบัติงาน</p>
+    </div>
+    <div class="dots"><i class="on" onclick="go(0)"></i><i onclick="go(1)"></i><i onclick="go(2)"></i></div>
+  </div>
+
+  <!-- สารจากผู้บังคับการ -->
+  <section class="block mt-3 mb-2">
+    <div class="card card-spacious chief" style="background:linear-gradient(120deg, rgba(255,255,255,.95), rgba(26,115,232,.06));">
+      <div class="chief-photo">
+        <div class="frame"><span class="material-symbols-rounded" style="font-size:84px;">person</span></div>
+        <span class="badge"><span class="material-symbols-rounded icon-sm filled">military_tech</span>ผู้บังคับการ</span>
+        <h3 class="mt-1" style="margin-bottom:2px;">พล.ต.ต. ตัวอย่าง นามสมมุติ</h3>
+        <div class="text-muted" style="font-size:13px;">ผู้บังคับการกองวิชาการ</div>
+      </div>
+      <div class="chief-msg">
+        <span class="tag"><span class="material-symbols-rounded icon-sm">format_quote</span> MESSAGE</span>
+        <h2 style="margin-bottom:0;">สารจากผู้บังคับการ</h2>
+        <div class="quote">"มุ่งมั่นพัฒนางานวิชาการตำรวจอย่างมืออาชีพ โปร่งใส และยึดประชาชนเป็นศูนย์กลาง"</div>
+        <p class="body">ขอต้อนรับทุกท่านเข้าสู่เว็บไซต์ของหน่วยงาน เรามุ่งมั่นยกระดับการให้บริการประชาชนด้วยความรวดเร็ว ถูกต้อง และเป็นธรรม พร้อมเปิดเผยข้อมูลข่าวสารอย่างโปร่งใสตรวจสอบได้ หากมีข้อเสนอแนะหรือข้อร้องเรียน สามารถติดต่อผ่านช่องทางบนเว็บไซต์นี้ได้ตลอดเวลา</p>
+        <div class="sign">
+          <b>พล.ต.ต. ตัวอย่าง นามสมมุติ</b>
+          <span class="text-muted">ผู้บังคับการกองวิชาการ สำนักงานตำรวจแห่งชาติ</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HERO ย่อ + ค้นหา -->
+  <section class="hero" style="padding:40px 0 28px;">
+    <h1 style="font-size:clamp(24px,3vw,36px);">ศูนย์ข้อมูลข่าวสาร <span class="grad">กองวิชาการ</span></h1>
+    <div class="searchbar mt-2">
+      <span class="material-symbols-rounded" style="color:var(--muted)">search</span>
+      <input type="search" placeholder="ค้นหาข่าว ประกาศ เอกสาร ทั้งเว็บ...">
+      <button class="btn primary">ค้นหา</button>
+    </div>
+    <div class="stats" style="margin-top:24px;">
+      <div class="stat"><b>128</b><span>ข่าวสาร</span></div>
+      <div class="stat"><b>56</b><span>เอกสาร</span></div>
+      <div class="stat"><b>12,480</b><span>ผู้เข้าชมเดือนนี้</span></div>
+    </div>
+  </section>
+
+  <!-- ข่าวกิจกรรม -->
+  <section class="block mb-4" id="news">
+    <div class="section-head">
+      <div><span class="tag"><span class="material-symbols-rounded icon-sm">photo_camera</span> ACTIVITY</span><h2>ข่าวกิจกรรม</h2></div>
+      <a class="btn" href="#">ดูทั้งหมด <span class="material-symbols-rounded icon-sm">arrow_forward</span></a>
+    </div>
+    <div class="grid grid-3">
+      <a class="card news-card" href="#">
+        <div class="news-thumb"><span class="material-symbols-rounded icon-xl">image</span></div>
+        <div class="nc-body">
+          <span class="lr-date">10 มิ.ย. 2569</span>
+          <div class="nc-title">ผู้บังคับการพร้อมข้าราชการตำรวจในสังกัด ร่วมกิจกรรมจิตอาสาพัฒนา ปรับภูมิทัศน์รอบสำนักงาน</div>
+        </div>
+      </a>
+      <a class="card news-card" href="#">
+        <div class="news-thumb"><span class="material-symbols-rounded icon-xl">image</span></div>
+        <div class="nc-body">
+          <span class="lr-date">8 มิ.ย. 2569</span>
+          <div class="nc-title">ประชุมชี้แจงข้อราชการและกำชับการปฏิบัติงาน ประจำเดือนมิถุนายน</div>
+        </div>
+      </a>
+      <a class="card news-card" href="#">
+        <div class="news-thumb"><span class="material-symbols-rounded icon-xl">image</span></div>
+        <div class="nc-body">
+          <span class="lr-date">2 มิ.ย. 2569</span>
+          <div class="nc-title">เข้าแถวเคารพธงชาติประจำเดือน ณ ลานหน้าพระบรมราชานุสาวรีย์ รัชกาลที่ 4</div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ข่าวประชาสัมพันธ์ (section เด่น) -->
+  <section class="block mb-4">
+    <div class="card card-spacious" style="background:linear-gradient(135deg, color-mix(in srgb, var(--blue) 9%, transparent), rgba(255,255,255,.92) 55%); border:2px solid color-mix(in srgb, var(--blue) 30%, transparent);">
+      <div class="section-head">
+        <div>
+          <span class="tag"><span class="material-symbols-rounded icon-sm">campaign</span> PR</span>
+          <h2>ข่าวประชาสัมพันธ์</h2>
+          <p>ประกาศและข่าวสารสำคัญถึงประชาชนและข้าราชการในสังกัด</p>
+        </div>
+        <a class="btn primary" href="#">ดูทั้งหมด <span class="material-symbols-rounded icon-sm">arrow_forward</span></a>
+      </div>
+      <!-- ข่าวเด่นล่าสุด -->
+      <a class="card" href="#" style="display:flex;gap:16px;align-items:center;padding:18px 20px;border:1px solid color-mix(in srgb, var(--blue) 25%, transparent);margin-bottom:14px;">
+        <div class="pr-thumb pr-thumb-lg"><span class="material-symbols-rounded icon-lg">image</span></div>
+        <div style="flex:1;">
+          <span class="badge" style="font-size:11px;padding:2px 9px;">ล่าสุด</span>
+          <div style="font-weight:600;color:var(--ink);font-size:16px;line-height:1.5;margin-top:4px;">ประชาสัมพันธ์แบบประเมินและวิเคราะห์ความเครียดด้วยตนเอง ของโรงพยาบาลตำรวจ</div>
+          <div class="lr-date">9 มิ.ย. 2569 · อ่าน 1,240 ครั้ง</div>
+        </div>
+        <span class="material-symbols-rounded" style="color:var(--blue);">arrow_forward</span>
+      </a>
+      <div class="grid grid-2" style="gap:4px 24px;">
+        <a class="list-row" href="#"><div class="pr-thumb"><span class="material-symbols-rounded">image</span></div>
+          <div><div class="lr-title">เจตนารมณ์การป้องกันและแก้ไขปัญหาการล่วงละเมิดหรือคุกคามทางเพศในที่ทำงาน</div><div class="lr-date">5 มิ.ย. 2569</div></div></a>
+        <a class="list-row" href="#"><div class="pr-thumb"><span class="material-symbols-rounded">image</span></div>
+          <div><div class="lr-title">ขอเชิญร่วมลงนามถวายพระพรทางออนไลน์</div><div class="lr-date">1 มิ.ย. 2569</div></div></a>
+        <a class="list-row" href="#"><div class="pr-thumb"><span class="material-symbols-rounded">image</span></div>
+          <div><div class="lr-title">ประกาศเจตนารมณ์ No Gift Policy ประจำปีงบประมาณ 2569</div><div class="lr-date">28 พ.ค. 2569</div></div></a>
+        <a class="list-row" href="#"><div class="pr-thumb"><span class="material-symbols-rounded">image</span></div>
+          <div><div class="lr-title">กำหนดการตรวจสุขภาพประจำปีข้าราชการตำรวจในสังกัด</div><div class="lr-date">22 พ.ค. 2569</div></div></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ประกาศ/ดาวน์โหลด -->
+  <section class="block mb-4">
+    <div class="card">
+      <div class="section-head" style="margin-bottom:8px;">
+        <div><span class="tag"><span class="material-symbols-rounded icon-sm">download</span> DOWNLOAD</span><h3>ประกาศ / ดาวน์โหลด</h3></div>
+        <a class="btn small" href="#">ทั้งหมด</a>
+      </div>
+      <div class="grid grid-2" style="gap:4px 24px;">
+        <a class="list-row" href="#"><div class="lr-icon" style="background:rgba(234,67,53,.08);color:var(--danger);"><span class="material-symbols-rounded">picture_as_pdf</span></div>
+          <div><div class="lr-title">E-book คู่มือการเลือกตั้งท้องถิ่น <span class="badge gold" style="font-size:11px;padding:2px 8px;">ใหม่</span></div><div class="lr-date">PDF · 4.2 MB</div></div></a>
+        <a class="list-row" href="#"><div class="lr-icon" style="background:rgba(234,67,53,.08);color:var(--danger);"><span class="material-symbols-rounded">picture_as_pdf</span></div>
+          <div><div class="lr-title">แนวทางการปฏิบัติงานด้านมวลชนสัมพันธ์ต่อศาสนิกชนต่าง ๆ</div><div class="lr-date">PDF · 2.8 MB</div></div></a>
+        <a class="list-row" href="#"><div class="lr-icon" style="background:rgba(234,67,53,.08);color:var(--danger);"><span class="material-symbols-rounded">picture_as_pdf</span></div>
+          <div><div class="lr-title">แบบฟอร์มคำร้องขอหนังสือรับรอง</div><div class="lr-date">PDF · 0.3 MB</div></div></a>
+        <a class="list-row" href="#"><div class="lr-icon" style="background:rgba(234,67,53,.08);color:var(--danger);"><span class="material-symbols-rounded">picture_as_pdf</span></div>
+          <div><div class="lr-title">ประกาศรายชื่อผู้มีสิทธิเข้ารับการคัดเลือก ประจำปี 2569</div><div class="lr-date">PDF · 1.1 MB</div></div></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- เอกสารเผยแพร่ (section เด่น) -->
+  <section class="block mb-4" id="docs">
+    <div class="card card-spacious" style="background:linear-gradient(135deg, color-mix(in srgb, var(--blue) 8%, transparent), rgba(255,255,255,.92) 55%); border:2px solid color-mix(in srgb, var(--blue) 28%, transparent);">
+      <div class="section-head">
+        <div>
+          <span class="tag"><span class="material-symbols-rounded icon-sm">folder_open</span> DOCUMENTS</span>
+          <h2>เอกสารเผยแพร่</h2>
+          <p>คู่มือ แบบฟอร์ม ระเบียบ และวารสาร — ดาวน์โหลดฟรี รวม 56 รายการ</p>
+        </div>
+        <div class="searchbar" style="max-width:340px;margin:0;box-shadow:var(--shadow-soft);">
+          <span class="material-symbols-rounded" style="color:var(--muted)">search</span>
+          <input type="search" placeholder="ค้นหาเอกสาร...">
+        </div>
+      </div>
+      <div class="tool-grid">
+        <a class="tool" href="#" style="padding:22px 18px;"><div class="ti" style="width:54px;height:54px;"><span class="material-symbols-rounded icon-lg">menu_book</span></div><div><div class="tt">คู่มือประชาชน</div><div class="ts">12 รายการ</div></div></a>
+        <a class="tool" href="#" style="padding:22px 18px;"><div class="ti" style="width:54px;height:54px;"><span class="material-symbols-rounded icon-lg">description</span></div><div><div class="tt">แบบฟอร์ม</div><div class="ts">18 รายการ</div></div></a>
+        <a class="tool special" href="#" style="padding:22px 18px;"><div class="ti" style="width:54px;height:54px;"><span class="material-symbols-rounded icon-lg">gavel</span></div><div><div class="tt">กฎหมาย / ระเบียบ</div><div class="ts">15 รายการ</div></div></a>
+        <a class="tool warning" href="#" style="padding:22px 18px;"><div class="ti" style="width:54px;height:54px;"><span class="material-symbols-rounded icon-lg">auto_stories</span></div><div><div class="tt">วารสาร</div><div class="ts">11 ฉบับ</div></div></a>
+      </div>
+      <div class="grid grid-2 mt-3" style="gap:8px 24px;">
+        <a class="list-row" href="#"><div class="lr-icon" style="background:rgba(234,67,53,.08);color:var(--danger);"><span class="material-symbols-rounded">picture_as_pdf</span></div>
+          <div style="flex:1;"><div class="lr-title">คู่มือการขอหนังสือรับรอง ฉบับปรับปรุง 2569 <span class="badge gold" style="font-size:11px;padding:2px 8px;">ใหม่</span></div><div class="lr-date">คู่มือประชาชน · PDF · 1.8 MB</div></div>
+          <span class="btn small" style="flex-shrink:0;"><span class="material-symbols-rounded icon-sm">download</span></span></a>
+        <a class="list-row" href="#"><div class="lr-icon" style="background:rgba(234,67,53,.08);color:var(--danger);"><span class="material-symbols-rounded">picture_as_pdf</span></div>
+          <div style="flex:1;"><div class="lr-title">แบบฟอร์มคำร้องทั่วไป (แบบ กช.1)</div><div class="lr-date">แบบฟอร์ม · PDF · 0.2 MB</div></div>
+          <span class="btn small" style="flex-shrink:0;"><span class="material-symbols-rounded icon-sm">download</span></span></a>
+        <a class="list-row" href="#"><div class="lr-icon" style="background:rgba(156,39,176,.1);color:var(--special);"><span class="material-symbols-rounded">gavel</span></div>
+          <div style="flex:1;"><div class="lr-title">ระเบียบว่าด้วยการรักษาความลับของทางราชการ พ.ศ. 2544</div><div class="lr-date">กฎหมาย/ระเบียบ · PDF · 3.1 MB</div></div>
+          <span class="btn small" style="flex-shrink:0;"><span class="material-symbols-rounded icon-sm">download</span></span></a>
+        <a class="list-row" href="#"><div class="lr-icon" style="background:rgba(249,171,0,.12);color:#B07000;"><span class="material-symbols-rounded">auto_stories</span></div>
+          <div style="flex:1;"><div class="lr-title">วารสารหน่วยงาน ปีที่ 60 ฉบับ 480</div><div class="lr-date">วารสาร · PDF · 12.4 MB</div></div>
+          <span class="btn small" style="flex-shrink:0;"><span class="material-symbols-rounded icon-sm">download</span></span></a>
+      </div>
+      <div class="text-center mt-3">
+        <a class="btn primary large" href="#"><span class="material-symbols-rounded">folder_open</span>ดูเอกสารทั้งหมด 56 รายการ</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ITA + จัดซื้อจัดจ้าง -->
+  <section class="grid grid-2 mb-4" id="ita">
+    <div class="card">
+      <div class="section-head" style="margin-bottom:10px;">
+        <div><span class="tag"><span class="material-symbols-rounded icon-sm">verified</span> ITA</span><h3>การเปิดเผยข้อมูลสาธารณะ (OIT)</h3></div>
+        <a class="btn small" href="#">ทั้งหมด</a>
+      </div>
+      <div class="grid grid-2" style="gap:10px;">
+        <a class="tool" href="#"><div class="ti"><span class="material-symbols-rounded">apartment</span></div><div><div class="tt">ข้อมูลพื้นฐาน</div><div class="ts">โครงสร้าง · ผู้บริหาร O1–O6</div></div></a>
+        <a class="tool" href="#"><div class="ti"><span class="material-symbols-rounded">payments</span></div><div><div class="tt">การบริหารงาน-งบประมาณ</div><div class="ts">O7–O12</div></div></a>
+        <a class="tool" href="#"><div class="ti"><span class="material-symbols-rounded">manage_accounts</span></div><div><div class="tt">การบริหารบุคคล</div><div class="ts">O13–O18</div></div></a>
+        <a class="tool special" href="#"><div class="ti"><span class="material-symbols-rounded">shield</span></div><div><div class="tt">การป้องกันการทุจริต</div><div class="ts">O19–O43</div></div></a>
+      </div>
+    </div>
+    <div class="card" id="proc">
+      <div class="section-head" style="margin-bottom:8px;">
+        <div><span class="tag"><span class="material-symbols-rounded icon-sm">shopping_cart</span> PROCUREMENT</span><h3>จัดซื้อจัดจ้าง</h3></div>
+        <a class="btn small" href="#">ทั้งหมด</a>
+      </div>
+      <table class="proc-table">
+        <tr><th>เรื่อง</th><th>ประเภท</th><th>วันที่</th></tr>
+        <tr><td>ประกวดราคาซื้อครุภัณฑ์คอมพิวเตอร์ 20 เครื่อง</td><td><span class="badge">e-bidding</span></td><td class="lr-date">9 มิ.ย. 69</td></tr>
+        <tr><td>ราคากลางจ้างเหมาบริการทำความสะอาด ปีงบ 2570</td><td><span class="badge warning">ราคากลาง</span></td><td class="lr-date">4 มิ.ย. 69</td></tr>
+        <tr><td>ประกาศผลผู้ชนะการจัดซื้อวัสดุสำนักงาน ไตรมาส 3</td><td><span class="badge success">ผลการพิจารณา</span></td><td class="lr-date">28 พ.ค. 69</td></tr>
+      </table>
+    </div>
+  </section>
+
+
+  <!-- FAQ + ร้องเรียน -->
+  <section class="grid grid-2 mb-4">
+    <div>
+      <div class="section-head" style="margin-bottom:12px;">
+        <div><span class="tag"><span class="material-symbols-rounded icon-sm">quiz</span> FAQ</span><h3>คำถามที่พบบ่อย</h3></div>
+      </div>
+      <details class="faq" open>
+        <summary><span class="material-symbols-rounded icon-sm" style="color:var(--blue)">help</span>ขอหนังสือรับรองต้องใช้เอกสารอะไรบ้าง?</summary>
+        <div class="fa-body">บัตรประจำตัวประชาชนตัวจริง พร้อมสำเนา 1 ชุด และแบบฟอร์มคำร้องที่ดาวน์โหลดได้จากหน้าเอกสารเผยแพร่</div>
+      </details>
+      <details class="faq">
+        <summary><span class="material-symbols-rounded icon-sm" style="color:var(--blue)">help</span>ติดต่อราชการได้วัน-เวลาไหน?</summary>
+        <div class="fa-body">วันจันทร์–ศุกร์ เวลา 08.30–16.30 น. เว้นวันหยุดราชการ</div>
+      </details>
+      <details class="faq">
+        <summary><span class="material-symbols-rounded icon-sm" style="color:var(--blue)">help</span>แจ้งเรื่องร้องเรียนได้ช่องทางใดบ้าง?</summary>
+        <div class="fa-body">ผ่านแบบฟอร์มร้องเรียนบนเว็บไซต์ โทรศัพท์ หรือยื่นหนังสือด้วยตนเองที่หน่วยงาน</div>
+      </details>
+    </div>
+    <div>
+      <div class="section-head" style="margin-bottom:12px;">
+        <div><span class="tag"><span class="material-symbols-rounded icon-sm">support_agent</span> CONTACT</span><h3>ร้องเรียน / ติดต่อ</h3></div>
+      </div>
+      <div class="card text-center" style="padding:18px;">
+        <div class="flex items-center justify-center gap-1">
+          <span class="material-symbols-rounded" style="color:var(--danger)">support_agent</span>
+          <b style="color:var(--ink)">ร้องเรียน – ร้องทุกข์</b>
+        </div>
+        <p class="text-muted" style="font-size:13px;margin:8px 0 12px;">แจ้งเรื่องร้องเรียนการทุจริตและประพฤติมิชอบ — ข้อมูลผู้แจ้งถูกเก็บเป็นความลับ</p>
+        <a class="btn danger" href="#">แจ้งเรื่องร้องเรียน</a>
+      </div>
+      <div class="card mt-2" style="padding:18px;">
+        <div class="flex items-center gap-1 mb-1"><span class="material-symbols-rounded" style="color:var(--blue)">location_on</span><b style="color:var(--ink)">ติดต่อหน่วยงาน</b></div>
+        <p class="text-muted" style="font-size:13px;margin:0 0 4px;">อาคาร 1 สำนักงานตำรวจแห่งชาติ ถนนพระรามที่ 1 ปทุมวัน กรุงเทพฯ 10330</p>
+        <p class="text-muted" style="font-size:13px;margin:0;">โทร 0-2205-0000 · saraban@police.go.th · จันทร์–ศุกร์ 08.30–16.30 น.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ลิงก์หน่วยงานที่เกี่ยวข้อง -->
+  <section class="block mb-4">
+    <div class="section-head">
+      <div><span class="tag"><span class="material-symbols-rounded icon-sm">link</span> LINKS</span><h2>ลิงก์หน่วยงานที่เกี่ยวข้อง</h2><p>หน่วยงานและบริการสำคัญที่ประชาชนใช้บ่อย — admin เพิ่ม/แก้ลิงก์เองได้</p></div>
+    </div>
+    <div class="tool-grid">
+      <a class="tool" href="#"><div class="ti"><span class="material-symbols-rounded">local_police</span></div><div><div class="tt">สำนักงานตำรวจแห่งชาติ</div><div class="ts">royalthaipolice.go.th</div></div></a>
+      <a class="tool" href="#"><div class="ti"><span class="material-symbols-rounded">laptop_chromebook</span></div><div><div class="tt">แจ้งความออนไลน์</div><div class="ts">thaipoliceonline.go.th</div></div></a>
+      <a class="tool warning" href="#"><div class="ti"><span class="material-symbols-rounded">e911_emergency</span></div><div><div class="tt">สายด่วน 191 / 1599</div><div class="ts">เหตุด่วนเหตุร้าย</div></div></a>
+      <a class="tool" href="#"><div class="ti"><span class="material-symbols-rounded">gavel</span></div><div><div class="tt">สำนักงานกฎหมายและคดี</div><div class="ts">หน่วยงานต้นสังกัด</div></div></a>
+      <a class="tool special" href="#"><div class="ti"><span class="material-symbols-rounded">account_balance</span></div><div><div class="tt">ศูนย์ข้อมูลข่าวสารราชการ</div><div class="ts">oic.go.th</div></div></a>
+      <a class="tool" href="#"><div class="ti"><span class="material-symbols-rounded">badge</span></div><div><div class="tt">ตรวจสอบประวัติอาชญากรรม</div><div class="ts">crd-check.com</div></div></a>
+      <a class="tool" href="#"><div class="ti"><span class="material-symbols-rounded">apps</span></div><div><div class="tt">แอปพลิเคชันภาครัฐ</div><div class="ts">ทางรัฐ / ThaID</div></div></a>
+      <a class="tool special" href="#"><div class="ti"><span class="material-symbols-rounded">report</span></div><div><div class="tt">ป.ป.ช. แจ้งเบาะแสทุจริต</div><div class="ts">nacc.go.th</div></div></a>
+    </div>
+  </section>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div>
+        <div class="flex items-center gap-1 mb-1">
+          <div class="logo"><span class="material-symbols-rounded filled">local_police</span></div>
+          <div class="brand">กองวิชาการ</div>
+        </div>
+        <p class="text-muted" style="font-size:14px;max-width:34ch;">วิสัยทัศน์: "เป็นผู้เชี่ยวชาญด้านวิชาการอย่างมืออาชีพ"</p>
+        <div class="flex gap-1 mt-1">
+          <a class="btn small" href="#">Facebook</a>
+          <a class="btn small" href="#">YouTube</a>
+          <a class="btn small" href="#">TikTok</a>
+        </div>
+      </div>
+      <div><h4>ข่าวสาร</h4><a href="#">ข่าวกิจกรรม</a><a href="#">ประชาสัมพันธ์</a><a href="#">ประกาศ</a><a href="#">จัดซื้อจัดจ้าง</a></div>
+      <div><h4>หน่วยงาน</h4><a href="#">ITA</a><a href="#">โครงสร้าง</a><a href="#">ติดต่อ</a></div>
+      <div><h4>นโยบาย</h4><a href="#">ความเป็นส่วนตัว</a><a href="#">นโยบายคุกกี้</a><a href="#">No Gift Policy</a><a href="#">ร้องเรียน-ร้องทุกข์</a></div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2569 กองวิชาการ สำนักงานตำรวจแห่งชาติ</span>
+      <span>โทร 0-2205-0000 · saraban@police.go.th</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Cookie consent (PDPA) -->
+<div class="cookiebar" id="cookiebar">
+  <span class="material-symbols-rounded" style="color:var(--blue);">cookie</span>
+  <p>เว็บไซต์นี้ใช้คุกกี้ที่จำเป็นต่อการทำงานของเว็บไซต์ และคุกกี้เพื่อวิเคราะห์การใช้งาน เพื่อพัฒนาการให้บริการ อ่านรายละเอียดที่ <a href="#">นโยบายการใช้คุกกี้</a></p>
+  <div class="flex gap-1">
+    <button class="btn small" onclick="document.getElementById('cookiebar').style.display='none'">ปฏิเสธ</button>
+    <button class="btn small primary" onclick="document.getElementById('cookiebar').style.display='none'">ยอมรับทั้งหมด</button>
+  </div>
+</div>
+
+<!-- ปุ่มกลับขึ้นบน -->
+<button class="totop" id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="กลับขึ้นด้านบน">
+  <span class="material-symbols-rounded">arrow_upward</span>
+</button>
+
+<script>
+// สไลด์อัตโนมัติ
+let cur = 0;
+const slides = document.querySelectorAll('.slide'), dots = document.querySelectorAll('.dots i');
+function go(n){ slides[cur].classList.remove('show'); dots[cur].classList.remove('on');
+  cur = n; slides[cur].classList.add('show'); dots[cur].classList.add('on'); }
+setInterval(() => go((cur+1) % slides.length), 5000);
+
+// ปุ่มกลับขึ้นบน — โผล่เมื่อเลื่อนลงเกิน 600px
+window.addEventListener('scroll', () => {
+  document.getElementById('totop').classList.toggle('show', window.scrollY > 600);
+});
+</script>
+</body>
+</html>

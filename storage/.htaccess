@@ -1,0 +1,7 @@
+# กันการเข้าถึงไฟล์ภายในระบบ (สำรอง/ชั่วคราว) จากเว็บโดยตรง
+Require all denied
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>
+Options -Indexes

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบจัดการเว็บไซต์ — Admin (Mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link rel="stylesheet" href="theme-kit.css">
+<style>
+.topbar .logo { width: 50px; height: 50px; font-size: 26px; border-radius: 16px; }
+.topbar .brand { font-size: 26px; }
+.topbar .brand small { font-size: 13px; margin-top: -3px; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.admin-table th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .5px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.admin-table td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-table tr:hover td { background: rgba(26,115,232,.03); }
+.stat-card { display: flex; align-items: center; gap: 14px; }
+.stat-card .si { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; flex-shrink: 0; }
+.stat-card b { font-size: 26px; color: var(--ink); display: block; line-height: 1.1; }
+.stat-card span { font-size: 13px; color: var(--muted); }
+/* กราฟผู้เข้าชม (CSS bar chart) */
+.chart { display: flex; align-items: flex-end; gap: 8px; height: 150px; padding-top: 10px; }
+.chart .bar { flex: 1; border-radius: 8px 8px 4px 4px; background: linear-gradient(180deg, var(--blue), rgba(26,115,232,.45));
+  position: relative; min-width: 18px; transition: opacity .15s; }
+.chart .bar:hover { opacity: .8; }
+.chart .bar i { position: absolute; top: -20px; left: 0; right: 0; text-align: center; font-style: normal; font-size: 10px; color: var(--muted); }
+.chart-x { display: flex; gap: 8px; margin-top: 6px; }
+.chart-x span { flex: 1; text-align: center; font-size: 11px; color: var(--muted); min-width: 18px; }
+/* แท็บสองภาษา */
+.lang-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.lang-tabs button { border: 1px solid var(--border); background: rgba(255,255,255,.7); color: var(--muted);
+  font-family: inherit; font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 999px; cursor: pointer; }
+.lang-tabs button.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+.side-menu a { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px;
+  font-size: 14px; font-weight: 500; color: var(--text); }
+.side-menu a:hover { background: rgba(26,115,232,.07); color: var(--blue-700); }
+.side-menu a.on { background: var(--blue); color: #fff; box-shadow: var(--shadow-blue); }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR (Admin) -->
+<header class="topbar">
+  <div class="container topbar-inner">
+    <div class="logo"><span class="material-symbols-rounded filled">admin_panel_settings</span></div>
+    <div class="brand">ระบบจัดการเว็บไซต์<small>กองวิชาการ — สำหรับเจ้าหน้าที่</small></div>
+    <nav class="nav">
+      <span class="badge success"><span class="material-symbols-rounded icon-sm">verified_user</span>เข้าสู่ระบบ: admin</span>
+      <a class="btn danger" href="mockup-home.html"><span class="material-symbols-rounded icon-sm">logout</span>ออกจากระบบ</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container mt-3 mb-4">
+  <div class="grid" style="grid-template-columns:220px 1fr;gap:16px;align-items:start;">
+
+    <!-- เมนูซ้าย -->
+    <div class="card card-compact side-menu">
+      <a class="on" href="#"><span class="material-symbols-rounded icon-sm">dashboard</span>แดชบอร์ด</a>
+      <a href="#"><span class="material-symbols-rounded icon-sm">newspaper</span>จัดการข่าว</a>
+      <a href="#"><span class="material-symbols-rounded icon-sm">view_carousel</span>แบนเนอร์สไลด์</a>
+      <a href="#"><span class="material-symbols-rounded icon-sm">folder_open</span>เอกสารเผยแพร่</a>
+      <a href="#"><span class="material-symbols-rounded icon-sm">verified</span>ITA / OIT</a>
+      <a href="#"><span class="material-symbols-rounded icon-sm">shopping_cart</span>จัดซื้อจัดจ้าง</a>
+      <a href="#"><span class="material-symbols-rounded icon-sm">person</span>สารผู้บังคับการ</a>
+      <a href="#"><span class="material-symbols-rounded icon-sm">quiz</span>FAQ</a>
+      <a href="#"><span class="material-symbols-rounded icon-sm">support_agent</span>เรื่องร้องเรียน <span class="badge danger" style="font-size:10px;padding:1px 7px;margin-left:auto;">3</span></a>
+      <a href="#"><span class="material-symbols-rounded icon-sm">link</span>ลิงก์ที่เกี่ยวข้อง</a>
+      <a href="#"><span class="material-symbols-rounded icon-sm">palette</span>ธีมเว็บไซต์</a>
+      <a href="#"><span class="material-symbols-rounded icon-sm">settings</span>ตั้งค่าเว็บไซต์</a>
+    </div>
+
+    <!-- เนื้อหาหลัก -->
+    <div>
+      <!-- สถิติ -->
+      <div class="grid grid-4 mb-2">
+        <div class="card card-compact stat-card">
+          <div class="si" style="background:rgba(26,115,232,.1);color:var(--blue)"><span class="material-symbols-rounded">visibility</span></div>
+          <div><b>12,480</b><span>ผู้เข้าชมเดือนนี้</span></div>
+        </div>
+        <div class="card card-compact stat-card">
+          <div class="si" style="background:rgba(52,168,83,.1);color:var(--success)"><span class="material-symbols-rounded">newspaper</span></div>
+          <div><b>128</b><span>ข่าวทั้งหมด</span></div>
+        </div>
+        <div class="card card-compact stat-card">
+          <div class="si" style="background:rgba(249,171,0,.12);color:#B07000"><span class="material-symbols-rounded">folder_open</span></div>
+          <div><b>56</b><span>เอกสาร</span></div>
+        </div>
+        <div class="card card-compact stat-card">
+          <div class="si" style="background:rgba(234,67,53,.08);color:var(--danger)"><span class="material-symbols-rounded">support_agent</span></div>
+          <div><b>3</b><span>ร้องเรียนรอตอบ</span></div>
+        </div>
+      </div>
+
+      <!-- กราฟผู้เข้าชม -->
+      <div class="card mb-2">
+        <div class="section-head" style="margin-bottom:4px;">
+          <div><span class="tag">ANALYTICS</span><h3>ผู้เข้าชม 14 วันล่าสุด</h3></div>
+          <div class="cats"><button class="cat active">รายวัน</button><button class="cat">รายเดือน</button><button class="cat">หน้ายอดนิยม</button></div>
+        </div>
+        <div class="chart">
+          <div class="bar" style="height:45%"><i>412</i></div><div class="bar" style="height:60%"><i>545</i></div>
+          <div class="bar" style="height:38%"><i>351</i></div><div class="bar" style="height:52%"><i>473</i></div>
+          <div class="bar" style="height:71%"><i>640</i></div><div class="bar" style="height:64%"><i>581</i></div>
+          <div class="bar" style="height:30%"><i>278</i></div><div class="bar" style="height:42%"><i>389</i></div>
+          <div class="bar" style="height:58%"><i>522</i></div><div class="bar" style="height:75%"><i>684</i></div>
+          <div class="bar" style="height:67%"><i>602</i></div><div class="bar" style="height:88%"><i>795</i></div>
+          <div class="bar" style="height:80%"><i>726</i></div><div class="bar" style="height:100%"><i>902</i></div>
+        </div>
+        <div class="chart-x">
+          <span>29</span><span>30</span><span>31</span><span>1</span><span>2</span><span>3</span><span>4</span>
+          <span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <!-- ตารางข่าวล่าสุด -->
+        <div class="card">
+          <div class="section-head" style="margin-bottom:8px;">
+            <div><span class="tag">POSTS</span><h3>ข่าวล่าสุด</h3></div>
+            <a class="btn small primary" href="#"><span class="material-symbols-rounded icon-sm">add</span>เพิ่มข่าว</a>
+          </div>
+          <table class="admin-table">
+            <tr><th>หัวข้อ</th><th>ประเภท</th><th></th></tr>
+            <tr>
+              <td>กิจกรรมจิตอาสาพัฒนา ปรับภูมิทัศน์</td>
+              <td><span class="badge">กิจกรรม</span></td>
+              <td style="white-space:nowrap;"><button class="btn small">แก้ไข</button> <button class="btn small danger">ลบ</button></td>
+            </tr>
+            <tr>
+              <td>แบบประเมินความเครียด รพ.ตำรวจ</td>
+              <td><span class="badge success">ประชาสัมพันธ์</span></td>
+              <td style="white-space:nowrap;"><button class="btn small">แก้ไข</button> <button class="btn small danger">ลบ</button></td>
+            </tr>
+            <tr>
+              <td>E-book คู่มือการเลือกตั้งท้องถิ่น</td>
+              <td><span class="badge warning">ประกาศ</span></td>
+              <td style="white-space:nowrap;"><button class="btn small">แก้ไข</button> <button class="btn small danger">ลบ</button></td>
+            </tr>
+            <tr>
+              <td>ประชุมชี้แจงข้อราชการ มิ.ย.</td>
+              <td><span class="badge">กิจกรรม</span></td>
+              <td style="white-space:nowrap;"><button class="btn small">แก้ไข</button> <button class="btn small danger">ลบ</button></td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- ฟอร์มเพิ่มข่าว (สองภาษา) -->
+        <div class="card">
+          <div class="section-head" style="margin-bottom:8px;">
+            <div><span class="tag">NEW POST</span><h3>เพิ่มข่าวใหม่</h3></div>
+          </div>
+          <label>ประเภทข่าว</label>
+          <select class="mb-2">
+            <option>ข่าวกิจกรรม</option>
+            <option>ข่าวประชาสัมพันธ์</option>
+            <option>ประกาศ / ดาวน์โหลด</option>
+            <option>จัดซื้อจัดจ้าง</option>
+          </select>
+          <label>หัวข้อข่าว</label>
+          <input type="text" placeholder="เช่น กิจกรรมจิตอาสาประจำเดือน..." class="mb-2">
+          <label>เนื้อหา</label>
+          <textarea rows="3" placeholder="รายละเอียดข่าว..." class="mb-2"></textarea>
+          <label>รูปภาพ / ไฟล์แนบ</label>
+          <div class="dropzone mb-2" style="padding:20px;">
+            <span class="material-symbols-rounded icon-lg" style="color:var(--blue)">cloud_upload</span>
+            <p style="margin:4px 0 0;font-size:13px;"><b>ลากไฟล์มาวาง</b> หรือคลิกเลือก (JPG, PNG, PDF)</p>
+          </div>
+          <div class="flex gap-1">
+            <button class="btn primary"><span class="material-symbols-rounded icon-sm">publish</span>เผยแพร่</button>
+            <button class="btn">บันทึกฉบับร่าง</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ธีมเว็บไซต์ -->
+      <div class="card mt-2">
+        <div class="section-head" style="margin-bottom:8px;">
+          <div><span class="tag"><span class="material-symbols-rounded icon-sm">palette</span> THEME</span><h3>ธีมเว็บไซต์</h3>
+          <p>เปลี่ยนสีหลักของทั้งเว็บได้ทันที — <b>ลองคลิกดูได้เลย</b> (ดีฟอลต์: น้ำเงิน Material Blue)</p></div>
+          <button class="btn small" onclick="setTheme('#1A73E8','#1557B0',this)"><span class="material-symbols-rounded icon-sm">restart_alt</span>คืนค่าดีฟอลต์</button>
+        </div>
+        <div class="flex gap-1" style="flex-wrap:wrap;align-items:center;">
+          <button class="cat active" onclick="setTheme('#1A73E8','#1557B0',this)"><i style="width:14px;height:14px;border-radius:50%;background:#1A73E8;display:inline-block;"></i>น้ำเงิน (ดีฟอลต์)</button>
+          <button class="cat" onclick="setTheme('#0F4C9C','#093567',this)"><i style="width:14px;height:14px;border-radius:50%;background:#0F4C9C;display:inline-block;"></i>กรมท่า</button>
+          <button class="cat" onclick="setTheme('#16A34A','#0F7A36',this)"><i style="width:14px;height:14px;border-radius:50%;background:#16A34A;display:inline-block;"></i>เขียว</button>
+          <button class="cat" onclick="setTheme('#7C3AED','#5B21B6',this)"><i style="width:14px;height:14px;border-radius:50%;background:#7C3AED;display:inline-block;"></i>ม่วง</button>
+          <button class="cat" onclick="setTheme('#EA580C','#B23F06',this)"><i style="width:14px;height:14px;border-radius:50%;background:#EA580C;display:inline-block;"></i>ส้ม</button>
+          <button class="cat" onclick="setTheme('#B91C1C','#7F1212',this)"><i style="width:14px;height:14px;border-radius:50%;background:#B91C1C;display:inline-block;"></i>เลือดหมู</button>
+          <label style="display:inline-flex;align-items:center;gap:8px;margin:0;font-size:13px;color:var(--muted);">
+            กำหนดเอง <input type="color" value="#1A73E8" style="width:42px;height:32px;padding:2px;border-radius:8px;cursor:pointer;" onchange="setTheme(this.value, shade(this.value), null)">
+          </label>
+        </div>
+      </div>
+
+      <!-- ความปลอดภัย -->
+      <div class="card mt-2">
+        <div class="section-head" style="margin-bottom:8px;">
+          <div><span class="tag"><span class="material-symbols-rounded icon-sm">security</span> SECURITY</span><h3>ความปลอดภัยของระบบ</h3></div>
+        </div>
+        <div class="grid grid-4">
+          <div class="alert success" style="margin:0;"><span class="material-symbols-rounded">lock</span><div style="font-size:13px;"><b>HTTPS</b><br>บังคับเข้ารหัสทุกหน้า</div></div>
+          <div class="alert success" style="margin:0;"><span class="material-symbols-rounded">key</span><div style="font-size:13px;"><b>รหัสผ่าน</b><br>เข้ารหัส bcrypt</div></div>
+          <div class="alert success" style="margin:0;"><span class="material-symbols-rounded">shield</span><div style="font-size:13px;"><b>กัน SQL Injection / XSS / CSRF</b><br>ทุกฟอร์ม</div></div>
+          <div class="alert warning" style="margin:0;"><span class="material-symbols-rounded">history</span><div style="font-size:13px;"><b>Login ผิด 5 ครั้ง</b><br>ล็อก 15 นาที + บันทึก log</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// เปลี่ยนธีมสด — ของจริงจะบันทึกลงฐานข้อมูลแล้วมีผลทั้งเว็บ
+function setTheme(c, c700, btn) {
+  document.documentElement.style.setProperty('--blue', c);
+  document.documentElement.style.setProperty('--blue-700', c700);
+  if (btn && btn.classList.contains('cat')) {
+    btn.parentElement.querySelectorAll('.cat').forEach(x => x.classList.remove('active'));
+    btn.classList.add('active');
+  }
+}
+// คำนวณสีเข้ม (hover) จากสีที่เลือกเอง
+function shade(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const f = x => Math.max(0, Math.round(x * 0.68));
+  return '#' + [f(n >> 16 & 255), f(n >> 8 & 255), f(n & 255)]
+    .map(x => x.toString(16).padStart(2, '0')).join('');
+}
+</script>
+</body>
+</html>
