@@ -96,10 +96,13 @@ a:hover { color: var(--blue-700); }
 .navlink:hover { background: rgba(26,115,232,.08); color: var(--blue-700); }
 
 /* ─── Logo + Brand ────────────────────────────── */
+/* สีดึงจากตัวแปรธีม ไม่ฝังค่าตายตัว — เดิมเป็นน้ำเงินเสมอ ทำให้หน่วยงานที่ตั้งธีมสีอื่น
+   เห็นโลโก้สีน้ำเงินคู่กับปุ่มสีธีม ซึ่งดูเหมือนทำไม่เสร็จ (เห็นชัดที่หน้าเข้าสู่ระบบ)
+   หน่วยงานที่อัปโหลดโลโก้เองจะได้คลาส .has-img ทับพื้นหลังนี้อยู่แล้ว จึงไม่กระทบ */
 .logo {
   width: 40px; height: 40px; border-radius: 14px;
-  background: linear-gradient(145deg, #2563eb 0%, #1557b0 100%);
-  box-shadow: 0 10px 18px rgba(26,115,232,.25);
+  background: linear-gradient(145deg, var(--blue) 0%, var(--blue-700) 100%);
+  box-shadow: 0 10px 18px color-mix(in srgb, var(--blue) 28%, transparent);
   display: grid; place-items: center; color: #fff; font-size: 20px; flex-shrink: 0;
 }
 .brand { font-weight: 700; font-size: 20px; color: var(--ink); letter-spacing: -.3px; }

@@ -86,44 +86,76 @@ $theme700 = valid_hex(setting('theme_color_dark', '')) ? setting('theme_color_da
 <style>:root { --blue: <?= e($theme) ?>; --blue-700: <?= e($theme700) ?>; }</style>
 </head>
 <body class="anim-full">
-<div class="login-wrap">
-  <div class="card card-spacious login-card">
-    <div class="text-center mb-2">
-      <div class="logo"><span class="material-symbols-rounded filled">lock_reset</span></div>
-      <h2 style="margin-bottom:2px;">ลืมรหัสผ่าน</h2>
-      <p class="text-muted" style="font-size:13px;margin:0;">ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลของบัญชีนั้น</p>
+<?php
+$logo = setting('logo'); $org = setting('site_name', 'เว็บไซต์หน่วยงาน'); $dept = setting('site_dept', '');
+$markInner = $logo
+    ? '<img src="' . e(url($logo)) . '" alt="โลโก้' . e($org) . '">'
+    : '<span class="material-symbols-rounded filled">' . e(setting('logo_icon', 'account_balance')) . '</span>';
+?>
+<div class="auth-shell">
+  <aside class="auth-brand">
+    <div>
+      <div class="auth-mark"><?= $markInner ?></div>
+      <h1 class="auth-org"><?= e($org) ?></h1>
+      <?php if ($dept): ?><p class="auth-dept"><?= e($dept) ?></p><?php endif; ?>
+      <ul class="auth-points">
+        <li><span class="material-symbols-rounded">mail</span>ส่งลิงก์ไปยังอีเมลของบัญชีเท่านั้น</li>
+        <li><span class="material-symbols-rounded">timer</span>ลิงก์หมดอายุใน <?= RESET_TTL_MIN ?> นาที</li>
+        <li><span class="material-symbols-rounded">history</span>บันทึกการขอรีเซ็ตทุกครั้ง</li>
+      </ul>
     </div>
+    <p class="auth-foot">
+      ระบบจัดการเนื้อหาสำหรับหน่วยงานราชการ<br>
+      ขับเคลื่อนด้วย <a href="https://github.com/minihikkie/alicecms" target="_blank" rel="noopener">AliceCMS</a>
+      <?= e(APP_VERSION) ?>
+    </p>
+  </aside>
+
+  <main class="auth-main">
+    <div class="auth-box animate-fadein">
+      <div class="auth-mini">
+        <div class="auth-mark"><?= $markInner ?></div>
+        <div>
+          <div class="auth-mini-name"><?= e($org) ?></div>
+          <?php if ($dept): ?><div class="auth-mini-sub"><?= e($dept) ?></div><?php endif; ?>
+        </div>
+      </div>
+
+      <h2 class="auth-title">ลืมรหัสผ่าน</h2>
+      <p class="auth-sub">ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลที่บันทึกไว้กับบัญชีนั้น</p>
 
     <?php if ($error): ?>
-    <div class="alert danger" style="font-size:14px;"><span class="material-symbols-rounded">error</span><div><?= e($error) ?></div></div>
+    <div class="alert danger" style="font-size:14px;margin-bottom:18px;"><span class="material-symbols-rounded">error</span><div><?= e($error) ?></div></div>
     <?php endif; ?>
 
     <?php if ($done): ?>
-    <div class="alert success" style="font-size:14px;"><span class="material-symbols-rounded">mark_email_read</span>
+    <div class="alert success" style="font-size:14px;margin-bottom:18px;"><span class="material-symbols-rounded">mark_email_read</span>
       <div>หากมีบัญชีที่ตรงกับข้อมูลนี้และมีอีเมลบันทึกไว้ ระบบได้ส่งลิงก์ตั้งรหัสผ่านใหม่ไปแล้ว<br>
         <span class="text-muted" style="font-size:12.5px;">กรุณาตรวจกล่องจดหมาย (รวมโฟลเดอร์สแปม) — ลิงก์หมดอายุใน <?= RESET_TTL_MIN ?> นาที</span></div>
     </div>
-    <a class="btn primary large" href="<?= e(url('admin/login.php')) ?>" style="width:100%;justify-content:center;">
+    <a class="btn primary large auth-submit" href="<?= e(url('admin/login.php')) ?>">
       <span class="material-symbols-rounded">arrow_back</span>กลับหน้าเข้าสู่ระบบ</a>
 
     <?php else: ?>
     <form method="post" action="">
       <?= csrf_field() ?>
-      <label for="who">ชื่อผู้ใช้ หรืออีเมล</label>
-      <input type="text" id="who" name="who" required autofocus autocomplete="username" class="mb-2"
-             value="<?= e($_POST['who'] ?? '') ?>" placeholder="เช่น admin หรือ name@domain.go.th">
-      <button class="btn primary large" type="submit" style="width:100%;justify-content:center;">
+      <div class="auth-field">
+        <label for="who">ชื่อผู้ใช้ หรืออีเมล</label>
+        <input type="text" id="who" name="who" required autofocus autocomplete="username"
+               value="<?= e($_POST['who'] ?? '') ?>" placeholder="เช่น admin หรือ name@domain.go.th">
+      </div>
+      <button class="btn primary large auth-submit" type="submit">
         <span class="material-symbols-rounded">send</span>ส่งลิงก์ตั้งรหัสผ่านใหม่
       </button>
     </form>
-    <p class="text-center mt-2" style="font-size:13px;margin:0;">
-      <a href="<?= e(url('admin/login.php')) ?>">กลับหน้าเข้าสู่ระบบ</a>
-    </p>
-    <p class="text-muted text-center mt-1" style="font-size:11.5px;margin:0;">
-      หากบัญชีของคุณยังไม่ได้บันทึกอีเมล กรุณาติดต่อผู้ดูแลระบบให้รีเซ็ตรหัสผ่านให้
+    <p class="auth-links"><a href="<?= e(url('admin/login.php')) ?>">กลับหน้าเข้าสู่ระบบ</a></p>
+    <p class="auth-note">
+      <span class="material-symbols-rounded">info</span>
+      หากบัญชียังไม่ได้บันทึกอีเมล กรุณาติดต่อผู้ดูแลระบบให้รีเซ็ตรหัสผ่านให้
     </p>
     <?php endif; ?>
-  </div>
+    </div>
+  </main>
 </div>
 </body>
 </html>

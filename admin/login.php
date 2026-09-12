@@ -152,66 +152,145 @@ $theme700 = valid_hex(setting('theme_color_dark', '')) ? setting('theme_color_da
 <style>:root { --blue: <?= e($theme) ?>; --blue-700: <?= e($theme700) ?>; }</style>
 </head>
 <body class="anim-full">
-<div class="login-wrap">
-  <div class="card card-spacious login-card animate-fadein">
-    <div class="text-center mb-2">
-      <div class="logo"><span class="material-symbols-rounded filled"><?= $show_2fa ? 'phonelink_lock' : 'admin_panel_settings' ?></span></div>
-      <h2 style="margin-bottom:2px;"><?= $show_2fa ? 'ยืนยันตัวตนสองชั้น' : 'เข้าสู่ระบบจัดการ' ?></h2>
-      <p class="text-muted" style="font-size:13px;margin:0;">
-        <?= $show_2fa ? 'กรอกรหัส 6 หลักจากแอป Authenticator' : e(setting('site_name', 'เว็บไซต์หน่วยงาน')) . ' — สำหรับเจ้าหน้าที่เท่านั้น' ?>
-      </p>
+<?php
+$logo     = setting('logo');
+$org      = setting('site_name', 'เว็บไซต์หน่วยงาน');
+$dept     = setting('site_dept', '');
+$logoIcon = setting('logo_icon', 'account_balance');
+/* ใช้โลโก้จริงของหน่วยงานถ้าอัปโหลดไว้ — ดูน่าเชื่อถือกว่าไอคอนกลางมาก */
+$markInner = $logo
+    ? '<img src="' . e(url($logo)) . '" alt="โลโก้' . e($org) . '">'
+    : '<span class="material-symbols-rounded filled">' . e($logoIcon) . '</span>';
+?>
+<div class="auth-shell">
+
+  <!-- แผงแบรนด์ (จอ ≥920px) -->
+  <aside class="auth-brand">
+    <div>
+      <div class="auth-mark"><?= $markInner ?></div>
+      <h1 class="auth-org"><?= e($org) ?></h1>
+      <?php if ($dept): ?><p class="auth-dept"><?= e($dept) ?></p><?php endif; ?>
+      <ul class="auth-points">
+        <li><span class="material-symbols-rounded">encrypted</span>เชื่อมต่อผ่านช่องทางเข้ารหัส</li>
+        <li><span class="material-symbols-rounded">history</span>บันทึกการเข้าใช้งานทุกครั้ง</li>
+        <li><span class="material-symbols-rounded">backup</span>สำรองข้อมูลอัตโนมัติตามรอบ</li>
+      </ul>
     </div>
-
-    <?php if ($error): ?>
-    <div class="alert danger" style="font-size:14px;"><span class="material-symbols-rounded">error</span><div><?= e($error) ?></div></div>
-    <?php endif; ?>
-
-    <?php if ($show_2fa): /* ───── ฟอร์มยืนยัน 2FA ───── */ ?>
-    <form method="post" action="">
-      <?= csrf_field() ?>
-      <input type="hidden" name="totp_step" value="1">
-      <label for="totp_code">รหัสยืนยัน 6 หลัก</label>
-      <input type="text" id="totp_code" name="totp_code" required autofocus inputmode="numeric"
-             autocomplete="one-time-code" pattern="[0-9A-Za-z\- ]*" maxlength="13" placeholder="เช่น 123456"
-             class="mb-2" style="letter-spacing:.25em;text-align:center;font-size:20px;">
-      <button class="btn primary large" type="submit" style="width:100%;justify-content:center;">
-        <span class="material-symbols-rounded">verified_user</span>ยืนยันและเข้าสู่ระบบ
-      </button>
-    </form>
-    <p class="text-muted text-center mt-2" style="font-size:12.5px;margin:0;">
-      เข้าแอปไม่ได้? กรอก<b>รหัสสำรอง</b>ในช่องด้านบนได้ &nbsp;·&nbsp;
-      <a href="<?= e(url('admin/login.php?cancel=1')) ?>">ยกเลิก</a>
+    <p class="auth-foot">
+      ระบบจัดการเนื้อหาสำหรับหน่วยงานราชการ<br>
+      ขับเคลื่อนด้วย <a href="https://github.com/minihikkie/alicecms" target="_blank" rel="noopener">AliceCMS</a>
+      <?= e(APP_VERSION) ?>
     </p>
+  </aside>
 
-    <?php else: /* ───── ฟอร์มรหัสผ่าน ───── */ ?>
-    <form method="post" action="">
-      <?= csrf_field() ?>
-      <label for="username">ชื่อผู้ใช้</label>
-      <input type="text" id="username" name="username" value="<?= e($_POST['username'] ?? '') ?>" required autofocus autocomplete="username" class="mb-2">
-      <label for="password">รหัสผ่าน</label>
-      <input type="password" id="password" name="password" required autocomplete="current-password" class="mb-2">
-      <?php if ($need_captcha): ?>
-      <label for="captcha">ยืนยันว่าไม่ใช่บอท</label>
-      <div class="captcha-box mb-2">
-        <span class="captcha-q"><?= $ca ?> + <?= $cb ?> = ?</span>
-        <input type="number" id="captcha" name="captcha" required placeholder="ผลรวม" autocomplete="off" inputmode="numeric">
+  <!-- แผงฟอร์ม -->
+  <main class="auth-main">
+    <div class="auth-box animate-fadein">
+
+      <!-- หัวแบรนด์ย่อสำหรับจอเล็ก -->
+      <div class="auth-mini">
+        <div class="auth-mark"><?= $markInner ?></div>
+        <div>
+          <div class="auth-mini-name"><?= e($org) ?></div>
+          <?php if ($dept): ?><div class="auth-mini-sub"><?= e($dept) ?></div><?php endif; ?>
+        </div>
+      </div>
+
+      <h2 class="auth-title"><?= $show_2fa ? 'ยืนยันตัวตนสองชั้น' : 'เข้าสู่ระบบจัดการ' ?></h2>
+      <p class="auth-sub">
+        <?= $show_2fa
+            ? 'กรอกรหัส 6 หลักจากแอป Authenticator ของคุณ'
+            : 'สำหรับเจ้าหน้าที่ผู้ดูแลเว็บไซต์เท่านั้น' ?>
+      </p>
+
+      <?php if ($error): ?>
+      <div class="alert danger" style="font-size:14px;margin-bottom:18px;">
+        <span class="material-symbols-rounded">error</span><div><?= e($error) ?></div>
       </div>
       <?php endif; ?>
-      <button class="btn primary large" type="submit" style="width:100%;justify-content:center;">
-        <span class="material-symbols-rounded">login</span>เข้าสู่ระบบ
-      </button>
-    </form>
 
-    <p class="text-center mt-2" style="font-size:13px;margin:0;">
-      <a href="<?= e(url('admin/forgot.php')) ?>">ลืมรหัสผ่าน?</a>
-    </p>
-    <p class="text-muted text-center mt-1" style="font-size:12px;margin:0;">
-      <span class="material-symbols-rounded icon-sm">shield</span>
-      ระบบล็อกอัตโนมัติ 15 นาทีเมื่อเข้าผิดเกิน 5 ครั้ง
-    </p>
-    <?php endif; ?>
-  </div>
+      <?php if ($show_2fa): /* ───── ฟอร์มยืนยัน 2FA ───── */ ?>
+      <form method="post" action="">
+        <?= csrf_field() ?>
+        <input type="hidden" name="totp_step" value="1">
+        <div class="auth-field">
+          <label for="totp_code">รหัสยืนยัน 6 หลัก</label>
+          <input type="text" id="totp_code" name="totp_code" required autofocus inputmode="numeric"
+                 autocomplete="one-time-code" pattern="[0-9A-Za-z\- ]*" maxlength="13"
+                 placeholder="123456" class="auth-otp">
+        </div>
+        <button class="btn primary large auth-submit" type="submit">
+          <span class="material-symbols-rounded">verified_user</span>ยืนยันและเข้าสู่ระบบ
+        </button>
+      </form>
+      <p class="auth-links">
+        เข้าแอปไม่ได้? กรอก<b>รหัสสำรอง</b>ในช่องด้านบนได้
+      </p>
+      <p class="auth-links" style="margin-top:8px;">
+        <a href="<?= e(url('admin/login.php?cancel=1')) ?>">ยกเลิกและเข้าสู่ระบบใหม่</a>
+      </p>
+
+      <?php else: /* ───── ฟอร์มรหัสผ่าน ───── */ ?>
+      <form method="post" action="">
+        <?= csrf_field() ?>
+        <div class="auth-field">
+          <label for="username">ชื่อผู้ใช้</label>
+          <input type="text" id="username" name="username" value="<?= e($_POST['username'] ?? '') ?>"
+                 required autofocus autocomplete="username" placeholder="ชื่อผู้ใช้ของคุณ">
+        </div>
+        <div class="auth-field">
+          <label for="password">รหัสผ่าน</label>
+          <div class="auth-pw">
+            <input type="password" id="password" name="password" required
+                   autocomplete="current-password" placeholder="รหัสผ่าน">
+            <button type="button" id="pwToggle" aria-label="แสดงรหัสผ่าน" aria-pressed="false">
+              <span class="material-symbols-rounded" id="pwIcon">visibility</span>
+            </button>
+          </div>
+        </div>
+        <?php if ($need_captcha): ?>
+        <div class="auth-field">
+          <label for="captcha">ยืนยันว่าไม่ใช่บอท</label>
+          <div class="captcha-box">
+            <span class="captcha-q"><?= $ca ?> + <?= $cb ?> = ?</span>
+            <input type="number" id="captcha" name="captcha" required placeholder="ผลรวม"
+                   autocomplete="off" inputmode="numeric">
+          </div>
+        </div>
+        <?php endif; ?>
+        <button class="btn primary large auth-submit" type="submit">
+          <span class="material-symbols-rounded">login</span>เข้าสู่ระบบ
+        </button>
+      </form>
+
+      <p class="auth-links"><a href="<?= e(url('admin/forgot.php')) ?>">ลืมรหัสผ่าน?</a></p>
+      <p class="auth-note">
+        <span class="material-symbols-rounded">shield</span>
+        ระบบล็อกอัตโนมัติ 15 นาที เมื่อเข้าสู่ระบบผิดเกิน 5 ครั้ง
+      </p>
+      <?php endif; ?>
+
+    </div>
+  </main>
 </div>
+
+<script nonce="<?= e(CSP_NONCE) ?>">
+/* สลับแสดง/ซ่อนรหัสผ่าน — พิมพ์ผิดแล้วมองไม่เห็นคือสาเหตุหลักที่ทำให้โดนล็อก 15 นาที */
+(function () {
+  var btn = document.getElementById('pwToggle');
+  if (!btn) return;
+  var input = document.getElementById('password');
+  var icon  = document.getElementById('pwIcon');
+  btn.addEventListener('click', function () {
+    var show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    icon.textContent = show ? 'visibility_off' : 'visibility';
+    btn.setAttribute('aria-label', show ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน');
+    btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+    input.focus();
+  });
+})();
+</script>
 <script src="<?= e(asset_url('assets/js/dialog.js')) ?>"></script>
 <script src="<?= e(asset_url('assets/js/admin.js')) ?>"></script>
 </body>
