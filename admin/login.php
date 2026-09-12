@@ -166,15 +166,13 @@ $markInner = $logo
 
   <!-- แผงแบรนด์ (จอ ≥920px) -->
   <aside class="auth-brand">
+    <?php if ($logo): ?>
+    <img class="auth-seal" src="<?= e(url($logo)) ?>" alt="" aria-hidden="true">
+    <?php endif; ?>
     <div>
       <div class="auth-mark"><?= $markInner ?></div>
       <h1 class="auth-org"><?= e($org) ?></h1>
       <?php if ($dept): ?><p class="auth-dept"><?= e($dept) ?></p><?php endif; ?>
-      <ul class="auth-points">
-        <li><span class="material-symbols-rounded">encrypted</span>เชื่อมต่อผ่านช่องทางเข้ารหัส</li>
-        <li><span class="material-symbols-rounded">history</span>บันทึกการเข้าใช้งานทุกครั้ง</li>
-        <li><span class="material-symbols-rounded">backup</span>สำรองข้อมูลอัตโนมัติตามรอบ</li>
-      </ul>
     </div>
     <p class="auth-foot">
       ระบบจัดการเนื้อหาสำหรับหน่วยงานราชการ<br>

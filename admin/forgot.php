@@ -94,15 +94,13 @@ $markInner = $logo
 ?>
 <div class="auth-shell">
   <aside class="auth-brand">
+    <?php if ($logo): ?>
+    <img class="auth-seal" src="<?= e(url($logo)) ?>" alt="" aria-hidden="true">
+    <?php endif; ?>
     <div>
       <div class="auth-mark"><?= $markInner ?></div>
       <h1 class="auth-org"><?= e($org) ?></h1>
       <?php if ($dept): ?><p class="auth-dept"><?= e($dept) ?></p><?php endif; ?>
-      <ul class="auth-points">
-        <li><span class="material-symbols-rounded">mail</span>ส่งลิงก์ไปยังอีเมลของบัญชีเท่านั้น</li>
-        <li><span class="material-symbols-rounded">timer</span>ลิงก์หมดอายุใน <?= RESET_TTL_MIN ?> นาที</li>
-        <li><span class="material-symbols-rounded">history</span>บันทึกการขอรีเซ็ตทุกครั้ง</li>
-      </ul>
     </div>
     <p class="auth-foot">
       ระบบจัดการเนื้อหาสำหรับหน่วยงานราชการ<br>

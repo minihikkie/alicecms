@@ -68,15 +68,13 @@ $markInner = $logo
 ?>
 <div class="auth-shell">
   <aside class="auth-brand">
+    <?php if ($logo): ?>
+    <img class="auth-seal" src="<?= e(url($logo)) ?>" alt="" aria-hidden="true">
+    <?php endif; ?>
     <div>
       <div class="auth-mark"><?= $markInner ?></div>
       <h1 class="auth-org"><?= e($org) ?></h1>
       <?php if ($dept): ?><p class="auth-dept"><?= e($dept) ?></p><?php endif; ?>
-      <ul class="auth-points">
-        <li><span class="material-symbols-rounded">key</span>รหัสผ่านอย่างน้อย 8 ตัวอักษร</li>
-        <li><span class="material-symbols-rounded">enhanced_encryption</span>เก็บแบบเข้ารหัส ไม่มีใครอ่านได้</li>
-        <li><span class="material-symbols-rounded">link_off</span>ลิงก์นี้ใช้ได้ครั้งเดียว</li>
-      </ul>
     </div>
     <p class="auth-foot">
       ระบบจัดการเนื้อหาสำหรับหน่วยงานราชการ<br>
