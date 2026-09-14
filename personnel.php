@@ -11,8 +11,8 @@ $page_title = section_title('personnel');
 require __DIR__ . '/includes/header.php';
 ?>
 <div class="container">
-  <div class="page-head reveal text-center">
-    <div class="crumb" style="justify-content:center;"><a href="<?= e(url('index.php')) ?>">หน้าแรก</a> <span class="material-symbols-rounded icon-sm">chevron_right</span> โครงสร้างผู้บริหาร</div>
+  <div class="page-head reveal">
+    <div class="crumb"><a href="<?= e(url('index.php')) ?>">หน้าแรก</a> <span class="material-symbols-rounded icon-sm">chevron_right</span> โครงสร้างผู้บริหาร</div>
     <h1><?= e($page_title) ?></h1>
     <p class="text-muted"><?= e(setting('site_name', 'หน่วยงาน')) ?><?= setting('site_dept') ? ' ' . e(setting('site_dept')) : '' ?></p>
   </div>
