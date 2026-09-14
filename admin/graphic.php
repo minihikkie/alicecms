@@ -73,11 +73,14 @@ try {
 
 /* เปิดมาจากปุ่ม "สร้างภาพ" ในหน้าจัดการข่าว → ดึงหัวข้อ เนื้อหา รูปปก มาเติมให้เลย
    จะได้ไม่ต้องพิมพ์ซ้ำ ซึ่งเป็นเหตุผลหลักที่คนขี้เกียจทำภาพประชาสัมพันธ์ */
-$pre = ['kicker' => 'ประกาศ', 'head' => '', 'body' => '', 'bg' => '', 'from' => 0];
+$pre = [
+    'kicker' => 'ประชาสัมพันธ์', 'head' => '', 'body' => '', 'bg' => '', 'from' => 0,
+    'date'   => thai_date(date('Y-m-d')),
+];
 $pid = (int)($_GET['post'] ?? 0);
 if ($pid) {
     try {
-        $st = db()->prepare('SELECT id, type, title, body, image FROM posts WHERE id = ?');
+        $st = db()->prepare('SELECT id, type, title, body, image, published_at, created_at FROM posts WHERE id = ?');
         $st->execute([$pid]);
         if ($p = $st->fetch()) {
             $pre['kicker'] = post_type_label($p['type']);
@@ -85,6 +88,7 @@ if ($pid) {
             $pre['body']   = meta_excerpt($p['body'], 180);
             $pre['bg']     = $p['image'] ? url($p['image']) : '';
             $pre['from']   = (int)$p['id'];
+            $pre['date']   = thai_date($p['published_at'] ?: $p['created_at']);
         }
     } catch (Throwable $e) {}
 }
@@ -122,17 +126,29 @@ require __DIR__ . '/_top.php';
     <div class="card mb-2">
       <label>รูปแบบ</label>
       <div class="gfx-tpl mb-2">
-        <button type="button" class="gfx-t on" data-tpl="card"><span class="material-symbols-rounded">web_asset</span>การ์ดประกาศ</button>
+        <button type="button" class="gfx-t on" data-tpl="poster"><span class="material-symbols-rounded">newspaper</span>โปสเตอร์ข่าว</button>
+        <button type="button" class="gfx-t" data-tpl="card"><span class="material-symbols-rounded">web_asset</span>การ์ดประกาศ</button>
         <button type="button" class="gfx-t" data-tpl="bold"><span class="material-symbols-rounded">format_size</span>ข้อความเน้น</button>
         <button type="button" class="gfx-t" data-tpl="photo"><span class="material-symbols-rounded">image</span>รูปเต็มพื้น</button>
         <button type="button" class="gfx-t" data-tpl="banner"><span class="material-symbols-rounded">vertical_split</span>รูปครึ่งบน</button>
       </div>
       <label for="gSize">ขนาด</label>
       <select id="gSize">
-        <option value="1080x1080">จัตุรัส 1080×1080 — Facebook / Line</option>
+        <option value="1080x1620">โปสเตอร์แนวตั้ง 1080×1620 — สัดส่วน 2:3</option>
         <option value="1080x1350">แนวตั้ง 1080×1350 — Instagram / Line</option>
+        <option value="1080x1080">จัตุรัส 1080×1080 — Facebook / Line</option>
         <option value="1200x630">แนวนอน 1200×630 — ภาพปกลิงก์</option>
       </select>
+    </div>
+
+    <!-- ── หัวกระดาษหน่วยงาน ── -->
+    <div class="card mb-2">
+      <label for="gOrg">ชื่อหน่วยงาน (บนหัวโปสเตอร์)</label>
+      <input type="text" id="gOrg" class="mb-2" maxlength="80" value="<?= e(setting('site_name', '')) ?>" placeholder="เช่น กองกฎหมาย">
+      <label for="gDept">สังกัด</label>
+      <input type="text" id="gDept" class="mb-2" maxlength="120" value="<?= e(setting('site_dept', '')) ?>" placeholder="เช่น สำนักงานตำรวจแห่งชาติ">
+      <label for="gDate">วันที่ (มุมล่าง)</label>
+      <input type="text" id="gDate" maxlength="60" value="<?= e($pre['date']) ?>" placeholder="เช่น 14 ก.ย. 2569">
     </div>
 
     <!-- ── ข้อความ ── -->
@@ -254,11 +270,12 @@ require __DIR__ . '/_top.php';
 (function () {
   var CFG = <?= json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   var cv = document.getElementById('gCv'), ctx = cv.getContext('2d');
-  var logoImg = null, bgImg = null, ready = false, tpl = 'card';
+  var logoImg = null, bgImg = null, ready = false, tpl = 'poster';
 
   var $ = function (id) { return document.getElementById(id); };
   var F = {
     size: $('gSize'), kicker: $('gKicker'), head: $('gHead'), body: $('gBody'), foot: $('gFoot'),
+    org: $('gOrg'), dept: $('gDept'), date: $('gDate'),
     overlay: $('gOverlay'), scale: $('gScale'), val: $('gVal'), color: $('gColor'),
     icon: $('gIcon'), logo: $('gLogo')
   };
@@ -474,7 +491,94 @@ require __DIR__ . '/_top.php';
     footer(W, H, Math.round(W * .07), W - Math.round(W * .14), 'rgba(255,255,255,.75)', '');
   }
 
-  var TPL = { card: tplCard, bold: tplBold, photo: tplPhoto, banner: tplBanner };
+  /* โปสเตอร์ข่าว — วางแบบสื่อประชาสัมพันธ์ราชการ
+     หัวกระดาษ (ตรา + ชื่อหน่วยงาน + สังกัด) → รูปใหญ่ → เนื้อหาบนพื้นขาว → แถบท้าย
+     หัวกระดาษคือสิ่งที่ทำให้ดูเป็นเอกสารทางการ ไม่ใช่ภาพที่ใครก็ทำได้ */
+  function tplPoster(W, H, c) {
+    var s = +F.scale.value / 100;
+    var dark = shade(c, .55);
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+
+    /* ── หัวกระดาษ ── */
+    var hdrH = Math.round(H * .112);
+    ctx.fillStyle = c; ctx.fillRect(0, 0, W, hdrH);
+    var pad = Math.round(W * .062);
+    var badge = Math.round(hdrH * .66), bx = pad, by = (hdrH - badge) / 2;
+    ctx.fillStyle = '#fff'; rr(bx, by, badge, badge, Math.round(badge * .26)); ctx.fill();
+    if (!drawLogo(bx + badge / 2, by + badge / 2, Math.round(badge * .76))) {
+      drawIcon(F.icon.value, bx + badge / 2, by + badge / 2, Math.round(badge * .55), c);
+    }
+    var tx = bx + badge + Math.round(W * .030);
+    var org = F.org.value.trim(), dept = F.dept.value.trim();
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#fff';
+    if (org) {
+      ctx.font = '700 ' + Math.round(W * .040) + 'px Prompt, sans-serif';
+      ctx.fillText(org, tx, dept ? hdrH * .47 : hdrH * .60);
+    }
+    if (dept) {
+      ctx.font = '400 ' + Math.round(W * .025) + 'px Prompt, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.fillText(dept, tx, org ? hdrH * .73 : hdrH * .60);
+    }
+
+    /* ── รูปใหญ่ ── */
+    var imgTop = hdrH, imgH = Math.round(H * .345);
+    if (bgImg) cover(bgImg, 0, imgTop, W, imgH);
+    else {
+      ctx.fillStyle = shade(c, .90); ctx.fillRect(0, imgTop, W, imgH);
+      drawIcon(F.icon.value, W / 2, imgTop + imgH / 2, Math.round(W * .16), 'rgba(255,255,255,.45)');
+    }
+    /* เส้นสีคั่นบางๆ ใต้รูป ช่วยแยกรูปกับเนื้อหาให้คม */
+    ctx.fillStyle = c; ctx.fillRect(0, imgTop + imgH - Math.round(H * .006), W, Math.round(H * .006));
+
+    /* ── เนื้อหา ── */
+    var footH = Math.round(H * .085);
+    var top = imgTop + imgH, avail = H - top - footH;
+    var cx = W / 2, maxW = W - pad * 2;
+    var kick = F.kicker.value.trim();
+    var kickH = kick ? Math.round(H * .062 * s) : 0;
+    var headLH = Math.round(W * .062 * s), bodyLH = Math.round(W * .043 * s);
+    ctx.font = '700 ' + Math.round(W * .048 * s) + 'px Prompt, sans-serif';
+    var headLines = wrap(F.head.value, maxW);
+    ctx.font = '400 ' + Math.round(W * .031 * s) + 'px Prompt, sans-serif';
+    var bodyLines = wrap(F.body.value, maxW);
+    var gap = Math.round(H * .022);
+    var blockH = kickH + headLines.length * headLH + (bodyLines.length ? gap + bodyLines.length * bodyLH : 0);
+    var y = placeY(top, avail, blockH) + Math.round(H * .045);
+
+    ctx.textAlign = 'center';
+    if (kick) {
+      ctx.font = '600 ' + Math.round(W * .026 * s) + 'px Prompt, sans-serif';
+      var kw = ctx.measureText(kick).width, kh = Math.round(W * .048 * s);
+      ctx.fillStyle = c;
+      rr(cx - kw / 2 - kh * .45, y - kh * .72, kw + kh * .9, kh, kh / 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle';
+      ctx.fillText(kick, cx, y - kh * .22);
+      y += kickH;
+    }
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = dark;
+    ctx.font = '700 ' + Math.round(W * .048 * s) + 'px Prompt, sans-serif';
+    y = drawLines(headLines, cx, y, headLH);
+    if (bodyLines.length) {
+      y += gap;
+      ctx.fillStyle = 'rgba(15,23,42,.72)';
+      ctx.font = '400 ' + Math.round(W * .031 * s) + 'px Prompt, sans-serif';
+      drawLines(bodyLines, cx, y, bodyLH);
+    }
+
+    /* ── แถบท้าย: วันที่ซ้าย ข้อความมุมล่างขวา ── */
+    ctx.fillStyle = shade(c, .40); ctx.fillRect(0, H - footH, W, footH);
+    var fy = H - footH / 2;
+    ctx.textBaseline = 'middle';
+    ctx.font = '400 ' + Math.round(W * .026) + 'px Prompt, sans-serif';
+    var dt = F.date.value.trim(), ft = F.foot.value.trim();
+    if (dt) { ctx.textAlign = 'left';  ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fillText(dt, pad, fy); }
+    if (ft) { ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fillText(ft, W - pad, fy); }
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  var TPL = { poster: tplPoster, card: tplCard, bold: tplBold, photo: tplPhoto, banner: tplBanner };
 
   function render() {
     if (!ready) return;
@@ -601,14 +705,10 @@ require __DIR__ . '/_top.php';
   }
 
   /* รูปปกข่าวที่ส่งมาจากปุ่ม "สร้างภาพ" — โหลดเป็นพื้นหลังให้เลย
-     และสลับไปเทมเพลตที่ใช้รูป เพราะเปิดมาแล้วเห็นรูปทันทีย่อมเข้าใจง่ายกว่า */
+     ไม่ต้องสลับเทมเพลต เพราะโปสเตอร์ข่าว (ค่าเริ่มต้น) มีช่องใส่รูปอยู่แล้ว */
   if (CFG.bg) {
     var b = new Image();
-    b.onload = function () {
-      bgImg = b; $('gClearImg').hidden = false;
-      var pb = document.querySelector('.gfx-t[data-tpl="photo"]');
-      if (pb) pb.click(); else render();
-    };
+    b.onload = function () { bgImg = b; $('gClearImg').hidden = false; render(); };
     b.onerror = function () { render(); };
     b.src = CFG.bg;
   }
