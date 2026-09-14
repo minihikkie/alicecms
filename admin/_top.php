@@ -109,7 +109,9 @@ $flash = flash_get();
         </g>
       </svg>
     </div>
-    <div class="brand">ระบบจัดการเว็บไซต์<small><?= e(setting('site_name', 'หน่วยงาน')) ?> — สำหรับเจ้าหน้าที่</small></div>
+    <?php /* ชื่อระบบขึ้นก่อน ตราสินค้าตามหลังตัวเล็ก — คนที่เข้ามาคือเจ้าหน้าที่ของหน่วยงาน
+             เขาต้องรู้ก่อนว่า "นี่คือหน้าจัดการเว็บ" ไม่ใช่ต้องจำชื่อซอฟต์แวร์ที่หน่วยงานเลือกใช้ */ ?>
+    <div class="brand">ระบบจัดการเว็บไซต์<span class="brand-by" title="AliceCMS <?= e(APP_VERSION) ?>">Alice<b>CMS</b></span><small><?= e(setting('site_name', 'หน่วยงาน')) ?> — สำหรับเจ้าหน้าที่</small></div>
     <nav class="nav">
       <a class="badge" href="<?= e(url('index.php')) ?>" target="_blank" rel="noopener"><span class="material-symbols-rounded icon-sm">open_in_new</span>ดูหน้าเว็บ</a>
       <span class="badge success"><span class="material-symbols-rounded icon-sm">verified_user</span><?= e($ADMIN['display_name'] ?: $ADMIN['username']) ?> · <?= $is_admin ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่' ?></span>

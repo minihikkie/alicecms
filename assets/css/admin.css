@@ -8,6 +8,20 @@
 .topbar .logo svg { width: 40px; height: 40px; display: block; }
 .topbar .brand { font-size: 26px; }
 .topbar .brand small { font-size: 13px; margin-top: -3px; }
+/* ป้ายชื่อระบบ AliceCMS — ตั้งใจให้เล็กและจางกว่าชื่อหน่วยงาน ไม่แย่งสายตา
+   ใช้สีธีมของหน่วยงาน ป้ายจึงกลมกลืนไม่ว่าหน่วยงานตั้งสีอะไร */
+.topbar .brand-by {
+  display: inline-block; vertical-align: middle; position: relative; top: -3px;
+  margin-left: 10px; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; letter-spacing: .2px; line-height: 1.5;
+  color: var(--blue-700);
+  background: color-mix(in srgb, var(--blue) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--blue) 18%, transparent);
+  cursor: default;
+}
+.topbar .brand-by b { font-weight: 700; }
+/* จอแคบ พื้นที่แถวบนมีจำกัด — ชื่อหน่วยงานสำคัญกว่าชื่อซอฟต์แวร์ ป้ายจึงหายไปก่อน */
+@media (max-width: 700px) { .topbar .brand-by { display: none; } }
 
 /* ── ตาราง admin ── */
 .admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
