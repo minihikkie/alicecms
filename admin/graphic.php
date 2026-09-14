@@ -2,49 +2,58 @@
 /**
  * admin/graphic.php — ออกแบบภาพประกาศในตัว
  *
- * ทำไมต้องมี: เจ้าหน้าที่ต้องออกไปทำภาพประกาศในแอปภายนอกทุกครั้ง แล้วค่อยกลับมาอัปโหลด
+ * ทำไมต้องมี: เจ้าหน้าที่ต้องออกไปทำภาพในแอปภายนอกทุกครั้งแล้วค่อยกลับมาอัปโหลด
  * เสียเวลาและภาพออกมาไม่เป็นแนวเดียวกัน หน้านี้ทำให้จบในเว็บเดียว
  *
- * วิธีวาด: ใช้ Canvas API ของเบราว์เซอร์ ไม่พึ่งไลบรารีภายนอกเลย
- *  - CSP ของระบบอนุญาตสคริปต์เฉพาะ 'self' อยู่แล้ว จะโหลดไลบรารีจาก CDN ไม่ได้
- *  - เบราว์เซอร์จัดรูปอักษรไทย (สระบน/ล่าง วรรณยุกต์) ให้ถูกต้องเองอยู่แล้ว
- *    ถ้าไปวาดฝั่งเซิร์ฟเวอร์ด้วย GD ต้องจัดการเรื่องนี้เองทั้งหมดและมักเพี้ยน
- *  - ตัดบรรทัดภาษาไทยด้วย Intl.Segmenter ซึ่งใช้พจนานุกรมในตัวเบราว์เซอร์
+ * วิธีวาด: Canvas API ของเบราว์เซอร์ ไม่พึ่งไลบรารีภายนอกเลย
+ *  - CSP ของระบบอนุญาตสคริปต์เฉพาะ 'self' จะโหลดไลบรารีจาก CDN ไม่ได้อยู่แล้ว
+ *  - เบราว์เซอร์จัดรูปอักษรไทย (สระบน-ล่าง วรรณยุกต์) ได้ถูกต้องเอง
+ *    ถ้าวาดฝั่งเซิร์ฟเวอร์ด้วย GD ต้องจัดการเองทั้งหมดและมักเพี้ยน
+ *  - ตัดบรรทัดด้วย Intl.Segmenter ซึ่งใช้พจนานุกรมตัดคำไทยในตัวเบราว์เซอร์
  *    (ภาษาไทยไม่เว้นวรรคระหว่างคำ ตัดตามช่องว่างแบบภาษาอังกฤษไม่ได้)
  */
 require dirname(__DIR__) . '/includes/init.php';
 require __DIR__ . '/_auth.php';
 
+const GFX_MAX_MB = 12;
+
 /* ── บันทึกภาพที่วาดเสร็จเข้าคลังสื่อ ── */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['png'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['img'])) {
     try {
-        $data = (string)$_POST['png'];
-        $pfx  = 'data:image/png;base64,';
-        if (strncmp($data, $pfx, strlen($pfx)) !== 0) throw new RuntimeException('รูปแบบภาพไม่ถูกต้อง');
-        $raw = base64_decode(substr($data, strlen($pfx)), true);
+        $data = (string)$_POST['img'];
+        if (!preg_match('#^data:image/(png|jpeg);base64,#', $data, $m)) {
+            throw new RuntimeException('รูปแบบภาพไม่ถูกต้อง');
+        }
+        $type = $m[1];
+        $raw  = base64_decode(substr($data, strpos($data, ',') + 1), true);
         if ($raw === false || $raw === '') throw new RuntimeException('ถอดรหัสภาพไม่สำเร็จ');
-        if (strlen($raw) > 8 * 1048576) throw new RuntimeException('ภาพใหญ่เกิน 8 MB');
+        if (strlen($raw) > GFX_MAX_MB * 1048576) {
+            throw new RuntimeException('ภาพใหญ่เกิน ' . GFX_MAX_MB . ' MB — ลองลดขนาดภาพพื้นหลัง');
+        }
 
         /* ตรวจจากเนื้อไฟล์จริง ไม่เชื่อส่วนหัวที่ฝั่งเบราว์เซอร์ส่งมา */
-        if (substr($raw, 0, 8) !== "\x89PNG\r\n\x1a\n") throw new RuntimeException('ไฟล์ที่ส่งมาไม่ใช่ PNG');
+        $isPng  = substr($raw, 0, 8) === "\x89PNG\r\n\x1a\n";
+        $isJpeg = substr($raw, 0, 3) === "\xFF\xD8\xFF";
+        if (!$isPng && !$isJpeg) throw new RuntimeException('ไฟล์ที่ส่งมาไม่ใช่ภาพ PNG หรือ JPEG');
         $info = @getimagesizefromstring($raw);
-        if (!$info || $info[2] !== IMAGETYPE_PNG)       throw new RuntimeException('ไฟล์ที่ส่งมาไม่ใช่ PNG');
+        if (!$info || !in_array($info[2], [IMAGETYPE_PNG, IMAGETYPE_JPEG], true)) {
+            throw new RuntimeException('ไฟล์ที่ส่งมาไม่ใช่ภาพที่ระบบรองรับ');
+        }
+        $ext = $isPng ? 'png' : 'jpg';
 
         $dir = APP_ROOT . '/uploads/media';
         if (!is_dir($dir) && !@mkdir($dir, 0775, true)) throw new RuntimeException('สร้างโฟลเดอร์คลังสื่อไม่ได้');
-        $name = date('Ymd') . '-' . bin2hex(random_bytes(8)) . '.png';
+        $name = date('Ymd') . '-' . bin2hex(random_bytes(8)) . '.' . $ext;
         $full = $dir . '/' . $name;
 
         /* เทียบจำนวนไบต์ที่เขียนได้จริง — ถ้าดิสก์เต็มจะได้ไฟล์ไม่ครบ ต้องลบทิ้งไม่ให้เหลือไฟล์เสีย */
-        $wrote = @file_put_contents($full, $raw);
-        if ($wrote !== strlen($raw)) {
+        if (@file_put_contents($full, $raw) !== strlen($raw)) {
             @unlink($full);
             throw new RuntimeException('บันทึกไฟล์ไม่สำเร็จ — พื้นที่ดิสก์อาจเต็ม');
         }
 
-        $path = 'uploads/media/' . $name;
         db()->prepare('INSERT INTO media (path, orig, mime, size) VALUES (?,?,?,?)')
-            ->execute([$path, 'ภาพประกาศ.png', 'png', strlen($raw)]);
+            ->execute(['uploads/media/' . $name, 'ภาพประกาศ.' . $ext, $ext, strlen($raw)]);
         log_action('สร้างภาพประกาศ', $name);
         flash_set('success', 'บันทึกเข้าคลังสื่อแล้ว — เลือกใช้เป็นภาพปกข่าวได้เลย');
     } catch (Throwable $ex) {
@@ -53,13 +62,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['png'])) {
     redirect('admin/graphic.php');
 }
 
+/* รูปในคลังสื่อไว้เลือกเป็นพื้นหลัง — แสดงในหน้าเลยจะได้ไม่ต้องสลับหน้าไปมา */
+$img_exts = upload_image_exts();
+$lib = [];
+try {
+    foreach (db()->query('SELECT path, mime FROM media ORDER BY created_at DESC, id DESC LIMIT 40') as $r) {
+        if (in_array(strtolower($r['mime']), $img_exts, true)) $lib[] = url($r['path']);
+    }
+} catch (Throwable $e) {}
+
 $page_title = 'ออกแบบภาพประกาศ';
 $theme = valid_hex(setting('theme_color', '')) ? setting('theme_color') : '#1A73E8';
 $cfg = [
-    'logo' => setting('logo') ? url(setting('logo')) : '',
-    'org'  => setting('site_name', 'หน่วยงาน'),
-    'dept' => setting('site_dept', ''),
-    'color'=> $theme,
+    'logo'  => setting('logo') ? url(setting('logo')) : '',
+    'color' => $theme,
+    'lib'   => $lib,
 ];
 require __DIR__ . '/_top.php';
 ?>
@@ -68,74 +85,109 @@ require __DIR__ . '/_top.php';
   <h2>ออกแบบภาพประกาศ</h2></div>
 </div>
 <p class="text-muted mb-2" style="font-size:14px;">
-  กรอกข้อความแล้วดูผลทันที เสร็จแล้วบันทึกเข้าคลังสื่อเพื่อใช้เป็นภาพปกข่าวได้เลย ไม่ต้องออกไปทำในแอปอื่น
+  กรอกข้อความ ใส่รูป ปรับขนาดตัวอักษร แล้วบันทึกเข้าคลังสื่อใช้เป็นภาพปกข่าวได้ทันที
 </p>
 
 <div class="gfx-wrap">
-  <!-- ── ฝั่งตั้งค่า ── -->
-  <div class="card">
-    <label for="gTpl">รูปแบบ</label>
-    <select id="gTpl" class="mb-2">
-      <option value="card">การ์ดประกาศ — มีกรอบขาว เหมาะกับข้อความยาว</option>
-      <option value="bold">ข้อความเน้น — ตัวใหญ่เต็มพื้น เหมาะกับประกาศสั้น</option>
-    </select>
-
-    <label for="gSize">ขนาด</label>
-    <select id="gSize" class="mb-2">
-      <option value="1080x1080">จัตุรัส 1080×1080 — Facebook / Line</option>
-      <option value="1080x1350">แนวตั้ง 1080×1350 — Instagram / Line</option>
-      <option value="1200x630">แนวนอน 1200×630 — ภาพปกลิงก์</option>
-    </select>
-
-    <label for="gKicker">ป้ายบนสุด</label>
-    <input type="text" id="gKicker" class="mb-2" maxlength="40" value="ประกาศ" placeholder="เช่น ประกาศ / แจ้งเตือน">
-
-    <label for="gHead">หัวข้อ</label>
-    <textarea id="gHead" class="mb-2" rows="2" maxlength="160" placeholder="หัวข้อประกาศ">ประกาศสำนักงานกฎหมายและคดี</textarea>
-
-    <label for="gBody">เนื้อหา</label>
-    <textarea id="gBody" class="mb-2" rows="5" maxlength="600" placeholder="รายละเอียดประกาศ">เรื่อง เจตนารมณ์การป้องกันและแก้ไขปัญหาการล่วงละเมิดหรือคุกคามทางเพศในการทำงาน</textarea>
-
-    <label for="gFoot">ข้อความมุมล่าง</label>
-    <input type="text" id="gFoot" class="mb-2" maxlength="60" value="<?= e($cfg['org']) ?>" placeholder="ชื่อหน่วยงาน">
-
-    <div class="form-row">
-      <div>
-        <label for="gColor">สีหลัก</label>
-        <div class="flex gap-2 items-center mb-2">
-          <input type="color" id="gColor" value="<?= e($theme) ?>">
-          <button type="button" class="btn small" id="gReset">ใช้สีธีมเว็บ</button>
-        </div>
+  <div>
+    <!-- ── รูปแบบและขนาด ── -->
+    <div class="card mb-2">
+      <label>รูปแบบ</label>
+      <div class="gfx-tpl mb-2">
+        <button type="button" class="gfx-t on" data-tpl="card"><span class="material-symbols-rounded">web_asset</span>การ์ดประกาศ</button>
+        <button type="button" class="gfx-t" data-tpl="bold"><span class="material-symbols-rounded">format_size</span>ข้อความเน้น</button>
+        <button type="button" class="gfx-t" data-tpl="photo"><span class="material-symbols-rounded">image</span>รูปเต็มพื้น</button>
+        <button type="button" class="gfx-t" data-tpl="banner"><span class="material-symbols-rounded">vertical_split</span>รูปครึ่งบน</button>
       </div>
-      <div>
-        <label for="gIcon">ไอคอน</label>
-        <select id="gIcon" class="mb-2">
-          <option value="campaign">ประกาศ (โทรโข่ง)</option>
-          <option value="gavel">กฎหมาย (ค้อน)</option>
-          <option value="warning">คำเตือน</option>
-          <option value="event">กิจกรรม</option>
-          <option value="description">เอกสาร</option>
-          <option value="">ไม่ใส่ไอคอน</option>
-        </select>
-      </div>
+      <label for="gSize">ขนาด</label>
+      <select id="gSize">
+        <option value="1080x1080">จัตุรัส 1080×1080 — Facebook / Line</option>
+        <option value="1080x1350">แนวตั้ง 1080×1350 — Instagram / Line</option>
+        <option value="1200x630">แนวนอน 1200×630 — ภาพปกลิงก์</option>
+      </select>
     </div>
 
-    <label class="inline-check mb-2"><input type="checkbox" id="gLogo" <?= $cfg['logo'] ? 'checked' : '' ?> <?= $cfg['logo'] ? '' : 'disabled' ?>>
-      แสดงตราหน่วยงาน<?= $cfg['logo'] ? '' : ' (ยังไม่ได้อัปโหลดโลโก้)' ?></label>
+    <!-- ── ข้อความ ── -->
+    <div class="card mb-2">
+      <label for="gKicker">ป้ายบนสุด</label>
+      <input type="text" id="gKicker" class="mb-2" maxlength="40" value="ประกาศ" placeholder="เช่น ประกาศ / แจ้งเตือน">
+      <label for="gHead">หัวข้อ</label>
+      <textarea id="gHead" class="mb-2" rows="2" maxlength="200" placeholder="หัวข้อประกาศ">ประกาศสำนักงานกฎหมายและคดี</textarea>
+      <label for="gBody">เนื้อหา</label>
+      <textarea id="gBody" class="mb-2" rows="4" maxlength="800" placeholder="รายละเอียด — ขึ้นบรรทัดใหม่ได้">เรื่อง เจตนารมณ์การป้องกันและแก้ไขปัญหาการล่วงละเมิดหรือคุกคามทางเพศในการทำงาน</textarea>
+      <label for="gFoot">ข้อความมุมล่าง</label>
+      <input type="text" id="gFoot" maxlength="60" value="<?= e(setting('site_name', '')) ?>" placeholder="ชื่อหน่วยงาน">
+    </div>
+
+    <!-- ── ภาพพื้นหลัง ── -->
+    <div class="card mb-2">
+      <label>ภาพพื้นหลัง</label>
+      <div class="flex gap-2 mb-2" style="flex-wrap:wrap;">
+        <label class="btn small" style="margin:0;cursor:pointer;">
+          <span class="material-symbols-rounded icon-sm">upload</span>อัปโหลดจากเครื่อง
+          <input type="file" id="gFile" accept="image/*" hidden>
+        </label>
+        <button type="button" class="btn small" id="gClearImg" hidden>
+          <span class="material-symbols-rounded icon-sm">close</span>เอารูปออก</button>
+      </div>
+      <?php if ($lib): ?>
+      <div class="gfx-lib mb-2" id="gLib"></div>
+      <p class="text-muted" style="font-size:11.5px;margin:0 0 10px;">คลิกเพื่อใช้รูปจากคลังสื่อ</p>
+      <?php else: ?>
+      <p class="text-muted" style="font-size:12px;margin:0 0 10px;">ยังไม่มีรูปในคลังสื่อ — อัปโหลดจากเครื่องได้เลย</p>
+      <?php endif; ?>
+      <label for="gOverlay">ความเข้มฉากมืดทับรูป <span id="gOverlayV" class="text-muted"></span></label>
+      <input type="range" id="gOverlay" min="0" max="85" value="45" style="width:100%;">
+    </div>
+
+    <!-- ── ปรับแต่ง ── -->
+    <div class="card mb-2">
+      <label for="gScale">ขนาดตัวอักษร <span id="gScaleV" class="text-muted"></span></label>
+      <input type="range" id="gScale" min="70" max="135" value="100" class="mb-2" style="width:100%;">
+      <label for="gVal">ตำแหน่งข้อความแนวตั้ง</label>
+      <select id="gVal" class="mb-2">
+        <option value="mid">กึ่งกลาง</option>
+        <option value="top">ชิดบน</option>
+        <option value="bot">ชิดล่าง</option>
+      </select>
+      <div class="form-row">
+        <div>
+          <label for="gColor">สีหลัก</label>
+          <div class="flex gap-2 items-center mb-2">
+            <input type="color" id="gColor" value="<?= e($theme) ?>">
+            <button type="button" class="btn small" id="gReset">สีธีม</button>
+          </div>
+        </div>
+        <div>
+          <label for="gIcon">ไอคอน</label>
+          <select id="gIcon" class="mb-2">
+            <option value="campaign">ประกาศ (โทรโข่ง)</option>
+            <option value="gavel">กฎหมาย (ค้อน)</option>
+            <option value="warning">คำเตือน</option>
+            <option value="event">กิจกรรม</option>
+            <option value="description">เอกสาร</option>
+            <option value="verified">รับรอง</option>
+            <option value="">ไม่ใส่ไอคอน</option>
+          </select>
+        </div>
+      </div>
+      <label class="inline-check"><input type="checkbox" id="gLogo" <?= $cfg['logo'] ? 'checked' : '' ?> <?= $cfg['logo'] ? '' : 'disabled' ?>>
+        แสดงตราหน่วยงาน<?= $cfg['logo'] ? '' : ' (ยังไม่ได้อัปโหลดโลโก้)' ?></label>
+    </div>
 
     <div class="flex gap-2" style="flex-wrap:wrap;">
       <button type="button" class="btn primary" id="gDownload">
-        <span class="material-symbols-rounded icon-sm">download</span>ดาวน์โหลด PNG</button>
+        <span class="material-symbols-rounded icon-sm">download</span>ดาวน์โหลด</button>
       <form method="post" action="" id="gForm" style="margin:0;">
         <?= csrf_field() ?>
-        <input type="hidden" name="png" id="gPng">
-        <button type="submit" class="btn" id="gSave">
+        <input type="hidden" name="img" id="gImgData">
+        <button type="submit" class="btn">
           <span class="material-symbols-rounded icon-sm">perm_media</span>บันทึกเข้าคลังสื่อ</button>
       </form>
     </div>
   </div>
 
-  <!-- ── ฝั่งพรีวิว ── -->
+  <!-- ── พรีวิว ── -->
   <div class="card gfx-stage">
     <canvas id="gCv" width="1080" height="1080"></canvas>
     <p class="text-muted" id="gDim" style="font-size:12px;margin:10px 0 0;text-align:center;"></p>
@@ -143,59 +195,67 @@ require __DIR__ . '/_top.php';
 </div>
 
 <style>
-.gfx-wrap { display: grid; grid-template-columns: minmax(0,380px) minmax(0,1fr); gap: 16px; align-items: start; }
-@media (max-width: 900px) { .gfx-wrap { grid-template-columns: minmax(0,1fr); } }
-.gfx-stage { display: flex; flex-direction: column; align-items: center; }
-#gCv { width: 100%; max-width: 460px; height: auto; border-radius: 12px;
+.gfx-wrap { display: grid; grid-template-columns: minmax(0,400px) minmax(0,1fr); gap: 16px; align-items: start; }
+@media (max-width: 980px) { .gfx-wrap { grid-template-columns: minmax(0,1fr); } }
+.gfx-stage { position: sticky; top: 16px; display: flex; flex-direction: column; align-items: center; }
+@media (max-width: 980px) { .gfx-stage { position: static; } }
+#gCv { width: 100%; max-width: 440px; height: auto; border-radius: 12px;
        border: 1px solid var(--border); box-shadow: var(--shadow-soft); background: #fff; }
+.gfx-tpl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.gfx-t { display: flex; align-items: center; gap: 7px; padding: 10px 12px; font-size: 13px; font-family: inherit;
+  border: 1.5px solid var(--border); border-radius: 10px; background: #fff; color: var(--text); cursor: pointer; text-align: left; }
+.gfx-t:hover { border-color: var(--blue); }
+.gfx-t.on { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 8%, transparent); color: var(--blue-700); font-weight: 500; }
+.gfx-t .material-symbols-rounded { font-size: 19px; flex-shrink: 0; }
+.gfx-lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; max-height: 168px; overflow-y: auto; }
+.gfx-lib img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 7px; cursor: pointer;
+  border: 2px solid transparent; display: block; }
+.gfx-lib img:hover, .gfx-lib img.on { border-color: var(--blue); }
 </style>
 
 <script nonce="<?= e(CSP_NONCE) ?>">
 (function () {
   var CFG = <?= json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   var cv = document.getElementById('gCv'), ctx = cv.getContext('2d');
-  var logoImg = null, ready = false;
+  var logoImg = null, bgImg = null, ready = false, tpl = 'card';
 
   var $ = function (id) { return document.getElementById(id); };
   var F = {
-    tpl: $('gTpl'), size: $('gSize'), kicker: $('gKicker'), head: $('gHead'),
-    body: $('gBody'), foot: $('gFoot'), color: $('gColor'), icon: $('gIcon'), logo: $('gLogo')
+    size: $('gSize'), kicker: $('gKicker'), head: $('gHead'), body: $('gBody'), foot: $('gFoot'),
+    overlay: $('gOverlay'), scale: $('gScale'), val: $('gVal'), color: $('gColor'),
+    icon: $('gIcon'), logo: $('gLogo')
   };
 
   /* ── ตัวช่วยวาด ── */
   function rr(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
+    ctx.beginPath(); ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
-
   function shade(hex, pct) {
-    var n = parseInt(hex.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-    r = Math.max(0, Math.min(255, Math.round(r * pct)));
-    g = Math.max(0, Math.min(255, Math.round(g * pct)));
-    b = Math.max(0, Math.min(255, Math.round(b * pct)));
-    return 'rgb(' + r + ',' + g + ',' + b + ')';
+    var n = parseInt(hex.slice(1), 16);
+    var f = function (v) { return Math.max(0, Math.min(255, Math.round(v * pct))); };
+    return 'rgb(' + f((n >> 16) & 255) + ',' + f((n >> 8) & 255) + ',' + f(n & 255) + ')';
+  }
+  /* วาดรูปให้เต็มกรอบแบบ cover — ครอบส่วนเกินทิ้ง ไม่บีบรูปให้ผิดสัดส่วน */
+  function cover(img, x, y, w, h) {
+    var r = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+    var iw = img.naturalWidth * r, ih = img.naturalHeight * r;
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    ctx.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
+    ctx.restore();
   }
 
-  /* แบ่งข้อความเป็นหน่วยที่ตัดบรรทัดได้ — ภาษาไทยไม่เว้นวรรคระหว่างคำ
-     Intl.Segmenter ใช้พจนานุกรมในตัวเบราว์เซอร์ จึงตัดตรงรอยต่อคำจริง
+  /* ภาษาไทยไม่เว้นวรรคระหว่างคำ — Intl.Segmenter ใช้พจนานุกรมในตัวเบราว์เซอร์จึงตัดตรงรอยต่อคำจริง
      เบราว์เซอร์เก่าที่ไม่มีให้ถอยไปตัดทีละอักขระ (อ่านได้ แต่รอยตัดไม่สวยเท่า) */
   var segmenter = null;
   try { segmenter = new Intl.Segmenter('th', { granularity: 'word' }); } catch (e) {}
   function tokens(s) {
-    if (segmenter) {
-      var out = [];
-      var it = segmenter.segment(s)[Symbol.iterator]();
-      for (var r = it.next(); !r.done; r = it.next()) out.push(r.value.segment);
-      return out;
-    }
-    return s.split('');
+    if (!segmenter) return s.split('');
+    var out = [], it = segmenter.segment(s)[Symbol.iterator]();
+    for (var r = it.next(); !r.done; r = it.next()) out.push(r.value.segment);
+    return out;
   }
-
   function wrap(text, maxW) {
     var lines = [];
     String(text).split('\n').forEach(function (para) {
@@ -210,23 +270,18 @@ require __DIR__ . '/_top.php';
     });
     return lines;
   }
-
-  function drawLines(lines, cx, y, lh, align) {
-    ctx.textAlign = align || 'center';
+  function drawLines(lines, cx, y, lh) {
     lines.forEach(function (l, i) { ctx.fillText(l, cx, y + i * lh); });
     return y + lines.length * lh;
   }
-
   function drawIcon(name, cx, cy, size, color) {
-    if (!name) return;
+    if (!name) return false;
     ctx.save();
     ctx.font = size + 'px "Material Symbols Rounded"';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = color;
-    ctx.fillText(name, cx, cy);
-    ctx.restore();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = color;
+    ctx.fillText(name, cx, cy); ctx.restore();
+    return true;
   }
-
   function drawLogo(cx, cy, size) {
     if (!F.logo.checked || !logoImg || !logoImg.complete || !logoImg.naturalWidth) return false;
     var r = Math.min(size / logoImg.naturalWidth, size / logoImg.naturalHeight);
@@ -235,184 +290,242 @@ require __DIR__ . '/_top.php';
     return true;
   }
 
+  /* วางก้อนเนื้อหาตามตำแหน่งแนวตั้งที่เลือก — วัดความสูงก่อนเสมอ
+     ถ้าวาดไล่จากบนลงล่างเลย ข้อความสั้นจะกองอยู่ครึ่งบนและเหลือที่ว่างครึ่งล่างทั้งแผ่น */
+  function placeY(top, avail, blockH) {
+    var v = F.val.value;
+    if (v === 'top') return top;
+    if (v === 'bot') return top + Math.max(0, avail - blockH);
+    return top + Math.max(0, Math.round((avail - blockH) / 2));
+  }
+
+  /* ── บล็อกข้อความกลาง ใช้ร่วมทุกเทมเพลต ── */
+  function textBlock(o) {
+    var W = o.W, s = +F.scale.value / 100, cx = o.cx, maxW = o.maxW;
+    var kick = F.kicker.value.trim();
+    var markH = o.mark ? Math.round(o.H * .115 * s) : 0;
+    var kickH = kick ? Math.round(o.H * .085 * s) : 0;
+    var headLH = Math.round(W * .070 * s), bodyLH = Math.round(W * .056 * s);
+    var headF = '700 ' + Math.round(W * .052 * s) + 'px Prompt, sans-serif';
+    var bodyF = (o.bodyWeight || '500') + ' ' + Math.round(W * .039 * s) + 'px Prompt, sans-serif';
+
+    ctx.font = headF; var headLines = wrap(F.head.value, maxW);
+    ctx.font = bodyF; var bodyLines = wrap(F.body.value, maxW);
+    var gap = Math.round(o.H * .028);
+    var blockH = markH + kickH + headLines.length * headLH + (bodyLines.length ? gap + bodyLines.length * bodyLH : 0);
+
+    var y = placeY(o.top, o.avail, blockH) + Math.round(o.H * .03);
+    ctx.textAlign = 'center';
+
+    if (o.mark) {
+      if (!drawLogo(cx, y, Math.round(W * .105 * s))) drawIcon(F.icon.value, cx, y, Math.round(W * .10 * s), o.iconColor);
+      y += markH;
+    }
+    if (kick) {
+      ctx.font = '600 ' + Math.round(W * .031 * s) + 'px Prompt, sans-serif';
+      if (o.kickChip) {
+        var kw = ctx.measureText(kick).width, kh = Math.round(W * .057 * s);
+        ctx.fillStyle = o.kickBg;
+        rr(cx - kw / 2 - kh * .45, y - kh * .70, kw + kh * .9, kh, kh / 2); ctx.fill();
+        ctx.fillStyle = o.kickFg; ctx.textBaseline = 'middle';
+        ctx.fillText(kick, cx, y - kh * .20);
+      } else {
+        ctx.fillStyle = o.kickFg; ctx.textBaseline = 'alphabetic';
+        ctx.fillText(kick, cx, y);
+      }
+      y += kickH;
+    }
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = o.headColor; ctx.font = headF;
+    y = drawLines(headLines, cx, y, headLH);
+    if (bodyLines.length) {
+      y += gap;
+      ctx.fillStyle = o.bodyColor; ctx.font = bodyF;
+      drawLines(bodyLines, cx, y, bodyLH);
+    }
+  }
+
+  function footer(W, H, x, w, color, rule) {
+    var foot = F.foot.value.trim();
+    if (!foot) return;
+    var fy = H - Math.round(H * .055);
+    if (rule) {
+      ctx.strokeStyle = rule; ctx.lineWidth = Math.max(1, W * .0015);
+      ctx.beginPath();
+      ctx.moveTo(x, fy - Math.round(H * .032)); ctx.lineTo(x + w, fy - Math.round(H * .032));
+      ctx.stroke();
+    }
+    ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.font = '400 ' + Math.round(W * .027) + 'px Prompt, sans-serif';
+    ctx.fillText(foot, x + w / 2, fy);
+  }
+
   /* ── เทมเพลต ── */
   function tplCard(W, H, c) {
     var dark = shade(c, .62);
-    ctx.fillStyle = dark; ctx.fillRect(0, 0, W, H);
-
-    /* โค้งอ่อนๆ ด้านบน ให้พื้นไม่เป็นสี่เหลี่ยมทื่อ */
-    ctx.fillStyle = shade(c, .78);
-    ctx.beginPath();
-    ctx.moveTo(0, 0); ctx.lineTo(W, 0); ctx.lineTo(W, H * .30);
-    ctx.quadraticCurveTo(W * .5, H * .40, 0, H * .24);
-    ctx.closePath(); ctx.fill();
-
+    if (bgImg) {
+      cover(bgImg, 0, 0, W, H);
+      ctx.fillStyle = 'rgba(0,0,0,' + (F.overlay.value / 100) + ')'; ctx.fillRect(0, 0, W, H);
+    } else {
+      ctx.fillStyle = dark; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = shade(c, .78);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(W, 0); ctx.lineTo(W, H * .30);
+      ctx.quadraticCurveTo(W * .5, H * .40, 0, H * .24); ctx.closePath(); ctx.fill();
+    }
     var pad = Math.round(W * .075);
-    var cardX = pad, cardY = Math.round(H * .13), cardW = W - pad * 2, cardH = H - cardY - pad;
-    ctx.fillStyle = '#fff';
-    rr(cardX, cardY, cardW, cardH, Math.round(W * .045)); ctx.fill();
-
-    var cx = W / 2;
-    var maxW = cardW - Math.round(W * .12);
-    var kick = F.kicker.value.trim();
-
-    /* วัดความสูงของทุกชิ้นก่อน แล้วค่อยหาจุดเริ่มให้ก้อนเนื้อหาอยู่กึ่งกลางการ์ด
-       ถ้าวาดไล่จากบนลงล่างเลย ข้อความสั้นจะกองอยู่ครึ่งบนและเหลือที่ว่างครึ่งล่างทั้งแผ่น */
-    var markH = Math.round(H * .115);                         /* โลโก้หรือไอคอน */
-    var kickH = kick ? Math.round(H * .085) : 0;
-    var headLH = Math.round(W * .072), bodyLH = Math.round(W * .058);
-    ctx.font = '700 ' + Math.round(W * .052) + 'px Prompt, sans-serif';
-    var headLines = wrap(F.head.value, maxW);
-    ctx.font = '500 ' + Math.round(W * .040) + 'px Prompt, sans-serif';
-    var bodyLines = wrap(F.body.value, maxW);
-    var gap = Math.round(H * .030);
-    var blockH = markH + kickH + headLines.length * headLH + gap + bodyLines.length * bodyLH;
+    var cardY = Math.round(H * .13), cardH = H - cardY - pad, cardW = W - pad * 2;
+    ctx.fillStyle = '#fff'; rr(pad, cardY, cardW, cardH, Math.round(W * .045)); ctx.fill();
 
     var footH = F.foot.value.trim() ? Math.round(H * .085) : Math.round(H * .03);
-    var avail = cardH - footH;
-    var y = cardY + Math.max(Math.round(H * .055), Math.round((avail - blockH) / 2)) + Math.round(H * .035);
-
-    if (!drawLogo(cx, y, Math.round(W * .105))) drawIcon(F.icon.value, cx, y, Math.round(W * .10), c);
-    y += markH;
-
-    if (kick) {
-      ctx.font = '600 ' + Math.round(W * .032) + 'px Prompt, sans-serif';
-      var kw = ctx.measureText(kick).width, kh = Math.round(W * .058);
-      ctx.fillStyle = c;
-      rr(cx - kw / 2 - kh * .45, y - kh * .70, kw + kh * .9, kh, kh / 2); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(kick, cx, y - kh * .20);
-      y += kickH;
-    }
-
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = dark;
-    ctx.font = '700 ' + Math.round(W * .052) + 'px Prompt, sans-serif';
-    y = drawLines(headLines, cx, y, headLH);
-
-    y += gap;
-    ctx.fillStyle = c;
-    ctx.font = '500 ' + Math.round(W * .040) + 'px Prompt, sans-serif';
-    drawLines(bodyLines, cx, y, bodyLH);
-
-    var foot = F.foot.value.trim();
-    if (foot) {
-      var fy = cardY + cardH - Math.round(H * .045);
-      ctx.strokeStyle = 'rgba(0,0,0,.12)'; ctx.lineWidth = Math.max(1, W * .0015);
-      ctx.beginPath();
-      ctx.moveTo(cardX + Math.round(W * .06), fy - Math.round(H * .032));
-      ctx.lineTo(cardX + cardW - Math.round(W * .06), fy - Math.round(H * .032));
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.textAlign = 'right';
-      ctx.font = '400 ' + Math.round(W * .028) + 'px Prompt, sans-serif';
-      ctx.fillText(foot, cardX + cardW - Math.round(W * .06), fy);
-    }
+    textBlock({ W: W, H: H, cx: W / 2, maxW: cardW - Math.round(W * .12),
+      top: cardY, avail: cardH - footH, mark: true, kickChip: true,
+      kickBg: c, kickFg: '#fff', headColor: dark, bodyColor: c, iconColor: c });
+    footer(W, H, pad + Math.round(W * .06), cardW - Math.round(W * .12), 'rgba(0,0,0,.55)', 'rgba(0,0,0,.12)');
   }
 
   function tplBold(W, H, c) {
-    ctx.fillStyle = c; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = 'rgba(255,255,255,.10)';
-    ctx.beginPath(); ctx.arc(W * .88, H * .12, W * .30, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W * .10, H * .92, W * .24, 0, Math.PI * 2); ctx.fill();
-
-    var cx = W / 2, maxW = W - Math.round(W * .20);
-    var kick = F.kicker.value.trim();
-
-    /* วัดก่อนวาดเหมือนเทมเพลตการ์ด เพื่อให้ก้อนเนื้อหาอยู่กึ่งกลางภาพเสมอ ไม่ว่าข้อความสั้นหรือยาว */
-    var markH = Math.round(H * .125);
-    var kickH = kick ? Math.round(H * .090) : 0;      /* เว้นให้พอ ไม่งั้นหางอักษรของป้ายไปทับหัวข้อ */
-    var headLH = Math.round(W * .092), bodyLH = Math.round(W * .056);
-    ctx.font = '700 ' + Math.round(W * .068) + 'px Prompt, sans-serif';
-    var headLines = wrap(F.head.value, maxW);
-    ctx.font = '400 ' + Math.round(W * .038) + 'px Prompt, sans-serif';
-    var bodyLines = wrap(F.body.value, maxW);
-    var gap = Math.round(H * .030);
-    var blockH = markH + kickH + headLines.length * headLH + gap + bodyLines.length * bodyLH;
-
-    var y = Math.max(Math.round(H * .12), Math.round((H - Math.round(H * .10) - blockH) / 2)) + Math.round(H * .04);
-
-    if (!drawLogo(cx, y, Math.round(W * .13))) drawIcon(F.icon.value, cx, y, Math.round(W * .13), 'rgba(255,255,255,.92)');
-    y += markH;
-
-    if (kick) {
-      ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-      ctx.font = '600 ' + Math.round(W * .030) + 'px Prompt, sans-serif';
-      ctx.fillText(kick, cx, y);
-      y += kickH;
+    if (bgImg) {
+      cover(bgImg, 0, 0, W, H);
+      ctx.fillStyle = 'rgba(0,0,0,' + (F.overlay.value / 100) + ')'; ctx.fillRect(0, 0, W, H);
+    } else {
+      ctx.fillStyle = c; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(255,255,255,.10)';
+      ctx.beginPath(); ctx.arc(W * .88, H * .12, W * .30, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(W * .10, H * .92, W * .24, 0, Math.PI * 2); ctx.fill();
     }
-
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.font = '700 ' + Math.round(W * .068) + 'px Prompt, sans-serif';
-    y = drawLines(headLines, cx, y, headLH);
-
-    y += gap;
-    ctx.fillStyle = 'rgba(255,255,255,.90)';
-    ctx.font = '400 ' + Math.round(W * .038) + 'px Prompt, sans-serif';
-    drawLines(bodyLines, cx, y, bodyLH);
-
-    var foot = F.foot.value.trim();
-    if (foot) {
-      ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.textAlign = 'center';
-      ctx.font = '400 ' + Math.round(W * .028) + 'px Prompt, sans-serif';
-      ctx.fillText(foot, cx, H - Math.round(H * .065));
-    }
+    textBlock({ W: W, H: H, cx: W / 2, maxW: W - Math.round(W * .20),
+      top: Math.round(H * .10), avail: H - Math.round(H * .20), mark: true, kickChip: false,
+      kickFg: 'rgba(255,255,255,.85)', headColor: '#fff', bodyColor: 'rgba(255,255,255,.92)',
+      bodyWeight: '400', iconColor: 'rgba(255,255,255,.92)' });
+    footer(W, H, Math.round(W * .10), W - Math.round(W * .20), 'rgba(255,255,255,.75)', '');
   }
+
+  function tplPhoto(W, H, c) {
+    if (bgImg) cover(bgImg, 0, 0, W, H);
+    else { ctx.fillStyle = shade(c, .55); ctx.fillRect(0, 0, W, H); }
+    /* ไล่เข้มจากล่างขึ้นบน — ข้อความอยู่ครึ่งล่างจึงต้องมืดตรงนั้นมากกว่า */
+    var g = ctx.createLinearGradient(0, H * .25, 0, H);
+    var a = F.overlay.value / 100;
+    g.addColorStop(0, 'rgba(0,0,0,' + (a * .25) + ')');
+    g.addColorStop(1, 'rgba(0,0,0,' + Math.min(.95, a + .28) + ')');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = c; ctx.fillRect(0, H - Math.round(H * .012), W, Math.round(H * .012));
+
+    textBlock({ W: W, H: H, cx: W / 2, maxW: W - Math.round(W * .16),
+      top: Math.round(H * .34), avail: Math.round(H * .52), mark: true, kickChip: true,
+      kickBg: c, kickFg: '#fff', headColor: '#fff', bodyColor: 'rgba(255,255,255,.92)',
+      bodyWeight: '400', iconColor: '#fff' });
+    footer(W, H, Math.round(W * .08), W - Math.round(W * .16), 'rgba(255,255,255,.8)', '');
+  }
+
+  function tplBanner(W, H, c) {
+    var split = Math.round(H * .50);
+    if (bgImg) {
+      cover(bgImg, 0, 0, W, split);
+      ctx.fillStyle = 'rgba(0,0,0,' + (F.overlay.value / 100 * .5) + ')'; ctx.fillRect(0, 0, W, split);
+    } else {
+      ctx.fillStyle = shade(c, .78); ctx.fillRect(0, 0, W, split);
+      drawIcon(F.icon.value, W / 2, split / 2, Math.round(W * .18), 'rgba(255,255,255,.35)');
+    }
+    ctx.fillStyle = c; ctx.fillRect(0, split, W, H - split);
+
+    var footH = F.foot.value.trim() ? Math.round(H * .085) : Math.round(H * .03);
+    textBlock({ W: W, H: H, cx: W / 2, maxW: W - Math.round(W * .14),
+      top: split, avail: H - split - footH, mark: false, kickChip: false,
+      kickFg: 'rgba(255,255,255,.85)', headColor: '#fff', bodyColor: 'rgba(255,255,255,.90)',
+      bodyWeight: '400', iconColor: '#fff' });
+    footer(W, H, Math.round(W * .07), W - Math.round(W * .14), 'rgba(255,255,255,.75)', '');
+  }
+
+  var TPL = { card: tplCard, bold: tplBold, photo: tplPhoto, banner: tplBanner };
 
   function render() {
     if (!ready) return;
     var wh = F.size.value.split('x'), W = +wh[0], H = +wh[1];
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
     ctx.clearRect(0, 0, W, H);
-    var c = F.color.value || CFG.color;
-    if (F.tpl.value === 'bold') tplBold(W, H, c); else tplCard(W, H, c);
+    (TPL[tpl] || tplCard)(W, H, F.color.value || CFG.color);
     $('gDim').textContent = 'ขนาดจริง ' + W + ' × ' + H + ' พิกเซล';
+    $('gOverlayV').textContent = F.overlay.value + '%';
+    $('gScaleV').textContent = F.scale.value + '%';
   }
 
+  /* ── ผูกการควบคุม ── */
   Object.keys(F).forEach(function (k) {
     F[k].addEventListener('input', render);
     F[k].addEventListener('change', render);
   });
+  Array.prototype.forEach.call(document.querySelectorAll('.gfx-t'), function (b) {
+    b.addEventListener('click', function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.gfx-t'), function (x) { x.classList.remove('on'); });
+      b.classList.add('on'); tpl = b.dataset.tpl; render();
+    });
+  });
   $('gReset').addEventListener('click', function () { F.color.value = CFG.color; render(); });
 
-  /* ถ้ามีภาพข้ามโดเมนถูกวาดลง canvas เบราว์เซอร์จะล็อกไม่ให้อ่านภาพกลับออกมา (tainted canvas)
-     แล้ว toDataURL() จะโยน SecurityError — ปกติไม่เกิดเพราะโลโก้อยู่โดเมนเดียวกัน
-     แต่ถ้าหน่วยงานตั้งโลโก้เป็น URL ภายนอกจะเจอ จึงต้องบอกสาเหตุให้ชัด ไม่ปล่อยให้ปุ่มเงียบ */
-  function exportPng() {
-    try { return cv.toDataURL('image/png'); }
-    catch (err) {
-      alert('บันทึกภาพไม่ได้ เพราะโลโก้ของหน่วยงานถูกโหลดมาจากโดเมนอื่น\n\n'
-          + 'วิธีแก้: ไปที่ ตั้งค่าเว็บไซต์ แล้วอัปโหลดไฟล์โลโก้เข้าระบบโดยตรง '
-          + 'แทนการใส่ลิงก์ภายนอก หรือเอาเครื่องหมายถูกหน้า "แสดงตราหน่วยงาน" ออกก่อน');
+  function setBg(src, el) {
+    var im = new Image();
+    im.onload = function () { bgImg = im; $('gClearImg').hidden = false; render(); };
+    im.onerror = function () { alert('เปิดไฟล์ภาพไม่ได้'); };
+    im.src = src;
+    Array.prototype.forEach.call(document.querySelectorAll('.gfx-lib img'), function (x) { x.classList.remove('on'); });
+    if (el) el.classList.add('on');
+  }
+  $('gFile').addEventListener('change', function (ev) {
+    var f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function () { setBg(fr.result, null); };
+    fr.readAsDataURL(f);
+  });
+  $('gClearImg').addEventListener('click', function () {
+    bgImg = null; this.hidden = true; $('gFile').value = '';
+    Array.prototype.forEach.call(document.querySelectorAll('.gfx-lib img'), function (x) { x.classList.remove('on'); });
+    render();
+  });
+
+  var libBox = $('gLib');
+  if (libBox) {
+    CFG.lib.forEach(function (u) {
+      var im = document.createElement('img');
+      im.src = u; im.loading = 'lazy'; im.alt = '';
+      im.addEventListener('click', function () { setBg(u, im); });
+      libBox.appendChild(im);
+    });
+  }
+
+  /* ── ส่งออก ── */
+  /* มีรูปถ่ายให้ใช้ JPEG — PNG ของภาพถ่ายใหญ่กว่าหลายเท่าและชนเพดานอัปโหลดง่าย
+     ไม่มีรูปใช้ PNG เพราะพื้นสีเรียบกับตัวอักษรจะคมกว่าและไฟล์เล็กอยู่แล้ว */
+  function exportData() {
+    try {
+      return bgImg ? cv.toDataURL('image/jpeg', 0.92) : cv.toDataURL('image/png');
+    } catch (err) {
+      alert('บันทึกภาพไม่ได้ เพราะมีรูปที่โหลดมาจากโดเมนอื่นอยู่ในภาพ\n\n'
+          + 'วิธีแก้: อัปโหลดรูปเข้าระบบโดยตรง แทนการใช้ลิงก์ภายนอก');
       return null;
     }
   }
-
   $('gDownload').addEventListener('click', function () {
-    var data = exportPng();
-    if (!data) return;
+    var d = exportData(); if (!d) return;
     var a = document.createElement('a');
-    a.download = 'ประกาศ-' + Date.now() + '.png';
-    a.href = data;
-    a.click();
+    a.download = 'ประกาศ-' + Date.now() + (bgImg ? '.jpg' : '.png');
+    a.href = d; a.click();
   });
-
   $('gForm').addEventListener('submit', function (ev) {
-    var data = exportPng();
-    if (!data) { ev.preventDefault(); return; }
-    $('gPng').value = data;
+    var d = exportData();
+    if (!d) { ev.preventDefault(); return; }
+    $('gImgData').value = d;
   });
 
   /* วาดหลังฟอนต์พร้อมเท่านั้น — ถ้าวาดก่อน ตัวอักษรจะตกไปใช้ฟอนต์สำรองแล้วความกว้างเพี้ยน
-     ทำให้การตัดบรรทัดผิดและภาพที่บันทึกไม่ตรงกับที่เห็น */
+     ทำให้ตัดบรรทัดผิดและภาพที่บันทึกไม่ตรงกับที่เห็นบนจอ */
   function start() { ready = true; render(); }
-  var fonts = [
-    '700 40px Prompt', '600 40px Prompt', '500 40px Prompt', '400 40px Prompt',
-    '100px "Material Symbols Rounded"'
-  ];
+  var fonts = ['700 40px Prompt', '600 40px Prompt', '500 40px Prompt', '400 40px Prompt',
+               '100px "Material Symbols Rounded"'];
   if (document.fonts && document.fonts.load) {
     Promise.all(fonts.map(function (f) { return document.fonts.load(f, 'ประกาศ'); }))
-      .then(function () { return document.fonts.ready; })
-      .then(start).catch(start);
+      .then(function () { return document.fonts.ready; }).then(start).catch(start);
   } else { start(); }
 
   if (CFG.logo) {
