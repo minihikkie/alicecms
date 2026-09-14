@@ -101,6 +101,17 @@ $cfg = [
     'lib'   => $lib,
     'bg'    => $pre['bg'],
 ];
+
+/* ข้อมูลติดต่อสำหรับแถบท้ายโปสเตอร์ — ดึงจากหน้าตั้งค่าเว็บ ไม่ต้องพิมพ์ซ้ำ
+   เอาเฉพาะที่สั้นพอจะอยู่ในแถบเดียวได้: เว็บไซต์ โทร อีเมล
+   (ที่อยู่กับเวลาทำการยาวเกินไป ถ้าอยากใส่ให้พิมพ์ในช่องคำขวัญเอง) */
+$host = parse_url(abs_url(''), PHP_URL_HOST) ?: '';
+$contacts = array_values(array_filter([
+    $host                 ? ['public', $host]                  : null,
+    setting('site_phone') ? ['call',   setting('site_phone')]  : null,
+    setting('site_email') ? ['mail',   setting('site_email')]  : null,
+]));
+$cfg['contacts'] = $contacts;
 require __DIR__ . '/_top.php';
 ?>
 <div class="section-head">
@@ -148,7 +159,19 @@ require __DIR__ . '/_top.php';
       <label for="gDept">สังกัด</label>
       <input type="text" id="gDept" class="mb-2" maxlength="120" value="<?= e(setting('site_dept', '')) ?>" placeholder="เช่น สำนักงานตำรวจแห่งชาติ">
       <label for="gDate">วันที่ (มุมล่าง)</label>
-      <input type="text" id="gDate" maxlength="60" value="<?= e($pre['date']) ?>" placeholder="เช่น 14 ก.ย. 2569">
+      <input type="text" id="gDate" class="mb-2" maxlength="60" value="<?= e($pre['date']) ?>" placeholder="เช่น 14 ก.ย. 2569">
+      <label for="gMotto">คำขวัญ / วิสัยทัศน์ (แถบท้าย)</label>
+      <input type="text" id="gMotto" class="mb-2" maxlength="120"
+             value="<?= e(meta_excerpt(setting('site_vision', ''), 110)) ?>"
+             placeholder="เว้นว่างได้ถ้าไม่ต้องการ">
+      <?php if ($contacts): ?>
+      <label class="inline-check"><input type="checkbox" id="gContact" checked>
+        แสดงข้อมูลติดต่อในแถบท้าย
+        <span class="text-muted" style="font-size:12px;">(<?= e(implode(' · ', array_column($contacts, 1))) ?>)</span></label>
+      <?php else: ?>
+      <input type="checkbox" id="gContact" hidden>
+      <p class="text-muted" style="font-size:12px;margin:0;">ยังไม่ได้กรอกเบอร์โทร/อีเมลในหน้าตั้งค่าเว็บไซต์ จึงยังไม่มีข้อมูลติดต่อให้แสดง</p>
+      <?php endif; ?>
     </div>
 
     <!-- ── ข้อความ ── -->
@@ -280,7 +303,7 @@ require __DIR__ . '/_top.php';
     size: $('gSize'), kicker: $('gKicker'), head: $('gHead'), body: $('gBody'), foot: $('gFoot'),
     org: $('gOrg'), dept: $('gDept'), date: $('gDate'),
     overlay: $('gOverlay'), scale: $('gScale'), val: $('gVal'), color: $('gColor'),
-    icon: $('gIcon'), logo: $('gLogo'), plate: $('gPlate'), strip: $('gStrip')
+    icon: $('gIcon'), logo: $('gLogo'), plate: $('gPlate'), strip: $('gStrip'), motto: $('gMotto'), contact: $('gContact')
   };
 
   /* ── ตัวช่วยวาด ── */
@@ -567,6 +590,21 @@ require __DIR__ . '/_top.php';
     footer(W, H, Math.round(W * .07), W - Math.round(W * .14), 'rgba(255,255,255,.75)', '');
   }
 
+  /* รวบรวมบรรทัดที่จะขึ้นในแถบท้ายโปสเตอร์ แล้วคำนวณความสูงที่ต้องใช้
+     แยกออกมาเพราะต้องรู้ความสูงก่อน ตั้งแต่ตอนแบ่งพื้นที่ให้เนื้อหาด้านบน */
+  function footRows() {
+    var W = cv.width;
+    var motto = F.motto.value.trim();
+    var chips = (F.contact.checked && CFG.contacts) ? CFG.contacts : [];
+    var bits = [];
+    if (F.date.value.trim()) bits.push(F.date.value.trim());
+    if (F.foot.value.trim())  bits.push(F.foot.value.trim());
+    var last = bits.join('  ·  ');
+    var n = (motto ? 1 : 0) + (chips.length ? 1 : 0) + (last ? 1 : 0);
+    var line = Math.round(W * .046);
+    return { motto: motto, chips: chips, last: last, n: n, line: line, h: n * line };
+  }
+
   /* โปสเตอร์ข่าว — วางแบบสื่อประชาสัมพันธ์ราชการ
      หัวกระดาษ (ตรา + ชื่อหน่วยงาน + สังกัด) → รูปใหญ่ → เนื้อหาบนพื้นขาว → แถบท้าย
      หัวกระดาษคือสิ่งที่ทำให้ดูเป็นเอกสารทางการ ไม่ใช่ภาพที่ใครก็ทำได้ */
@@ -634,7 +672,8 @@ require __DIR__ . '/_top.php';
     ctx.fillStyle = c; ctx.fillRect(0, imgTop + imgH - Math.round(H * .006), W, Math.round(H * .006));
 
     /* ── เนื้อหา ── */
-    var footH = Math.round(H * .085);
+    var fr0 = footRows();
+    var footH = fr0.n ? fr0.h + Math.round(H * .030) : Math.round(H * .022);
     var top = imgTop + imgH, avail = H - top - footH;
     var cx = W / 2, maxW = W - pad * 2;
     var kick = F.kicker.value.trim();
@@ -669,14 +708,43 @@ require __DIR__ . '/_top.php';
       drawLines(bodyLines, cx, y, bodyLH);
     }
 
-    /* ── แถบท้าย: วันที่ซ้าย ข้อความมุมล่างขวา ── */
+    /* ── แถบท้าย ── */
     ctx.fillStyle = shade(c, .40); ctx.fillRect(0, H - footH, W, footH);
-    var fy = H - footH / 2;
     ctx.textBaseline = 'middle';
-    ctx.font = '400 ' + Math.round(W * .026) + 'px Prompt, sans-serif';
-    var dt = F.date.value.trim(), ft = F.foot.value.trim();
-    if (dt) { ctx.textAlign = 'left';  ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fillText(dt, pad, fy); }
-    if (ft) { ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fillText(ft, W - pad, fy); }
+    var fTop = H - footH, rows = footRows(), fy = fTop + (footH - rows.h) / 2 + rows.line / 2;
+
+    if (rows.motto) {
+      ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,.80)';
+      ctx.font = '300 ' + Math.round(W * .026) + 'px Prompt, sans-serif';
+      ctx.fillText(rows.motto, W / 2, fy);
+      fy += rows.line;
+    }
+    if (rows.chips.length) {
+      /* วัดความกว้างรวมก่อนเพื่อจัดกึ่งกลาง แล้วไล่วาดไอคอน+ข้อความทีละชิ้น */
+      var fs = Math.round(W * .025), isz = Math.round(W * .030);
+      var gapIcon = Math.round(W * .010), gapItem = Math.round(W * .034), i, total = 0, ws = [];
+      ctx.font = '500 ' + fs + 'px Prompt, sans-serif';
+      for (i = 0; i < rows.chips.length; i++) {
+        ws[i] = isz + gapIcon + ctx.measureText(rows.chips[i][1]).width;
+        total += ws[i];
+      }
+      total += gapItem * (rows.chips.length - 1);
+      var sx = (W - total) / 2;
+      for (i = 0; i < rows.chips.length; i++) {
+        drawIcon(rows.chips[i][0], sx + isz / 2, fy, isz, 'rgba(255,255,255,.82)');
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(255,255,255,.95)';
+        ctx.font = '500 ' + fs + 'px Prompt, sans-serif';
+        ctx.fillText(rows.chips[i][1], sx + isz + gapIcon, fy);
+        sx += ws[i] + gapItem;
+      }
+      fy += rows.line;
+    }
+    if (rows.last) {
+      ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,.70)';
+      ctx.font = '400 ' + Math.round(W * .024) + 'px Prompt, sans-serif';
+      ctx.fillText(rows.last, W / 2, fy);
+    }
     ctx.textBaseline = 'alphabetic';
   }
 
