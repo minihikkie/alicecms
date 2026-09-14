@@ -630,14 +630,16 @@ CREATE TABLE IF NOT EXISTS login_logs (
     <?php /* ตรา AliceCMS — หน้านี้ยังไม่มีหน่วยงาน จึงเป็นตราของตัวระบบเอง ไม่ใช่ไอคอนอาคารราชการ
              วาดในหน้าเลยเพราะระหว่างติดตั้งยังไม่รู้ว่าเว็บวางอยู่ใต้โฟลเดอร์ไหน ลิงก์ไฟล์ภาพอาจหลุด */ ?>
     <div class="logo" style="margin:0 auto 12px;width:56px;height:56px;border-radius:18px;">
-      <svg viewBox="0 0 64 64" width="45" height="45" aria-hidden="true" focusable="false" style="display:block;">
-        <g fill="currentColor" transform="translate(-2.2 5.6) scale(.95)">
-          <rect x="13" y="19" width="38" height="7" rx="3.5" opacity=".55"/>
-          <rect x="13" y="30" width="38" height="7" rx="3.5" opacity=".8"/>
-          <rect x="13" y="41" width="25" height="7" rx="3.5"/>
-          <path d="M46.5 6C47.85 12.3 49.2 13.65 55.5 15C49.2 16.35 47.85 17.7 46.5 24C45.15 17.7 43.8 16.35 37.5 15C43.8 13.65 45.15 12.3 46.5 6Z"/>
-          <path d="M54 20C54.75 23.5 55.25 24.25 59 25C55.25 25.75 54.75 26.5 54 30C53.25 26.5 52.75 25.75 49 25C52.75 24.25 53.25 23.5 54 20Z"/>
-          <path d="M42 22.4C42.54 24.92 42.9 25.46 45.6 26C42.9 26.54 42.54 27.08 42 29.6C41.46 27.08 41.1 26.54 38.4 26C41.1 25.46 41.46 24.92 42 22.4Z"/>
+      <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <g fill="currentColor">
+          <rect x="20.05" y="20.75" width="23.9"  height="5.29" rx="2.65" opacity=".55"/>
+          <rect x="16.65" y="29.37" width="30.7"  height="5.29" rx="2.65" opacity=".82"/>
+          <rect x="24.3"  y="37.98" width="15.35" height="5.29" rx="2.65"/>
+          <g class="logo-ai">
+            <path transform="translate(46 14) scale(.9444) translate(-46.5 -15)"  d="M46.5 6C47.85 12.3 49.2 13.65 55.5 15C49.2 16.35 47.85 17.7 46.5 24C45.15 17.7 43.8 16.35 37.5 15C43.8 13.65 45.15 12.3 46.5 6Z"/>
+            <path transform="translate(54 22) scale(.4667) translate(-46.5 -15)"  d="M46.5 6C47.85 12.3 49.2 13.65 55.5 15C49.2 16.35 47.85 17.7 46.5 24C45.15 17.7 43.8 16.35 37.5 15C43.8 13.65 45.15 12.3 46.5 6Z"/>
+            <path transform="translate(53 9.5) scale(.3111) translate(-46.5 -15)" d="M46.5 6C47.85 12.3 49.2 13.65 55.5 15C49.2 16.35 47.85 17.7 46.5 24C45.15 17.7 43.8 16.35 37.5 15C43.8 13.65 45.15 12.3 46.5 6Z"/>
+          </g>
         </g>
       </svg>
     </div>
