@@ -1,0 +1,23 @@
+<?php
+/**
+ * includes/mark.php — ตรา AliceCMS สำหรับวางในกล่อง .logo
+ *
+ * ไฟล์นี้ไม่พึ่งอะไรเลย (ไม่ต้อง init.php ไม่ต้องมีฐานข้อมูล) เพราะหน้าติดตั้งซึ่งยังไม่มี
+ * config.php ก็ต้องใช้ได้ด้วย  —  วาดเป็น SVG ไม่ใช่ไฟล์ภาพ เพื่อให้ fill: currentColor
+ * รับสีธีมของหน่วยงาน และไม่ต้องโหลดไฟล์เพิ่มอีกหนึ่งรอบ
+ *
+ * ลายต้องตรงกับ assets/img/alicecms-mark.svg เสมอ — แก้ที่ใดต้องแก้อีกที่ด้วย
+ */
+?>
+<svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+  <g fill="currentColor">
+    <rect x="20.05" y="20.75" width="23.9"  height="5.29" rx="2.65" opacity=".55"/>
+    <rect x="16.65" y="29.37" width="30.7"  height="5.29" rx="2.65" opacity=".82"/>
+    <rect x="24.3"  y="37.98" width="15.35" height="5.29" rx="2.65"/>
+    <g class="logo-ai">
+      <path transform="translate(46 14) scale(.9444) translate(-46.5 -15)"  d="M46.5 6C47.85 12.3 49.2 13.65 55.5 15C49.2 16.35 47.85 17.7 46.5 24C45.15 17.7 43.8 16.35 37.5 15C43.8 13.65 45.15 12.3 46.5 6Z"/>
+      <path transform="translate(54 22) scale(.4667) translate(-46.5 -15)"  d="M46.5 6C47.85 12.3 49.2 13.65 55.5 15C49.2 16.35 47.85 17.7 46.5 24C45.15 17.7 43.8 16.35 37.5 15C43.8 13.65 45.15 12.3 46.5 6Z"/>
+      <path transform="translate(53 9.5) scale(.3111) translate(-46.5 -15)" d="M46.5 6C47.85 12.3 49.2 13.65 55.5 15C49.2 16.35 47.85 17.7 46.5 24C45.15 17.7 43.8 16.35 37.5 15C43.8 13.65 45.15 12.3 46.5 6Z"/>
+    </g>
+  </g>
+</svg>

@@ -99,12 +99,7 @@ $markInner = $logo
       <h1 class="auth-org"><?= e($org) ?></h1>
       <?php if ($dept): ?><p class="auth-dept"><?= e($dept) ?></p><?php endif; ?>
     </div>
-    <div class="auth-foot">
-      <img src="<?= e(asset_url('assets/img/alicecms-mark.svg')) ?>" alt="" aria-hidden="true">
-      <p>ระบบจัดการเนื้อหาสำหรับหน่วยงานราชการ<br>
-        ขับเคลื่อนด้วย <a href="https://github.com/minihikkie/alicecms" target="_blank" rel="noopener">AliceCMS</a>
-        <?= e(APP_VERSION) ?></p>
-    </div>
+    <?php require __DIR__ . '/_brandfoot.php'; ?>
   </aside>
 
   <main class="auth-main">

@@ -95,21 +95,9 @@ $flash = flash_get();
 
 <header class="topbar">
   <div class="container topbar-inner">
-    <?php /* ตรา AliceCMS — วาดเป็น SVG ในหน้าเลย ไม่ใช่ไฟล์ภาพ เพราะใช้ currentColor
-             จึงเปลี่ยนสีตามธีมที่หน่วยงานตั้งไว้ และไม่เสียรอบโหลดเพิ่มอีกหนึ่งไฟล์ */ ?>
+    <?php /* ตรา AliceCMS — ลายอยู่ที่ includes/mark.php ที่เดียว ใช้ร่วมกับหน้าติดตั้งและหน้าเข้าสู่ระบบ */ ?>
     <div class="logo" title="AliceCMS <?= e(APP_VERSION) ?>">
-      <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <g fill="currentColor">
-          <rect x="20.05" y="20.75" width="23.9"  height="5.29" rx="2.65" opacity=".55"/>
-          <rect x="16.65" y="29.37" width="30.7"  height="5.29" rx="2.65" opacity=".82"/>
-          <rect x="24.3"  y="37.98" width="15.35" height="5.29" rx="2.65"/>
-          <g class="logo-ai">
-            <path transform="translate(46 14) scale(.9444) translate(-46.5 -15)"  d="M46.5 6C47.85 12.3 49.2 13.65 55.5 15C49.2 16.35 47.85 17.7 46.5 24C45.15 17.7 43.8 16.35 37.5 15C43.8 13.65 45.15 12.3 46.5 6Z"/>
-            <path transform="translate(54 22) scale(.4667) translate(-46.5 -15)"  d="M46.5 6C47.85 12.3 49.2 13.65 55.5 15C49.2 16.35 47.85 17.7 46.5 24C45.15 17.7 43.8 16.35 37.5 15C43.8 13.65 45.15 12.3 46.5 6Z"/>
-            <path transform="translate(53 9.5) scale(.3111) translate(-46.5 -15)" d="M46.5 6C47.85 12.3 49.2 13.65 55.5 15C49.2 16.35 47.85 17.7 46.5 24C45.15 17.7 43.8 16.35 37.5 15C43.8 13.65 45.15 12.3 46.5 6Z"/>
-          </g>
-        </g>
-      </svg>
+      <?php require dirname(__DIR__) . '/includes/mark.php'; ?>
     </div>
     <?php /* บรรทัดล่างต่อชื่อหน่วยงานจากค่าตั้งค่า ไม่ได้เขียนตายตัว — ทุกหน่วยงานที่นำระบบไปใช้
              จะได้ชื่อของตัวเองขึ้นตรงนี้เอง */ ?>
