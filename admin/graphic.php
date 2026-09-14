@@ -71,12 +71,31 @@ try {
     }
 } catch (Throwable $e) {}
 
+/* เปิดมาจากปุ่ม "สร้างภาพ" ในหน้าจัดการข่าว → ดึงหัวข้อ เนื้อหา รูปปก มาเติมให้เลย
+   จะได้ไม่ต้องพิมพ์ซ้ำ ซึ่งเป็นเหตุผลหลักที่คนขี้เกียจทำภาพประชาสัมพันธ์ */
+$pre = ['kicker' => 'ประกาศ', 'head' => '', 'body' => '', 'bg' => '', 'from' => 0];
+$pid = (int)($_GET['post'] ?? 0);
+if ($pid) {
+    try {
+        $st = db()->prepare('SELECT id, type, title, body, image FROM posts WHERE id = ?');
+        $st->execute([$pid]);
+        if ($p = $st->fetch()) {
+            $pre['kicker'] = post_type_label($p['type']);
+            $pre['head']   = $p['title'];
+            $pre['body']   = meta_excerpt($p['body'], 180);
+            $pre['bg']     = $p['image'] ? url($p['image']) : '';
+            $pre['from']   = (int)$p['id'];
+        }
+    } catch (Throwable $e) {}
+}
+
 $page_title = 'ออกแบบภาพประกาศ';
 $theme = valid_hex(setting('theme_color', '')) ? setting('theme_color') : '#1A73E8';
 $cfg = [
     'logo'  => setting('logo') ? url(setting('logo')) : '',
     'color' => $theme,
     'lib'   => $lib,
+    'bg'    => $pre['bg'],
 ];
 require __DIR__ . '/_top.php';
 ?>
@@ -84,9 +103,18 @@ require __DIR__ . '/_top.php';
   <div><span class="tag"><span class="material-symbols-rounded icon-sm">design_services</span> STUDIO</span>
   <h2>ออกแบบภาพประกาศ</h2></div>
 </div>
+<?php if ($pre['from']): ?>
+<div class="alert success mb-2" style="font-size:13.5px;">
+  <span class="material-symbols-rounded">auto_awesome</span>
+  <div>ดึงข้อมูลจากข่าวมาให้แล้ว — ปรับแต่งได้ตามต้องการ แล้วกดดาวน์โหลดไปโพสต์ช่องทางอื่นได้เลย
+    &nbsp;·&nbsp; <a href="<?= e(url('admin/post-edit.php?id=' . $pre['from'])) ?>">กลับไปแก้ไขข่าว</a></div>
+</div>
+<?php else: ?>
 <p class="text-muted mb-2" style="font-size:14px;">
-  กรอกข้อความ ใส่รูป ปรับขนาดตัวอักษร แล้วบันทึกเข้าคลังสื่อใช้เป็นภาพปกข่าวได้ทันที
+  กรอกข้อความ ใส่รูป เลือกธีม แล้วบันทึกเข้าคลังสื่อหรือดาวน์โหลดไปโพสต์ช่องทางอื่นได้ทันที
+  &nbsp;·&nbsp; <span class="text-muted">อยากได้เร็วกว่านี้? กดปุ่ม <b>สร้างภาพ</b> ที่หน้าจัดการข่าว ระบบจะเติมข้อมูลให้เอง</span>
 </p>
+<?php endif; ?>
 
 <div class="gfx-wrap">
   <div>
@@ -110,11 +138,11 @@ require __DIR__ . '/_top.php';
     <!-- ── ข้อความ ── -->
     <div class="card mb-2">
       <label for="gKicker">ป้ายบนสุด</label>
-      <input type="text" id="gKicker" class="mb-2" maxlength="40" value="ประกาศ" placeholder="เช่น ประกาศ / แจ้งเตือน">
+      <input type="text" id="gKicker" class="mb-2" maxlength="40" value="<?= e($pre['kicker']) ?>" placeholder="เช่น ประกาศ / แจ้งเตือน">
       <label for="gHead">หัวข้อ</label>
-      <textarea id="gHead" class="mb-2" rows="2" maxlength="200" placeholder="หัวข้อประกาศ">ประกาศสำนักงานกฎหมายและคดี</textarea>
+      <textarea id="gHead" class="mb-2" rows="2" maxlength="200" placeholder="หัวข้อประกาศ"><?= e($pre['head'] !== '' ? $pre['head'] : 'ประกาศสำนักงานกฎหมายและคดี') ?></textarea>
       <label for="gBody">เนื้อหา</label>
-      <textarea id="gBody" class="mb-2" rows="4" maxlength="800" placeholder="รายละเอียด — ขึ้นบรรทัดใหม่ได้">เรื่อง เจตนารมณ์การป้องกันและแก้ไขปัญหาการล่วงละเมิดหรือคุกคามทางเพศในการทำงาน</textarea>
+      <textarea id="gBody" class="mb-2" rows="4" maxlength="800" placeholder="รายละเอียด — ขึ้นบรรทัดใหม่ได้"><?= e($pre['body'] !== '' ? $pre['body'] : 'เรื่อง เจตนารมณ์การป้องกันและแก้ไขปัญหาการล่วงละเมิดหรือคุกคามทางเพศในการทำงาน') ?></textarea>
       <label for="gFoot">ข้อความมุมล่าง</label>
       <input type="text" id="gFoot" maxlength="60" value="<?= e(setting('site_name', '')) ?>" placeholder="ชื่อหน่วยงาน">
     </div>
@@ -150,12 +178,14 @@ require __DIR__ . '/_top.php';
         <option value="top">ชิดบน</option>
         <option value="bot">ชิดล่าง</option>
       </select>
+      <label>ธีมสี</label>
+      <div class="gfx-themes mb-2" id="gThemes"></div>
       <div class="form-row">
         <div>
-          <label for="gColor">สีหลัก</label>
+          <label for="gColor">หรือเลือกสีเอง</label>
           <div class="flex gap-2 items-center mb-2">
             <input type="color" id="gColor" value="<?= e($theme) ?>">
-            <button type="button" class="btn small" id="gReset">สีธีม</button>
+            <button type="button" class="btn small" id="gReset">สีธีมเว็บ</button>
           </div>
         </div>
         <div>
@@ -207,6 +237,13 @@ require __DIR__ . '/_top.php';
 .gfx-t:hover { border-color: var(--blue); }
 .gfx-t.on { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 8%, transparent); color: var(--blue-700); font-weight: 500; }
 .gfx-t .material-symbols-rounded { font-size: 19px; flex-shrink: 0; }
+.gfx-themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 7px; }
+.gfx-th { padding: 0; border: 1.5px solid var(--border); border-radius: 9px; background: #fff;
+  cursor: pointer; overflow: hidden; font-family: inherit; }
+.gfx-th:hover { border-color: var(--blue); }
+.gfx-th.on { border-color: var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 16%, transparent); }
+.gfx-th i { display: block; height: 30px; }
+.gfx-th span { display: block; font-size: 10.5px; color: var(--muted); padding: 4px 2px; line-height: 1.2; }
 .gfx-lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; max-height: 168px; overflow-y: auto; }
 .gfx-lib img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 7px; cursor: pointer;
   border: 2px solid transparent; display: block; }
@@ -461,7 +498,35 @@ require __DIR__ . '/_top.php';
       b.classList.add('on'); tpl = b.dataset.tpl; render();
     });
   });
-  $('gReset').addEventListener('click', function () { F.color.value = CFG.color; render(); });
+  $('gReset').addEventListener('click', function () {
+    F.color.value = CFG.color; markTheme(CFG.color); render();
+  });
+
+  /* ธีมสีคัดมาแล้ว — ผู้ใช้ส่วนใหญ่เลือกสีเองแล้วออกมาไม่เข้ากัน
+     ทุกสีในชุดนี้เข้มพอให้ตัวอักษรขาวอ่านออกบนพื้น และเข้ากับงานราชการ */
+  var THEMES = [
+    ['ทางการ',     '#1B3A6B'], ['ราชการ',      '#A8201A'],
+    ['น้ำเงินสด',   '#1A73E8'], ['เขียวมรกต',   '#0F766E'],
+    ['ม่วงหรูหรา', '#5B21B6'], ['ส้มอบอุ่น',    '#C2410C'],
+    ['เทาสุขุม',   '#334155'], ['ชมพูเข้ม',     '#9D174D']
+  ];
+  var themeBox = $('gThemes');
+  function markTheme(hex) {
+    Array.prototype.forEach.call(themeBox.children, function (b) {
+      b.classList.toggle('on', (b.dataset.c || '').toLowerCase() === String(hex).toLowerCase());
+    });
+  }
+  THEMES.forEach(function (t) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'gfx-th'; b.dataset.c = t[1]; b.title = t[0];
+    var i = document.createElement('i'); i.style.background = t[1];
+    var s = document.createElement('span'); s.textContent = t[0];
+    b.appendChild(i); b.appendChild(s);
+    b.addEventListener('click', function () { F.color.value = t[1]; markTheme(t[1]); render(); });
+    themeBox.appendChild(b);
+  });
+  F.color.addEventListener('input', function () { markTheme(F.color.value); });
+  markTheme(F.color.value);
 
   function setBg(src, el) {
     var im = new Image();
@@ -533,6 +598,19 @@ require __DIR__ . '/_top.php';
     logoImg.onload = render;
     logoImg.onerror = function () { logoImg = null; render(); };
     logoImg.src = CFG.logo;
+  }
+
+  /* รูปปกข่าวที่ส่งมาจากปุ่ม "สร้างภาพ" — โหลดเป็นพื้นหลังให้เลย
+     และสลับไปเทมเพลตที่ใช้รูป เพราะเปิดมาแล้วเห็นรูปทันทีย่อมเข้าใจง่ายกว่า */
+  if (CFG.bg) {
+    var b = new Image();
+    b.onload = function () {
+      bgImg = b; $('gClearImg').hidden = false;
+      var pb = document.querySelector('.gfx-t[data-tpl="photo"]');
+      if (pb) pb.click(); else render();
+    };
+    b.onerror = function () { render(); };
+    b.src = CFG.bg;
   }
 })();
 </script>

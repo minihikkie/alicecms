@@ -74,6 +74,9 @@ require __DIR__ . '/_top.php';
       <td class="lr-date"><?= number_format((int)$p['views']) ?></td>
       <td style="white-space:nowrap;">
         <a class="btn small" href="<?= e(url('admin/post-edit.php?id=' . $p['id'])) ?>">แก้ไข</a>
+        <a class="btn small" href="<?= e(url('admin/graphic.php?post=' . $p['id'])) ?>"
+           title="สร้างภาพประชาสัมพันธ์จากข่าวนี้ เพื่อนำไปโพสต์ช่องทางอื่น">
+          <span class="material-symbols-rounded icon-sm">image</span>สร้างภาพ</a>
         <form method="post" action="" style="display:inline;">
           <?= csrf_field() ?>
           <input type="hidden" name="delete_id" value="<?= (int)$p['id'] ?>">
