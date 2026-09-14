@@ -219,6 +219,8 @@ require __DIR__ . '/_top.php';
       </div>
       <label class="inline-check"><input type="checkbox" id="gLogo" <?= $cfg['logo'] ? 'checked' : '' ?> <?= $cfg['logo'] ? '' : 'disabled' ?>>
         แสดงตราหน่วยงาน<?= $cfg['logo'] ? '' : ' (ยังไม่ได้อัปโหลดโลโก้)' ?></label>
+      <label class="inline-check" style="margin-top:8px;"><input type="checkbox" id="gStrip" checked>
+        ลบพื้นขาวรอบตราอัตโนมัติ <span class="text-muted" style="font-size:12px;">(ถ้าไฟล์ตราไม่ได้ทำพื้นโปร่งมา)</span></label>
       <label class="inline-check" style="margin-top:8px;"><input type="checkbox" id="gPlate">
         รองพื้นขาวหลังตรา <span class="text-muted" style="font-size:12px;">(เปิดถ้าตราสีเข้มแล้วจมบนพื้นสี)</span></label>
     </div>
@@ -272,14 +274,14 @@ require __DIR__ . '/_top.php';
 (function () {
   var CFG = <?= json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   var cv = document.getElementById('gCv'), ctx = cv.getContext('2d');
-  var logoImg = null, bgImg = null, ready = false, tpl = 'poster';
+  var logoImg = null, logoSrc = null, logoW = 0, logoH = 0, bgImg = null, ready = false, tpl = 'poster';
 
   var $ = function (id) { return document.getElementById(id); };
   var F = {
     size: $('gSize'), kicker: $('gKicker'), head: $('gHead'), body: $('gBody'), foot: $('gFoot'),
     org: $('gOrg'), dept: $('gDept'), date: $('gDate'),
     overlay: $('gOverlay'), scale: $('gScale'), val: $('gVal'), color: $('gColor'),
-    icon: $('gIcon'), logo: $('gLogo'), plate: $('gPlate')
+    icon: $('gIcon'), logo: $('gLogo'), plate: $('gPlate'), strip: $('gStrip')
   };
 
   /* ── ตัวช่วยวาด ── */
@@ -339,11 +341,77 @@ require __DIR__ . '/_top.php';
     return true;
   }
   function drawLogo(cx, cy, size) {
-    if (!F.logo.checked || !logoImg || !logoImg.complete || !logoImg.naturalWidth) return false;
-    var r = Math.min(size / logoImg.naturalWidth, size / logoImg.naturalHeight);
-    var w = logoImg.naturalWidth * r, h = logoImg.naturalHeight * r;
+    if (!F.logo.checked || !logoImg || !logoW || !logoH) return false;
+    var r = Math.min(size / logoW, size / logoH);
+    var w = logoW * r, h = logoH * r;
     ctx.drawImage(logoImg, cx - w / 2, cy - h / 2, w, h);
     return true;
+  }
+
+  /**
+   * ลบพื้นขาวรอบตราให้กลายเป็นพื้นโปร่ง
+   *
+   * ทำไมต้องเติมสีจากขอบ (flood fill) ไม่ใช่ลบขาวทุกจุด: ตราราชการส่วนใหญ่มีสีขาว
+   * อยู่ในลวดลายด้วย ถ้าลบขาวทั้งภาพ ตราจะทะลุเป็นรูพรุน วิธีนี้ลบเฉพาะขาวที่
+   * ต่อเนื่องมาจากขอบภาพ ซึ่งก็คือพื้นหลังจริงๆ ส่วนขาวที่ถูกล้อมด้วยสีอื่นจะอยู่ครบ
+   *
+   * ข้ามการทำงานเมื่อ: ภาพมีพื้นโปร่งอยู่แล้ว / มุมภาพไม่ขาว (แปลว่าไม่ได้มีพื้นขาว)
+   * / อ่านพิกเซลไม่ได้เพราะภาพข้ามโดเมน — ทุกกรณีคืนภาพเดิมไปใช้ตามปกติ
+   */
+  function stripWhiteBg(img) {
+    var w = img.naturalWidth, h = img.naturalHeight;
+    if (!w || !h || w * h > 4000000) return img;
+    var c = document.createElement('canvas'); c.width = w; c.height = h;
+    var x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(img, 0, 0);
+    var d;
+    try { d = x.getImageData(0, 0, w, h); } catch (e) { return img; }
+    var p = d.data, n = w * h, i;
+
+    for (i = 3; i < p.length; i += 4) if (p[i] < 250) return img;   /* โปร่งอยู่แล้ว */
+
+    var isW = function (i4) { return p[i4] > 232 && p[i4 + 1] > 232 && p[i4 + 2] > 232; };
+    var corners = [0, (w - 1) * 4, (h - 1) * w * 4, ((h - 1) * w + w - 1) * 4];
+    var cw = 0;
+    for (i = 0; i < 4; i++) if (isW(corners[i])) cw++;
+    if (cw < 3) return img;                                          /* ไม่ได้มีพื้นขาว */
+
+    var seen = new Uint8Array(n), st = [], q, i4, qx, qy;
+    for (qx = 0; qx < w; qx++) { st.push(qx); st.push((h - 1) * w + qx); }
+    for (qy = 0; qy < h; qy++) { st.push(qy * w); st.push(qy * w + w - 1); }
+    while (st.length) {
+      q = st.pop();
+      if (q < 0 || q >= n || seen[q]) continue;
+      i4 = q * 4;
+      if (!isW(i4)) continue;
+      seen[q] = 1; p[i4 + 3] = 0;
+      qx = q % w; qy = (q / w) | 0;
+      if (qx > 0)     st.push(q - 1);
+      if (qx < w - 1) st.push(q + 1);
+      if (qy > 0)     st.push(q - w);
+      if (qy < h - 1) st.push(q + w);
+    }
+    /* จุดที่ติดขอบรอยตัดให้จางลงตามความสว่าง ลดรอยหยักขอบขาวที่เหลือเป็นขั้นบันได */
+    for (q = 0; q < n; q++) {
+      if (seen[q]) continue;
+      i4 = q * 4;
+      qx = q % w; qy = (q / w) | 0;
+      var touch = (qx > 0 && seen[q - 1]) || (qx < w - 1 && seen[q + 1]) ||
+                  (qy > 0 && seen[q - w]) || (qy < h - 1 && seen[q + w]);
+      if (!touch) continue;
+      var lum = (p[i4] + p[i4 + 1] + p[i4 + 2]) / 3;
+      if (lum > 200) p[i4 + 3] = Math.round(255 * (1 - (lum - 200) / 55));
+    }
+    x.putImageData(d, 0, 0);
+    return c;
+  }
+
+  function prepLogo() {
+    if (!logoSrc) { logoImg = null; logoW = logoH = 0; return; }
+    var out = F.strip.checked ? stripWhiteBg(logoSrc) : logoSrc;
+    logoImg = out;
+    logoW = out.naturalWidth || out.width || 0;
+    logoH = out.naturalHeight || out.height || 0;
   }
 
   /* วางก้อนเนื้อหาตามตำแหน่งแนวตั้งที่เลือก — วัดความสูงก่อนเสมอ
@@ -602,6 +670,8 @@ require __DIR__ . '/_top.php';
     F[k].addEventListener('input', render);
     F[k].addEventListener('change', render);
   });
+  /* สลับสวิตช์ลบพื้นขาว ต้องประมวลผลรูปตราใหม่ก่อนวาด */
+  F.strip.addEventListener('change', function () { prepLogo(); render(); });
   Array.prototype.forEach.call(document.querySelectorAll('.gfx-t'), function (b) {
     b.addEventListener('click', function () {
       Array.prototype.forEach.call(document.querySelectorAll('.gfx-t'), function (x) { x.classList.remove('on'); });
@@ -704,10 +774,10 @@ require __DIR__ . '/_top.php';
   } else { start(); }
 
   if (CFG.logo) {
-    logoImg = new Image();
-    logoImg.onload = render;
-    logoImg.onerror = function () { logoImg = null; render(); };
-    logoImg.src = CFG.logo;
+    var li = new Image();
+    li.onload  = function () { logoSrc = li;   prepLogo(); render(); };
+    li.onerror = function () { logoSrc = null; prepLogo(); render(); };
+    li.src = CFG.logo;
   }
 
   /* รูปปกข่าวที่ส่งมาจากปุ่ม "สร้างภาพ" — โหลดเป็นพื้นหลังให้เลย
