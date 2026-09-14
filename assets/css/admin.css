@@ -4,6 +4,8 @@
 
 .topbar .logo { width: 50px; height: 50px; font-size: 26px; border-radius: 16px; overflow: hidden; }
 .topbar .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* ตรา AliceCMS ในแถบบน — เว้นขอบไว้ราว 20% ไม่ให้ลายชนมุมโค้งของกล่อง */
+.topbar .logo svg { width: 40px; height: 40px; display: block; }
 .topbar .brand { font-size: 26px; }
 .topbar .brand small { font-size: 13px; margin-top: -3px; }
 
