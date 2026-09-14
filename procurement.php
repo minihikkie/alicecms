@@ -3,6 +3,9 @@
 define('PUBLIC_PAGE', 'procurement');
 require __DIR__ . '/includes/init.php';
 
+/* section นี้ถูกปิดอยู่ → ตอบ 404 ไม่ให้เข้าถึงหน้าโดยตรง */
+require_section_live("procurement");
+
 $ptypes = proc_types();
 $ptype  = isset($_GET['ptype']) && isset($ptypes[$_GET['ptype']]) ? $_GET['ptype'] : '';
 $page   = max(1, (int)($_GET['page'] ?? 1));

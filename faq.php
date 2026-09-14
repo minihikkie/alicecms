@@ -6,6 +6,9 @@
 define('PUBLIC_PAGE', 'faq');
 require __DIR__ . '/includes/init.php';
 
+/* section นี้ถูกปิดอยู่ → ตอบ 404 ไม่ให้เข้าถึงหน้าโดยตรง */
+require_section_live("faq");
+
 $q = trim((string)($_GET['q'] ?? ''));
 if ($q !== '') {
     $st = db()->prepare('SELECT * FROM faqs WHERE question LIKE ? OR answer LIKE ? ORDER BY sort_order ASC, id ASC');

@@ -3,6 +3,9 @@
 define('PUBLIC_PAGE', 'videos');
 require __DIR__ . '/includes/init.php';
 
+/* section นี้ถูกปิดอยู่ → ตอบ 404 ไม่ให้เข้าถึงหน้าโดยตรง */
+require_section_live("video");
+
 $videos = videos_published();
 $page_title = section_title('video');
 require __DIR__ . '/includes/header.php';

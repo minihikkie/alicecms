@@ -3,6 +3,9 @@
 define('PUBLIC_PAGE', 'personnel');
 require __DIR__ . '/includes/init.php';
 
+/* section นี้ถูกปิดอยู่ → ตอบ 404 ไม่ให้เข้าถึงหน้าโดยตรง */
+require_section_live("personnel");
+
 $levels = personnel_by_level();
 $page_title = section_title('personnel');
 require __DIR__ . '/includes/header.php';

@@ -6,6 +6,9 @@
 define('PUBLIC_PAGE', 'complaint');
 require __DIR__ . '/includes/init.php';
 
+/* section นี้ถูกปิดอยู่ → ตอบ 404 ไม่ให้เข้าถึงหน้าโดยตรง */
+require_section_live("complaint");
+
 $statuses = [
     'new'      => ['label' => 'รับเรื่องแล้ว — รอตรวจสอบ', 'badge' => 'warning', 'icon' => 'fiber_new'],
     'progress' => ['label' => 'กำลังดำเนินการ',            'badge' => '',        'icon' => 'pending'],

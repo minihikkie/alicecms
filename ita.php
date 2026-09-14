@@ -3,6 +3,9 @@
 define('PUBLIC_PAGE', 'ita');
 require __DIR__ . '/includes/init.php';
 
+/* section นี้ถูกปิดอยู่ → ตอบ 404 ไม่ให้เข้าถึงหน้าโดยตรง */
+require_section_live("ita");
+
 $groups = ita_groups();
 $grp = (int)($_GET['grp'] ?? 0);
 if ($grp !== 0 && !isset($groups[$grp])) $grp = 0;

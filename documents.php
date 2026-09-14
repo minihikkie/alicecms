@@ -3,6 +3,9 @@
 define('PUBLIC_PAGE', 'documents');
 require __DIR__ . '/includes/init.php';
 
+/* section นี้ถูกปิดอยู่ → ตอบ 404 ไม่ให้เข้าถึงหน้าโดยตรง */
+require_section_live("documents");
+
 $cat  = (int)($_GET['cat'] ?? 0);
 $q    = trim((string)($_GET['q'] ?? ''));
 $page = max(1, (int)($_GET['page'] ?? 1));
