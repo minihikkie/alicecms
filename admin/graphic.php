@@ -201,7 +201,6 @@ require __DIR__ . '/_top.php';
           <label for="gColor">หรือเลือกสีเอง</label>
           <div class="flex gap-2 items-center mb-2">
             <input type="color" id="gColor" value="<?= e($theme) ?>">
-            <button type="button" class="btn small" id="gReset">สีธีมเว็บ</button>
           </div>
         </div>
         <div>
@@ -678,13 +677,14 @@ require __DIR__ . '/_top.php';
       b.classList.add('on'); tpl = b.dataset.tpl; render();
     });
   });
-  $('gReset').addEventListener('click', function () {
-    F.color.value = CFG.color; markTheme(CFG.color); render();
-  });
 
   /* ธีมสีคัดมาแล้ว — ผู้ใช้ส่วนใหญ่เลือกสีเองแล้วออกมาไม่เข้ากัน
-     ทุกสีในชุดนี้เข้มพอให้ตัวอักษรขาวอ่านออกบนพื้น และเข้ากับงานราชการ */
+     ทุกสีในชุดนี้เข้มพอให้ตัวอักษรขาวอ่านออกบนพื้น และเข้ากับงานราชการ
+
+     ตัวแรกคือสีธีมของเว็บหน่วยงานเอง วางไว้หน้าสุดเพราะภาพประชาสัมพันธ์ที่ใช้สีเดียว
+     กับเว็บจะทำให้คนเห็นแล้วรู้ทันทีว่าเป็นของหน่วยงานไหน ไม่ใช่ภาพลอยๆ ที่ใครก็ทำได้ */
   var THEMES = [
+    ['ธีมเว็บนี้',  CFG.color],
     ['ทางการ',     '#1B3A6B'], ['ราชการ',      '#A8201A'],
     ['น้ำเงินสด',   '#1A73E8'], ['เขียวมรกต',   '#0F766E'],
     ['ม่วงหรูหรา', '#5B21B6'], ['ส้มอบอุ่น',    '#C2410C'],
