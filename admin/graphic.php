@@ -294,6 +294,13 @@ require __DIR__ . '/_top.php';
     var f = function (v) { return Math.max(0, Math.min(255, Math.round(v * pct))); };
     return 'rgb(' + f((n >> 16) & 255) + ',' + f((n >> 8) & 255) + ',' + f(n & 255) + ')';
   }
+  /* ผสมกับสีขาว t = 0..1 — ใช้ทำคลื่นชั้นรองให้จางกว่าชั้นหลัก
+     ต่างจาก shade() ที่คูณค่าสี ซึ่งพอสีเข้มมากจะสว่างขึ้นน้อยจนแทบไม่เห็นความต่าง */
+  function tint(hex, t) {
+    var n = parseInt(hex.slice(1), 16);
+    var f = function (v) { return Math.round(v + (255 - v) * t); };
+    return 'rgb(' + f((n >> 16) & 255) + ',' + f((n >> 8) & 255) + ',' + f(n & 255) + ')';
+  }
   /* วาดรูปให้เต็มกรอบแบบ cover — ครอบส่วนเกินทิ้ง ไม่บีบรูปให้ผิดสัดส่วน */
   function cover(img, x, y, w, h) {
     var r = Math.max(w / img.naturalWidth, h / img.naturalHeight);
@@ -568,34 +575,56 @@ require __DIR__ . '/_top.php';
     var dark = shade(c, .55);
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
 
-    /* ── หัวกระดาษ ── */
-    var hdrH = Math.round(H * .112);
-    ctx.fillStyle = c; ctx.fillRect(0, 0, W, hdrH);
+    /* ── หัวกระดาษทรงคลื่น ──
+       แถบสี่เหลี่ยมตัดตรงดูแข็งและเหมือนเทมเพลตทั่วไป สื่อประชาสัมพันธ์ราชการของจริง
+       นิยมใช้คลื่นโค้งซ้อนสองชั้น ชั้นจางอยู่ล่างโผล่ออกมาเป็นเส้นบางๆ ให้เกิดมิติ
+       วาดชั้นจางก่อนแล้วทับด้วยชั้นเข้ม จะเหลือชายคลื่นจางให้เห็นพอดี */
+    var hdrH = Math.round(H * .150);
+    ctx.fillStyle = tint(c, .52);
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(W, 0); ctx.lineTo(W, hdrH * .92);
+    ctx.bezierCurveTo(W * .70, hdrH * 1.24, W * .28, hdrH * .80, 0, hdrH * 1.06);
+    ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = c;
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(W, 0); ctx.lineTo(W, hdrH * .76);
+    ctx.bezierCurveTo(W * .72, hdrH * 1.06, W * .30, hdrH * .64, 0, hdrH * .90);
+    ctx.closePath(); ctx.fill();
+
     var pad = Math.round(W * .062);
     /* ตราวางบนพื้นสีตรงๆ ไม่มีแผ่นขาวรอง จะได้กลืนไปกับหัวกระดาษเหมือนตราบนหัวจดหมายจริง
        แต่เปิดแผ่นขาวได้ เผื่อหน่วยงานที่ตราเป็นสีเข้มแล้วจมหายไปบนพื้นสีเข้ม */
+    /* ตราวางใหญ่และล้นลงมาคร่อมชายคลื่น แบบหัวจดหมายราชการจริง ไม่ใช่ไอคอนเล็กในกรอบ */
     var plate = F.plate.checked;
-    var badge = Math.round(hdrH * (plate ? .70 : .86));
-    var bx = pad, by = (hdrH - badge) / 2;
-    if (plate) { ctx.fillStyle = '#fff'; rr(bx, by, badge, badge, Math.round(badge * .26)); ctx.fill(); }
-    if (!drawLogo(bx + badge / 2, by + badge / 2, Math.round(badge * (plate ? .76 : 1)))) {
-      drawIcon(F.icon.value, bx + badge / 2, by + badge / 2, Math.round(badge * .62), plate ? c : '#fff');
+    var badge = Math.round(hdrH * (plate ? .76 : .94));
+    var bx = pad, bcy = hdrH * .52;
+    if (plate) {
+      ctx.fillStyle = '#fff';
+      rr(bx, bcy - badge / 2, badge, badge, Math.round(badge * .26)); ctx.fill();
     }
-    var tx = bx + badge + Math.round(W * .030);
+    if (!drawLogo(bx + badge / 2, bcy, Math.round(badge * (plate ? .78 : 1)))) {
+      drawIcon(F.icon.value, bx + badge / 2, bcy, Math.round(badge * .62), plate ? c : '#fff');
+    }
+
+    var tx = bx + badge + Math.round(W * .032);
     var org = F.org.value.trim(), dept = F.dept.value.trim();
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#fff';
     if (org) {
-      ctx.font = '700 ' + Math.round(W * .040) + 'px Prompt, sans-serif';
-      ctx.fillText(org, tx, dept ? hdrH * .47 : hdrH * .60);
+      /* ย่อขนาดอัตโนมัติถ้าชื่อหน่วยงานยาวจนล้นขอบขวา */
+      var ofs = Math.round(W * .046), avail = W - tx - pad;
+      do { ctx.font = '700 ' + ofs + 'px Prompt, sans-serif'; ofs -= 2; }
+      while (ctx.measureText(org).width > avail && ofs > Math.round(W * .026));
+      ctx.fillText(org, tx, dept ? hdrH * .50 : hdrH * .60);
     }
     if (dept) {
-      ctx.font = '400 ' + Math.round(W * .025) + 'px Prompt, sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,.85)';
-      ctx.fillText(dept, tx, org ? hdrH * .73 : hdrH * .60);
+      ctx.font = '400 ' + Math.round(W * .024) + 'px Prompt, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,.88)';
+      ctx.fillText(dept, tx, org ? hdrH * .74 : hdrH * .60);
     }
 
-    /* ── รูปใหญ่ ── */
-    var imgTop = hdrH, imgH = Math.round(H * .345);
+    /* ── รูปใหญ่ ── เริ่มใต้ชายคลื่นชั้นจาง ไม่งั้นรูปจะทับคลื่น */
+    var imgTop = Math.round(hdrH * 1.16), imgH = Math.round(H * .325);
     if (bgImg) cover(bgImg, 0, imgTop, W, imgH);
     else {
       ctx.fillStyle = shade(c, .90); ctx.fillRect(0, imgTop, W, imgH);
