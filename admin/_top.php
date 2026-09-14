@@ -42,6 +42,7 @@ $menu_groups = [
         ['content-types.php','category',         'ประเภทเนื้อหา',      true],
         ['forms.php',        'dynamic_form',     'แบบฟอร์ม/บริการ',    false],
         ['media.php',        'perm_media',       'คลังสื่อ',           false],
+        ['graphic.php',      'design_services',  'ออกแบบภาพประกาศ',    false],
     ]],
     ['รับเรื่องจากประชาชน', [
         ['complaints.php',   'support_agent',    'เรื่องร้องเรียน',    false],
