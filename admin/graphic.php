@@ -219,6 +219,8 @@ require __DIR__ . '/_top.php';
       </div>
       <label class="inline-check"><input type="checkbox" id="gLogo" <?= $cfg['logo'] ? 'checked' : '' ?> <?= $cfg['logo'] ? '' : 'disabled' ?>>
         แสดงตราหน่วยงาน<?= $cfg['logo'] ? '' : ' (ยังไม่ได้อัปโหลดโลโก้)' ?></label>
+      <label class="inline-check" style="margin-top:8px;"><input type="checkbox" id="gPlate">
+        รองพื้นขาวหลังตรา <span class="text-muted" style="font-size:12px;">(เปิดถ้าตราสีเข้มแล้วจมบนพื้นสี)</span></label>
     </div>
 
     <div class="flex gap-2" style="flex-wrap:wrap;">
@@ -277,7 +279,7 @@ require __DIR__ . '/_top.php';
     size: $('gSize'), kicker: $('gKicker'), head: $('gHead'), body: $('gBody'), foot: $('gFoot'),
     org: $('gOrg'), dept: $('gDept'), date: $('gDate'),
     overlay: $('gOverlay'), scale: $('gScale'), val: $('gVal'), color: $('gColor'),
-    icon: $('gIcon'), logo: $('gLogo')
+    icon: $('gIcon'), logo: $('gLogo'), plate: $('gPlate')
   };
 
   /* ── ตัวช่วยวาด ── */
@@ -503,10 +505,14 @@ require __DIR__ . '/_top.php';
     var hdrH = Math.round(H * .112);
     ctx.fillStyle = c; ctx.fillRect(0, 0, W, hdrH);
     var pad = Math.round(W * .062);
-    var badge = Math.round(hdrH * .66), bx = pad, by = (hdrH - badge) / 2;
-    ctx.fillStyle = '#fff'; rr(bx, by, badge, badge, Math.round(badge * .26)); ctx.fill();
-    if (!drawLogo(bx + badge / 2, by + badge / 2, Math.round(badge * .76))) {
-      drawIcon(F.icon.value, bx + badge / 2, by + badge / 2, Math.round(badge * .55), c);
+    /* ตราวางบนพื้นสีตรงๆ ไม่มีแผ่นขาวรอง จะได้กลืนไปกับหัวกระดาษเหมือนตราบนหัวจดหมายจริง
+       แต่เปิดแผ่นขาวได้ เผื่อหน่วยงานที่ตราเป็นสีเข้มแล้วจมหายไปบนพื้นสีเข้ม */
+    var plate = F.plate.checked;
+    var badge = Math.round(hdrH * (plate ? .70 : .86));
+    var bx = pad, by = (hdrH - badge) / 2;
+    if (plate) { ctx.fillStyle = '#fff'; rr(bx, by, badge, badge, Math.round(badge * .26)); ctx.fill(); }
+    if (!drawLogo(bx + badge / 2, by + badge / 2, Math.round(badge * (plate ? .76 : 1)))) {
+      drawIcon(F.icon.value, bx + badge / 2, by + badge / 2, Math.round(badge * .62), plate ? c : '#fff');
     }
     var tx = bx + badge + Math.round(W * .030);
     var org = F.org.value.trim(), dept = F.dept.value.trim();
