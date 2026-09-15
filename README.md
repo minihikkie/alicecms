@@ -109,6 +109,9 @@ git clone https://github.com/minihikkie/alicecms.git
 
 > **บน XAMPP** วางโปรเจกต์ที่ `C:\xampp\htdocs\govsite` แล้วเปิด `http://localhost/govsite/install.php`
 > ค่ามาตรฐานคือ host `localhost`, user `root`, รหัสผ่านเว้นว่าง
+>
+> **บนโฮสต์ DirectAdmin** (ไม่มี SSH ทำผ่านหน้าเว็บทั้งหมด) ดู
+> **[คู่มือติดตั้งบน DirectAdmin](docs/INSTALL-DirectAdmin.md)** — ละเอียดทีละขั้นพร้อมปัญหาที่พบบ่อย
 
 เข้าหน้าจัดการที่ `https://โดเมน/admin/` — **ไม่มีลิงก์บนหน้าเว็บ ต้องพิมพ์ URL ตรง**
 
@@ -233,6 +236,7 @@ mysql -u root -p gov_website < backup-20260101.sql     # กู้คืน
 
 ## เอกสารเพิ่มเติม
 
+- [INSTALL-DirectAdmin.md](docs/INSTALL-DirectAdmin.md) — ติดตั้งบนโฮสต์ DirectAdmin แบบละเอียด (ไม่ต้องใช้ SSH)
 - [MAINTENANCE.md](docs/MAINTENANCE.md) — คู่มือดูแลระบบระยะยาว
 
 ---
