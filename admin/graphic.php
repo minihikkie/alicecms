@@ -456,7 +456,10 @@ require __DIR__ . '/_top.php';
   function textBlock(o) {
     var W = o.W, s = +F.scale.value / 100, cx = o.cx, maxW = o.maxW;
     var kick = F.kicker.value.trim();
-    var markH = o.mark ? Math.round(o.H * .115 * s) : 0;
+    /* ช่องที่กันไว้ให้ตราหน่วยงาน — ตราถูกวาดโดยจัดกึ่งกลางที่ขอบบนของช่องนี้
+       ครึ่งบนของตราจึงล้นขึ้นไป ส่วนที่เหลือของช่องคือระยะห่างลงมาถึงข้อความบรรทัดแรก
+       เผื่อไว้มากกว่าความสูงตราพอสมควร เพราะตราเป็นภาพหนัก ถ้าชิดข้อความจะอ่านเป็นก้อนเดียวกัน */
+    var markH = o.mark ? Math.round(o.H * .138 * s) : 0;
     var kickH = kick ? Math.round(o.H * .085 * s) : 0;
     var headLH = Math.round(W * .070 * s), bodyLH = Math.round(W * .056 * s);
     var headF = '700 ' + Math.round(W * .052 * s) + 'px Prompt, sans-serif';
