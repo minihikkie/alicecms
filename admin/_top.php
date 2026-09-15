@@ -51,7 +51,9 @@ $menu_groups = [
         ['homepage.php',     'web',              'การแสดงผลหน้าแรก',   true],
         ['theme.php',        'palette',          'ธีม & หน้าตา',       true],
         ['menu.php',         'menu',             'เมนูนำทาง',          true],
-        ['footer-menu.php',  'footer',           'เมนูท้ายเว็บ',       true],
+        /* splitscreen_bottom ไม่ใช่ footer — ชุดไอคอน Material ไม่มีชื่อ footer
+           ถ้าใส่ชื่อที่ไม่มีอยู่จริง ฟอนต์จะพิมพ์ชื่อนั้นเป็นตัวอักษรออกมาแทนรูป */
+        ['footer-menu.php',  'splitscreen_bottom', 'เมนูท้ายเว็บ',     true],
         ['alert.php',        'campaign',         'แถบประกาศด่วน',      true],
     ]],
     ['ระบบ', [
