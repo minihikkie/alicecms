@@ -61,30 +61,14 @@ $theme700 = valid_hex(setting('theme_color_dark', '')) ? setting('theme_color_da
 </head>
 <body class="anim-full">
 <?php
-$logo = setting('logo'); $org = setting('site_name', 'เว็บไซต์หน่วยงาน'); $dept = setting('site_dept', '');
-$markInner = $logo
-    ? '<img src="' . e(url($logo)) . '" alt="โลโก้' . e($org) . '">'
-    : '<span class="material-symbols-rounded filled">' . e(setting('logo_icon', 'account_balance')) . '</span>';
+$org = setting('site_name', 'เว็บไซต์หน่วยงาน'); $dept = setting('site_dept', '');
 ?>
 <div class="auth-shell">
-  <aside class="auth-brand">
-    <div>
-      <div class="auth-mark"><?= $markInner ?></div>
-      <h1 class="auth-org"><?= e($org) ?></h1>
-      <?php if ($dept): ?><p class="auth-dept"><?= e($dept) ?></p><?php endif; ?>
-    </div>
-    <?php require __DIR__ . '/_brandfoot.php'; ?>
-  </aside>
+  <?php require __DIR__ . '/_brandpanel.php'; ?>
 
   <main class="auth-main">
     <div class="auth-box animate-fadein">
-      <div class="auth-mini">
-        <div class="auth-mark"><?= $markInner ?></div>
-        <div>
-          <div class="auth-mini-name"><?= e($org) ?></div>
-          <?php if ($dept): ?><div class="auth-mini-sub"><?= e($dept) ?></div><?php endif; ?>
-        </div>
-      </div>
+      <?php require __DIR__ . '/_brandmini.php'; ?>
 
       <h2 class="auth-title">ตั้งรหัสผ่านใหม่</h2>
       <p class="auth-sub">
