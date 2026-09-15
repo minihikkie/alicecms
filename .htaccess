@@ -20,15 +20,23 @@ Options -Indexes
   # (ต้องอยู่บรรทัดแรกสุด ก่อนกฎข้าม admin เพื่อให้ตั้งค่าได้ทุกคำขอรวมถึงหน้า admin)
   RewriteRule ^ - [E=GOVCMS_REWRITE:1]
 
-  # ไม่ยุ่งกับหลังบ้าน (admin) เพื่อลดความเสี่ยงต่อระบบจัดการ
-  RewriteRule ^admin/ - [L]
-
   # /xxx → xxx.php (ทำงานภายใน ผู้ใช้ไม่เห็น) — ต่อเมื่อมีไฟล์จริงเท่านั้น
+  # ครอบคลุมหลังบ้านด้วย: /admin/posts → admin/posts.php (กฎเดียวกันเพราะ $1 จับ path ทั้งเส้น)
+  # ไม่เพิ่มความเสี่ยง เพราะเงื่อนไข -f ด้านล่างยอมเฉพาะไฟล์ที่มีอยู่จริง จะเข้าถึงอะไรใหม่ไม่ได้
+  # ส่วน /admin/ เฉยๆ ไม่ถูกแตะ เพราะเงื่อนไข !-d กันไว้ (เป็นโฟลเดอร์จริง) จึงตกไปที่ DirectoryIndex
   # ใช้ substitution แบบสัมพัทธ์ จึงทำงานได้ทั้งติดตั้งที่รากเว็บและในโฟลเดอร์ย่อย
   #
   # หมายเหตุ: การ redirect ขาเข้า (/news.php → /news) ทำฝั่ง PHP ใน includes/init.php ไม่ใช่ที่นี่
   # เพราะ RewriteRule แบบ R=301 ที่ไม่มี RewriteBase จะเอา path ในเครื่องมาต่อท้ายโดเมน
   # กลายเป็น URL เพี้ยน (ทดสอบกับ Apache จริงแล้วเจอ) ส่วน PHP รู้ค่า BASE_URL อยู่แล้วจึงแม่นยำกว่า
+  # $1 ใน RewriteCond อ้างถึงกลุ่มจับของ RewriteRule บรรทัดถัดไป (ตามสเปก mod_rewrite)
+  #
+  # ห้ามชี้ไปไฟล์ที่ตั้งใจปิด: /config จะกลายเป็น config.php ได้ เพราะ URL ไม่มี .php
+  # กฎ FilesMatch ด้านล่างจึงไม่จับ (ของจริงแค่ execute แล้วไม่พ่นอะไรออกมา ไม่รั่วรหัสผ่าน
+  # แต่ไม่ควรฝากความปลอดภัยไว้กับลำดับการทำงานระหว่าง mod_rewrite กับ FilesMatch)
+  RewriteCond $1 !(^|/)config(\.sample)?$ [NC]
+  # ไฟล์ขึ้นต้นด้วย _ คือพาร์เชียล (_top _auth _brandpanel …) ไม่ใช่หน้าที่มี URL ของตัวเอง
+  RewriteCond $1 !(^|/)_ [NC]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_FILENAME}\.php -f

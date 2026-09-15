@@ -6,6 +6,7 @@
  * ยังคงบอกชื่อหน่วยงานไว้ เพราะคนที่เปิดหน้านี้ต้องเห็นว่ากำลังเข้าเว็บของหน่วยงานไหน
  * แต่ให้อยู่บรรทัดรองใต้ชื่อระบบ
  */
+if (!defined('APP_ROOT')) exit('Forbidden');   /* พาร์เชียล — เปิดตรงจาก URL ไม่ได้ */
 ?>
 <div class="auth-mini">
   <div class="logo auth-mini-logo"><?php require dirname(__DIR__) . '/includes/mark.php'; ?></div>

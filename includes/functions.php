@@ -42,23 +42,30 @@ function canonical_php_redirect(string $requestUri, string $queryString = ''): ?
          ? substr($reqPath, strlen($basePath))
          : $reqPath;
     $rel = ltrim($rel, '/');
-    /* เฉพาะหน้าสาธารณะระดับราก — ไม่แตะ admin/ และไฟล์ในโฟลเดอร์ย่อย */
-    if ($rel === '' || strncmp($rel, 'admin/', 6) === 0) return null;
-    if (!preg_match('~^[A-Za-z0-9_-]+\.php$~', $rel)) return null;
+    /* หน้าสาธารณะระดับราก และหน้าหลังบ้านใน admin/ เท่านั้น — โฟลเดอร์ย่อยอื่นไม่แตะ
+       ชื่อที่ขึ้นต้นด้วย _ คือพาร์เชียล (_top.php _auth.php ฯลฯ) ไม่ใช่หน้าที่เปิดตรงได้ จึงไม่ยุ่ง */
+    if ($rel === '') return null;
+    if (!preg_match('~^(admin/)?[A-Za-z0-9-][A-Za-z0-9_-]*\.php$~', $rel)) return null;
     return url($rel) . ($queryString !== '' ? '?' . $queryString : '');
 }
 
 function url(string $path = ''): string {
     $p = ltrim($path, '/');
-    /* ตัด .php ออกเฉพาะหน้าสาธารณะระดับราก — ไม่แตะ admin/ (ลดความเสี่ยง)
-       และไม่แตะ path ที่มีโฟลเดอร์ย่อย เช่น assets/, uploads/ (ไม่ใช่ .php อยู่แล้ว) */
-    if ($p !== '' && strncmp($p, 'admin/', 6) !== 0 && pretty_urls_on()) {
+    /* ตัด .php ออกเฉพาะหน้าสาธารณะระดับราก และหน้าหลังบ้านใน admin/
+       ไม่แตะโฟลเดอร์ย่อยอื่น เช่น assets/, uploads/ (ไม่ใช่ .php อยู่แล้ว) */
+    if ($p !== '' && pretty_urls_on()) {
+        /* แยกคำนำหน้า admin/ ออกก่อน แล้วใช้กติกาเดียวกับหน้าสาธารณะกับส่วนที่เหลือ
+           จะได้ไม่ต้องเขียนตรรกะซ้ำสองชุดให้หลุดกันทีหลัง */
+        $pre = '';
+        if (strncmp($p, 'admin/', 6) === 0) { $pre = 'admin/'; $p = substr($p, 6); }
         if ($p === 'index.php' || strncmp($p, 'index.php?', 10) === 0 || strncmp($p, 'index.php#', 10) === 0) {
-            $p = substr($p, 9);                                      /* index.php[?q] → [?q] (ชี้รากเว็บ) */
+            $p = substr($p, 9);            /* index.php[?q] → [?q] (ชี้รากเว็บ หรือราก /admin/) */
         } else {
-            /* ตัวคั่น ~ ไม่ใช่ # เพราะแพทเทิร์นมี # อยู่ข้างใน ([?#]) จะไปปิดตัวคั่นก่อนเวลา */
-            $p = preg_replace('~^([A-Za-z0-9_-]+)\.php(?=$|[?#])~', '$1', $p);
+            /* ตัวคั่น ~ ไม่ใช่ # เพราะแพทเทิร์นมี # อยู่ข้างใน ([?#]) จะไปปิดตัวคั่นก่อนเวลา
+               ตัวแรกห้ามเป็น _ เพราะไฟล์ขึ้นต้นด้วย _ คือพาร์เชียล ไม่ใช่หน้าที่มี URL ของตัวเอง */
+            $p = preg_replace('~^([A-Za-z0-9-][A-Za-z0-9_-]*)\.php(?=$|[?#])~', '$1', $p);
         }
+        $p = $pre . $p;
     }
     return rtrim(BASE_URL, '/') . '/' . $p;
 }

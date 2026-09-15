@@ -124,6 +124,7 @@ require __DIR__ . '/_top.php';
     <label class="inline-check" style="margin-top:4px;">
       <input type="checkbox" name="pretty_urls" value="1" <?= pretty_urls_on() ? 'checked' : '' ?>>
       <span><b>URL แบบซ่อน .php</b> (เช่น <code>/news</code> แทน <code>/news.php</code>) — ดูเป็นมืออาชีพกว่า
+        ใช้กับหน้าหลังบ้านด้วย (<code>/admin/posts</code>)
         ลิงก์เก่ายังใช้ได้ปกติ (ระบบพาไปหน้าใหม่ให้อัตโนมัติ ไม่เสีย SEO)
         <br><span class="text-muted" style="font-size:12.5px;">ระบบทดสอบให้ก่อนเปิดเสมอ — ถ้าเซิร์ฟเวอร์ไม่รองรับจะเปิดไม่ได้และแจ้งเตือน</span></span>
     </label>

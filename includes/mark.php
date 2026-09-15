@@ -8,6 +8,7 @@
  *
  * ลายต้องตรงกับ assets/img/alicecms-mark.svg เสมอ — แก้ที่ใดต้องแก้อีกที่ด้วย
  */
+if (!defined('APP_ROOT')) exit('Forbidden');   /* พาร์เชียล — เปิดตรงจาก URL ไม่ได้ */
 ?>
 <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
   <g fill="currentColor">
