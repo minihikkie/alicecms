@@ -3,6 +3,7 @@
 require dirname(__DIR__) . '/includes/init.php';
 require __DIR__ . '/_auth.php';
 require dirname(__DIR__) . '/includes/totp.php';
+require dirname(__DIR__) . '/includes/qrcode.php';   /* สร้าง QR ในเครื่อง ไม่ส่งกุญแจออกนอกเซิร์ฟเวอร์ */
 
 $uid = (int)$ADMIN['id'];
 $errors = [];
@@ -121,16 +122,39 @@ require __DIR__ . '/_top.php';
     <p>ใช้แอป <b>Google Authenticator</b> / <b>Microsoft Authenticator</b> / <b>Authy</b> (ดาวน์โหลดฟรี)</p></div>
   </div>
 
-  <ol style="font-size:14px;line-height:2;padding-left:20px;margin:0 0 12px;">
-    <li>เปิดแอป Authenticator → กด <b>เพิ่มบัญชี (+)</b> → เลือก <b>“ป้อนคีย์การตั้งค่า / Enter a setup key”</b></li>
-    <li>ตั้งชื่อบัญชี เช่น <code><?= e($issuer . ' (' . $me['username'] . ')') ?></code></li>
-    <li>ใส่คีย์ด้านล่างนี้ แล้วเลือกประเภท <b>ตามเวลา (Time based)</b></li>
-  </ol>
+  <?php
+  /* QR สร้างในเครื่องด้วย includes/qrcode.php — ห้ามส่ง URI นี้ไปให้บริการสร้าง QR ภายนอกวาดให้
+     เพราะใน URI มีกุญแจลับของบัญชีผู้ดูแลอยู่ ส่งออกไปเมื่อไหร่ = ยกสิทธิ์เข้าระบบให้คนอื่น */
+  $qrUri = totp_qr_uri($secret, (string)$me['username'], $issuer, qr_max_bytes());
+  $qrSvg = qr_svg($qrUri, 190, 'QR สำหรับตั้งค่า 2FA');
+  ?>
 
-  <label style="font-weight:600;">คีย์ตั้งค่า (Setup key)</label>
-  <div class="flex items-center gap-1 mb-2" style="flex-wrap:wrap;">
-    <code id="totpKey" style="font-size:17px;letter-spacing:.12em;background:var(--surface,#f5f7fb);border:1px solid var(--border);border-radius:8px;padding:10px 14px;user-select:all;"><?= e(totp_format_secret($secret)) ?></code>
-    <button type="button" class="btn small" data-copy="<?= e($secret) ?>"><span class="material-symbols-rounded icon-sm">content_copy</span>คัดลอกคีย์</button>
+  <div class="twofa-setup">
+    <?php if ($qrSvg !== ''): ?>
+    <div class="twofa-qr">
+      <?= $qrSvg ?>
+      <p>สแกนด้วยแอป Authenticator</p>
+    </div>
+    <?php endif; ?>
+
+    <div class="twofa-steps">
+      <?php if ($qrSvg !== ''): ?>
+      <p style="font-size:14px;margin:0 0 10px;"><b>วิธีที่ 1 — สแกน QR</b> (เร็วที่สุด)<br>
+        <span class="text-muted">เปิดแอป Authenticator → กด <b>เพิ่มบัญชี (+)</b> → เลือก <b>“สแกนคิวอาร์โค้ด”</b> → ส่องที่ภาพด้านซ้าย</span></p>
+      <p style="font-size:14px;margin:0 0 6px;"><b>วิธีที่ 2 — พิมพ์คีย์เอง</b> (ถ้ากล้องใช้ไม่ได้)</p>
+      <?php endif; ?>
+      <ol style="font-size:14px;line-height:2;padding-left:20px;margin:0 0 12px;">
+        <li>เปิดแอป Authenticator → กด <b>เพิ่มบัญชี (+)</b> → เลือก <b>“ป้อนคีย์การตั้งค่า / Enter a setup key”</b></li>
+        <li>ตั้งชื่อบัญชี เช่น <code><?= e($issuer . ' (' . $me['username'] . ')') ?></code></li>
+        <li>ใส่คีย์ด้านล่างนี้ แล้วเลือกประเภท <b>ตามเวลา (Time based)</b></li>
+      </ol>
+
+      <label style="font-weight:600;">คีย์ตั้งค่า (Setup key)</label>
+      <div class="flex items-center gap-1" style="flex-wrap:wrap;">
+        <code id="totpKey" style="font-size:17px;letter-spacing:.12em;background:var(--surface,#f5f7fb);border:1px solid var(--border);border-radius:8px;padding:10px 14px;user-select:all;"><?= e(totp_format_secret($secret)) ?></code>
+        <button type="button" class="btn small" data-copy="<?= e($secret) ?>"><span class="material-symbols-rounded icon-sm">content_copy</span>คัดลอกคีย์</button>
+      </div>
+    </div>
   </div>
 
   <form method="post" action="" class="mt-2" style="max-width:340px;">

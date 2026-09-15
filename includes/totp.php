@@ -97,6 +97,31 @@ function totp_uri(string $b32secret, string $account, string $issuer): string {
          . '&algorithm=SHA1&digits=' . TOTP_DIGITS . '&period=' . TOTP_PERIOD;
 }
 
+/**
+ * URI สำหรับใส่ใน QR ที่ต้องอยู่ในงบจำนวนไบต์ที่ QR รับไหว
+ *
+ * ชื่อหน่วยงานภาษาไทยพอง 9 เท่าเมื่อ percent-encode (1 ตัวไทย = 3 ไบต์ = 9 ตัวอักษร)
+ * ชื่อยาวๆ อย่าง "สำนักงานคณะกรรมการป้องกันและปราบปรามการทุจริตในภาครัฐ" จึงทำให้ URI
+ * เกินความจุ QR ได้ง่าย — ฟังก์ชันนี้ไล่ลดรูปลงทีละขั้นจนพอดี
+ */
+function totp_qr_uri(string $b32secret, string $account, string $issuer, int $budget): string {
+    /* 1) รูปแบบเต็ม — ใช้ได้กับทุกแอปแน่นอน */
+    $full = totp_uri($b32secret, $account, $issuer);
+    if (strlen($full) <= $budget) return $full;
+
+    /* 2) รูปแบบกระชับ — ป้ายชื่อเหลือแค่ชื่อบัญชี และตัด algorithm/digits/period ออก
+          ตัดได้เพราะระบบนี้ใช้ค่าเริ่มต้นตาม RFC 6238 พอดี (SHA1 / 6 หลัก / 30 วินาที)
+          แอป Authenticator จะเติมค่าเหล่านี้ให้เองเมื่อไม่ได้ระบุ */
+    $mk = static fn(string $iss): string => 'otpauth://totp/' . rawurlencode($account)
+        . '?secret=' . $b32secret . '&issuer=' . rawurlencode($iss);
+    if (strlen($mk($issuer)) <= $budget) return $mk($issuer);
+
+    /* 3) ยังยาวเกิน — ย่อชื่อหน่วยงานลงจนพอดี (ชื่อนี้เป็นแค่ป้ายที่แสดงในแอป) */
+    $s = $issuer;
+    while ($s !== '' && strlen($mk($s)) > $budget) $s = mb_substr($s, 0, max(0, mb_strlen($s) - 1));
+    return $mk($s !== '' ? $s : $account);
+}
+
 /** จัดรูป secret เป็นกลุ่มละ 4 ตัว อ่าน/พิมพ์ง่าย */
 function totp_format_secret(string $b32secret): string {
     return trim(chunk_split($b32secret, 4, ' '));
