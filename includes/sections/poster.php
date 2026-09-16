@@ -21,7 +21,7 @@ $posters = db()->query('SELECT * FROM posters WHERE enabled = 1 ORDER BY sort_or
 if (!$posters) return;            /* ยังไม่มีโปสเตอร์ = ไม่แสดงกล่องเปล่า */
 
 $style   = in_array(setting('poster_style', 'cinema'), ['cinema', 'stage', 'strip', 'fade'], true) ? setting('poster_style', 'cinema') : 'cinema';
-$height  = in_array(setting('poster_height', 'md'), ['sm', 'md', 'lg'], true) ? setting('poster_height', 'md') : 'md';
+$height  = in_array(setting('poster_height', 'lg'), ['sm', 'md', 'lg', 'full'], true) ? setting('poster_height', 'lg') : 'lg';
 $auto    = setting('poster_auto', '1') === '1';
 $ivl     = max(2000, min(30000, (int)setting('poster_interval', '5000')));
 $showCap = setting('poster_caption', '1') === '1';
@@ -46,16 +46,16 @@ $hasBar = $cinema && ($anyCap || $multi);
 /* ตำแหน่งของภาพเล็กที่ลอยอยู่ในฉาก — เขียนไว้ตายตัวเป็นชุด ไม่สุ่ม
    เพราะถ้าสุ่มทุกครั้งที่โหลดหน้า ภาพจะย้ายที่ไปเรื่อยจนดูไม่ตั้งใจ
    และทุกจุดเลี่ยงแนวกลางจอไว้ ตรงนั้นเป็นที่ของโปสเตอร์ที่กำลังฉาย
-   [ซ้าย%, บน%, ขนาดpx, ระยะลอยX, ระยะลอยY, องศาเอียง, วินาทีต่อรอบ, หน่วงเริ่ม] */
+   [ซ้าย%, บน%, ขนาด(สัดส่วนของความสูงจอ), ระยะลอยX, ระยะลอยY, องศาเอียง, วินาทีต่อรอบ, หน่วงเริ่ม] */
 $FLOAT_SLOTS = [
-    [ 4, 10,  96,  26, -20, -5, 27,  0],
-    [15, 58,  70, -22,  24,  4, 33, -7],
-    [26, 26,  54,  18,  20, -3, 29, -15],
-    [78, 14,  88, -24, -18,  5, 31, -4],
-    [69, 62,  66,  20,  22, -4, 35, -11],
-    [58, 34,  50, -16, -22,  3, 30, -19],
-    [ 8, 80,  60,  22, -16, -4, 37, -23],
-    [86, 76,  56, -18,  18,  5, 32, -28],
+    [ 4, 10, .23,  26, -20, -5, 27,  0],
+    [15, 58, .17, -22,  24,  4, 33, -7],
+    [26, 26, .13,  18,  20, -3, 29, -15],
+    [78, 14, .21, -24, -18,  5, 31, -4],
+    [69, 62, .16,  20,  22, -4, 35, -11],
+    [58, 34, .12, -16, -22,  3, 30, -19],
+    [ 8, 80, .14,  22, -16, -4, 37, -23],
+    [86, 76, .13, -18,  18,  5, 32, -28],
 ];
 ?>
 <section class="block mb-4" id="poster">
@@ -88,7 +88,7 @@ $FLOAT_SLOTS = [
           <?php foreach (array_slice($posters, 0, count($FLOAT_SLOTS)) as $i => $p):
             [$fx, $fy, $fs, $dx, $dy, $rot, $dur, $delay] = $FLOAT_SLOTS[$i]; ?>
           <img class="ps-float" src="<?= e(url($p['image'])) ?>" alt="" loading="lazy" decoding="async"
-               style="left:<?= $fx ?>%;top:<?= $fy ?>%;width:<?= $fs ?>px;--dx:<?= $dx ?>px;--dy:<?= $dy ?>px;--rot:<?= $rot ?>deg;--fdur:<?= $dur ?>s;--fdelay:<?= $delay ?>s">
+               style="left:<?= $fx ?>%;top:<?= $fy ?>%;--fsz:<?= $fs ?>;--dx:<?= $dx ?>px;--dy:<?= $dy ?>px;--rot:<?= $rot ?>deg;--fdur:<?= $dur ?>s;--fdelay:<?= $delay ?>s">
           <?php endforeach; ?>
         </div>
         <?php endif; ?>

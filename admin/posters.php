@@ -18,10 +18,12 @@ $STYLES = [
     'strip' => ['แถบเลื่อนต่อเนื่อง', 'เห็นหลายใบพร้อมกัน เลื่อนดูได้เรื่อยๆ — เหมาะเมื่อมีโปสเตอร์เยอะ'],
     'fade'  => ['จางสลับทีละใบ',    'แสดงทีละใบอยู่กับที่ ค่อยๆ จางเปลี่ยน — เรียบและนิ่งที่สุด'],
 ];
+/* ความสูงคิดจากหน้าจอผู้ใช้ ไม่ใช่ตัวเลขตายตัว — จอกว้างเท่าไรโปสเตอร์ก็ใหญ่ตาม */
 $HEIGHTS = [
-    'sm' => ['เตี้ย',  'ประหยัดพื้นที่หน้าแรก'],
-    'md' => ['กลาง',  'ค่าแนะนำ — อ่านหัวเรื่องบนโปสเตอร์ออก'],
-    'lg' => ['สูง',   'เน้นให้โปสเตอร์เป็นพระเอกของหน้าแรก'],
+    'sm'   => ['เตี้ย',   'ประหยัดพื้นที่หน้าแรก เหมาะกับโปสเตอร์แนวนอน'],
+    'md'   => ['กลาง',   'พอดีเมื่อหน้าแรกมีหลาย section'],
+    'lg'   => ['สูง (แนะนำ)', 'เน้นให้โปสเตอร์เป็นพระเอก — โปสเตอร์แนวตั้งจะใหญ่ชัด'],
+    'full' => ['เต็มจอ', 'สูงเกือบเท่าหน้าจอผู้ชม — โปสเตอร์แนวตั้งจะใหญ่ที่สุด'],
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -39,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     /* ── บันทึกลูกเล่นการแสดงผล ── */
     if (($_POST['action'] ?? '') === 'display') {
         $style  = isset($STYLES[$_POST['poster_style'] ?? '']) ? $_POST['poster_style'] : 'cinema';
-        $height = isset($HEIGHTS[$_POST['poster_height'] ?? '']) ? $_POST['poster_height'] : 'md';
+        $height = isset($HEIGHTS[$_POST['poster_height'] ?? '']) ? $_POST['poster_height'] : 'lg';
         $ivl    = max(2000, min(30000, (int)($_POST['poster_interval'] ?? 5000)));
         setting_set('poster_style', $style);
         setting_set('poster_height', $height);
@@ -112,7 +114,7 @@ $posters = db()->query('SELECT * FROM posters ORDER BY sort_order ASC, id DESC')
 $sec_on  = section_on('poster');
 $cur     = [
     'style'    => setting('poster_style', 'cinema'),
-    'height'   => setting('poster_height', 'md'),
+    'height'   => setting('poster_height', 'lg'),
     'auto'     => setting('poster_auto', '1') === '1',
     'interval' => (int)setting('poster_interval', '5000'),
     'caption'  => setting('poster_caption', '1') === '1',

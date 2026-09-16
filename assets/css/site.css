@@ -932,11 +932,20 @@ body.anim-off .st-stage .pcard:not(.on) { opacity: .6; transform: none; }
      z3  แถบล่างในจอ (ชื่อ + แฟ้มภาพ) และปุ่มเลื่อน
    แถบล่าง "กันพื้นที่ไว้ต่างหาก" ไม่ได้ลอยทับ โปสเตอร์แนวตั้งที่สูงเต็มจอจึงไม่มีทางถูกบัง */
 
-.st-cinema { position: relative; --barH: 0px; }
+/* ความสูงของจอโรงฉายคิดจากหน้าจอผู้ใช้ ไม่ใช่ตัวเลขตายตัว
+   เหตุผล: ความกว้างของจอขยายได้ไม่จำกัดตามความกว้างเว็บ แต่เดิมความสูงถูกล็อกไว้ 420px
+   โปสเตอร์แนวตั้งจึงถูกความสูงบีบให้เหลือกว้างแค่ ~280px ลอยอยู่กลางจอกว้าง 1900px
+   ตัวที่บีบอยู่คือความสูง ไม่ใช่ความกว้าง — พอปล่อยความสูงให้โตตามจอ โปสเตอร์ก็ใหญ่ขึ้นตาม
+   ปิดท้ายด้วยเพดาน vh เพื่อไม่ให้จอสูงเกินหน้าจอจนต้องเลื่อนดู */
+.st-cinema { position: relative; --barH: 0px; --psH: clamp(340px, 50vw, 78vh); }
 .st-cinema.has-bar { --barH: 96px; }
+.st-cinema.h-sm { --psH: clamp(280px, 38vw, 60vh); }
+.st-cinema.h-md { --psH: clamp(340px, 50vw, 78vh); }
+.st-cinema.h-lg { --psH: clamp(400px, 62vw, 90vh); }
+.st-cinema.h-full { --psH: clamp(460px, 74vw, 96vh); }
 
 .ps-screen {
-  position: relative; height: var(--ph); border-radius: 20px;
+  position: relative; height: var(--psH); border-radius: 20px;
   overflow: hidden; background: #0b0f16; isolation: isolate;
 }
 
@@ -944,6 +953,7 @@ body.anim-off .st-stage .pcard:not(.on) { opacity: .6; transform: none; }
 .ps-floats { position: absolute; inset: 0 0 var(--barH) 0; z-index: 1; pointer-events: none; overflow: hidden; }
 .ps-float {
   position: absolute; display: block; height: auto; border-radius: 8px;
+  width: calc(var(--fsz, .18) * var(--psH));   /* โตตามความสูงจอ ไม่ใช่ค่าตายตัว */
   opacity: .28; filter: blur(1px) saturate(.9);
   /* เส้นขอบจางช่วยให้เห็นว่าเป็น "ภาพ" ไม่ใช่รอยเปื้อน แม้โปสเตอร์จะพื้นสีเรียบ */
   outline: 1px solid rgba(255,255,255,.14); outline-offset: -1px;

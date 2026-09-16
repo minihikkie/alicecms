@@ -495,7 +495,7 @@ function run_migrations(PDO $pdo, ?callable $log = null): void {
     $ins->execute(['a11y_bar', '1']);
     /* ลูกเล่นของนิทรรศการโปสเตอร์ — ตั้งได้ที่หน้า admin/posters.php */
     $ins->execute(['poster_style', 'cinema']);      /* stage | strip | fade */
-    $ins->execute(['poster_height', 'md']);        /* sm | md | lg */
+    $ins->execute(['poster_height', 'lg']);        /* sm | md | lg */
     $ins->execute(['poster_auto', '1']);
     $ins->execute(['poster_interval', '5000']);
     $ins->execute(['poster_caption', '1']);
