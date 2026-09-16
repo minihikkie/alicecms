@@ -717,3 +717,155 @@
     });
   });
 })();
+
+/* ════════════════════════════════════════════════════════════
+   หน้าธีม (admin/theme.php) — ธีมสำเร็จรูป + ตัวอย่างสด
+   ────────────────────────────────────────────────────────────
+   ตัวอย่างของแต่ละธีมสำเร็จรูปวาดโดย PHP (ค่าจริงทุกตัว รวมเงาและแสงเรือง)
+   ส่วนโค้ดตรงนี้ทำแค่ตัวอย่าง "สด" ของช่องที่กำลังปรับอยู่ จึงอัปเดตเฉพาะสี
+   กับความโค้งมุม — เงากับแสงเรืองยังคำนวณฝั่งเซิร์ฟเวอร์ตอนบันทึก
+   ════════════════════════════════════════════════════════════ */
+(function () {
+  var form = document.getElementById('themeForm');
+  if (!form) return;
+
+  var RAD = {};
+  try { RAD = JSON.parse(form.getAttribute('data-radius-map') || '{}'); } catch (e) { RAD = {}; }
+
+  var live  = form.querySelector('.tp-live .tp-prev');
+  var cards = form.querySelectorAll('.tp-card[data-tk]');
+
+  /* ช่อง input ↔ ชื่อ token ที่ธีมสำเร็จรูปส่งมา */
+  var MAP = [
+    ['theme_color', 'color'], ['theme_color_dark', 'dark'], ['theme_ink', 'ink'],
+    ['theme_text', 'text'], ['theme_muted', 'muted'], ['theme_bg', 'bg'], ['theme_card', 'card']
+  ];
+
+  function el(id) { return document.getElementById(id); }
+  function rgb(hex) {
+    var n = parseInt((hex || '#000000').slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  /* ความสว่างสัมพัทธ์ WCAG — ใช้ตัดสินว่าธีมเป็นโทนเข้มไหม (ตรงกับ srgb_luminance ใน PHP) */
+  function lum(hex) {
+    return rgb(hex).map(function (v) {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    }).reduce(function (a, c, i) { return a + [0.2126, 0.7152, 0.0722][i] * c; }, 0);
+  }
+  function rgba(hex, a) { return 'rgba(' + rgb(hex).join(',') + ',' + a + ')'; }
+  /* สูตรเดียวกับ shade_hex() ใน includes/functions.php */
+  function shadeHex(hex) {
+    return '#' + rgb(hex).map(function (x) {
+      return Math.max(0, Math.round(x * 0.68)).toString(16).padStart(2, '0');
+    }).join('');
+  }
+
+  function paint() {
+    if (!live) return;
+    var v = {};
+    MAP.forEach(function (m) { var i = el(m[0]); if (i) v[m[1]] = i.value; });
+
+    var dark = lum(v.bg || '#ffffff') < 0.35;
+    var r = RAD[(el('theme_radius') || {}).value] || ['16px', '24px'];
+    var glowOn = el('theme_glow') && el('theme_glow').checked;
+    var page = glowOn
+      ? 'radial-gradient(1200px 700px at 15% 0%,' + rgba(v.color, dark ? .20 : .14) + ',transparent 58%),'
+      + 'radial-gradient(900px 520px at 85% 10%,' + rgba(v.color, dark ? .15 : .11) + ',transparent 55%),' + v.bg
+      : v.bg;
+
+    var s = live.style;
+    s.setProperty('--blue', v.color);      s.setProperty('--blue-700', v.dark);
+    s.setProperty('--ink', v.ink);         s.setProperty('--text', v.text);
+    s.setProperty('--muted', v.muted);     s.setProperty('--bg', v.bg);
+    s.setProperty('--card', v.card);       s.setProperty('--page-bg', page);
+    s.setProperty('--border', dark ? 'rgba(255,255,255,.12)' : rgba(v.ink, .10));
+    s.setProperty('--r16', r[0]);          s.setProperty('--r24', r[1]);
+    live.classList.toggle('tp-dark', dark);
+
+    /* ตัวเลข hex ข้างช่องสี */
+    MAP.forEach(function (m) {
+      var i = el(m[0]);
+      if (!i) return;
+      var code = i.parentNode.querySelector('code');
+      if (code) code.textContent = i.value.toUpperCase();
+    });
+
+    /* ตารางค่าความต่างของสีต้องขยับตามทันที ไม่งั้นผู้ดูแลจะเลือกสีที่อ่านไม่ออก
+       แล้วเห็นตัวเลขเก่าที่ยังผ่านเกณฑ์อยู่ (สูตรเดียวกับ contrast_ratio() ใน PHP) */
+    var bad = 0;
+    form.querySelectorAll('.tp-ct-row').forEach(function (row) {
+      var fg = tok(row.dataset.fg, v), bgc = tok(row.dataset.bgk, v);
+      var la = lum(fg), lb2 = lum(bgc);
+      var ratio = (Math.max(la, lb2) + 0.05) / (Math.min(la, lb2) + 0.05);
+      var ok = ratio >= 4.5;
+      if (!ok) bad++;
+      row.querySelector('b').textContent = ratio.toFixed(2) + ' : 1';
+      row.querySelector('b').className = ok ? 'ok' : 'bad';
+      var ic = row.querySelector('.material-symbols-rounded');
+      ic.textContent = ok ? 'check_circle' : 'error';
+      ic.className = 'material-symbols-rounded icon-sm ' + (ok ? 'ok' : 'bad');
+    });
+    var warn = el('ctWarn');
+    if (warn) warn.style.display = bad ? '' : 'none';
+  }
+
+  /* 'on' = สีตัวอักษรบนปุ่ม ระบบเลือกขาวหรือดำตามความสว่างของสีหลัก (ตรงกับ on_color() ใน PHP) */
+  function tok(name, v) {
+    if (name !== 'on') return v[name];
+    var c = v.color;
+    return contrast('#FFFFFF', c) >= contrast('#0B0F14', c) ? '#FFFFFF' : '#0B0F14';
+  }
+  function contrast(a, b) {
+    var la = lum(a), lb = lum(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  }
+
+  /* คลิกธีมสำเร็จรูป = เติมทุกช่องให้ครบชุด แล้วปล่อยให้ผู้ใช้แก้ต่อได้ตามใจ */
+  cards.forEach(function (card) {
+    card.addEventListener('click', function () {
+      var t;
+      try { t = JSON.parse(card.getAttribute('data-tk')); } catch (e) { return; }
+      MAP.forEach(function (m) { var i = el(m[0]); if (i && t[m[1]]) i.value = t[m[1]]; });
+      ['theme_radius', 'theme_shadow', 'font_family', 'layout_width', 'header_layout'].forEach(function (id) {
+        var key = { theme_radius: 'radius', theme_shadow: 'shadow', font_family: 'font',
+                    layout_width: 'width', header_layout: 'header' }[id];
+        var sel = el(id);
+        if (sel && t[key] !== undefined) sel.value = t[key];
+      });
+      var glow = el('theme_glow');
+      if (glow) glow.checked = t.glow !== '0';
+
+      cards.forEach(function (c) { c.classList.remove('on'); });
+      card.classList.add('on');
+      paint();
+      /* พาสายตาไปที่แผงปรับสี ผู้ใช้จะได้เห็นว่าค่าเปลี่ยนไปแล้วจริง */
+      var tune = form.querySelector('.tp-tune');
+      if (tune) tune.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  });
+
+  /* แก้สีเอง = ธีมสำเร็จรูปไม่ถูกเลือกอยู่แล้ว */
+  form.querySelectorAll('[data-tp], #theme_radius, #theme_glow').forEach(function (i) {
+    i.addEventListener('input', function () {
+      cards.forEach(function (c) { c.classList.remove('on'); });
+      /* เปลี่ยนสีหลัก → คำนวณสีเข้มให้อัตโนมัติ (สูตรเดียวกับ shade_hex ใน PHP) */
+      if (i.id === 'theme_color') {
+        var d = el('theme_color_dark');
+        if (d) d.value = shadeHex(i.value);
+      }
+      paint();
+    });
+    i.addEventListener('change', paint);
+  });
+
+  /* ตัวเลขข้างแถบเลื่อนของภาพฉากหลัง */
+  [['bg_overlay', 'ovOut', '%'], ['bg_blur', 'blOut', 'px'],
+   ['bg_focus_x', 'fxOut', '%'], ['bg_focus_y', 'fyOut', '%']].forEach(function (p) {
+    var inp = el(p[0]), out = el(p[1]);
+    if (!inp || !out) return;
+    inp.addEventListener('input', function () { out.textContent = inp.value + p[2]; });
+  });
+
+  paint();
+})();

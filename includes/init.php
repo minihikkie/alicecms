@@ -17,6 +17,7 @@ require APP_ROOT . '/config.php';
 require APP_ROOT . '/version.php';
 require APP_ROOT . '/includes/functions.php';
 require APP_ROOT . '/includes/trash.php';      /* ถังขยะ — ลบแล้วกู้คืนได้ */
+require APP_ROOT . '/includes/theme-presets.php'; /* ธีมสำเร็จรูป + ภาพฉากหลัง */
 
 /* เวลาประเทศไทย — ให้วันที่ พ.ศ. และระบบล็อก login ตรงกับเวลาจริง */
 date_default_timezone_set('Asia/Bangkok');

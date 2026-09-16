@@ -91,8 +91,16 @@ window.APP_BASE=<?= json_encode(url(''), JSON_UNESCAPED_SLASHES) ?>;
 <?php else: ?>
 <link rel="icon" type="image/svg+xml" href="<?= e(url('assets/img/favicon.svg')) ?>">
 <?php endif; ?>
-<style>:root { --blue: <?= e($theme) ?>; --blue-700: <?= e($theme700) ?>; --max: <?= e(layout_max_width()) ?>; }
-body { font-family: '<?= e($cur_font) ?>', 'Prompt', system-ui, sans-serif; }</style>
+<?php
+/* ธีมทั้งชุดถูกฉีดเป็นตัวแปร CSS ตรงนี้จุดเดียว — สี ตัวอักษร ความโค้งมุม เงา แสงเรือง
+   และภาพฉากหลัง ค่าทั้งหมดมาจาก includes/theme-presets.php ชุดเดียวกับที่หน้า admin
+   ใช้วาดตัวอย่าง ตัวอย่างในหน้า admin จึงตรงกับของจริงเสมอ */
+$TT   = theme_tokens();
+$TBG  = theme_bg_image();
+?>
+<style>:root { <?= theme_css_vars($TT) ?> }
+body { font-family: '<?= e($cur_font) ?>', 'Prompt', system-ui, sans-serif; }
+<?php if ($TBG): ?>body.has-bgimg { <?= theme_bg_css_vars($TBG, $TT) ?> }<?php endif; ?></style>
 <noscript><style>.reveal,.reveal-left,.reveal-right{opacity:1 !important;transform:none !important;}
 .cookiebar{display:flex !important;}</style></noscript>
 <?php
@@ -156,6 +164,7 @@ foreach (($json_ld_extra ?? []) as $_ld): ?>
 $body_cls = 'anim-' . (in_array($anim, ['full','min','off'], true) ? $anim : 'full');
 if (setting('header_layout', 'left') === 'center') $body_cls .= ' hdr-center';
 if (setting('header_sticky', '1') !== '1') $body_cls .= ' hdr-static';
+$body_cls .= theme_body_classes($TT, $TBG);
 ?>
 <body class="<?= e($body_cls) ?>">
 
