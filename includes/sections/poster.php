@@ -6,12 +6,11 @@
  * ต้องอยู่ด้วยกันได้โดย "ห้ามครอปภาพ" เพราะโปสเตอร์ราชการมีข้อความอยู่ทุกมุม
  * ครอปเมื่อไหร่คือตัดเนื้อหาทิ้ง
  *
- * มีสองโครงหน้าตา:
- *  - โรงฉาย (cinema) — จอใหญ่ทีละใบ + แฟ้มภาพเล็กด้านล่างให้เห็นว่ามีอะไรอีกบ้าง
- *    คำบรรยายอยู่ "ใต้จอ" ไม่ทับตัวโปสเตอร์ เพราะโปสเตอร์ราชการมักมีแถบติดต่อของตัวเอง
- *    อยู่ขอบล่าง ถ้าเอาคำบรรยายไปทับก็บังข้อมูลที่หน่วยงานตั้งใจใส่มา
- *  - แถวเลื่อน (stage / strip / fade) — ตรึงความสูงเท่ากันทุกใบ ปล่อยความกว้าง
- *    ผันตามสัดส่วนภาพ ทุกใบจึงวางบนเส้นฐานเดียวกัน
+ * โหมด "โรงฉาย" คิดเสียว่าทั้งกล่องคือจอหนังหนึ่งจอ ทุกอย่างอยู่ในจอนั้น ไม่มีอะไรหลุดออกมาข้างนอก:
+ *   ชั้นหลังสุด  ฉากหลังเบลอจากภาพที่กำลังฉาย
+ *   ชั้นกลาง     ภาพเล็กของโปสเตอร์ใบอื่นลอยไปมาช้าๆ เป็นบรรยากาศ ให้รู้ว่ายังมีอีกหลายใบ
+ *   ชั้นหน้า     โปสเตอร์ที่กำลังฉาย คมชัดเต็มความสูง
+ *   แถบล่างในจอ  ชื่อ/คำบรรยาย + แฟ้มภาพให้กดข้าม (กันพื้นที่ไว้ต่างหาก โปสเตอร์จึงไม่ถูกทับ)
  *
  * ความกว้างมาจาก img_w/img_h ที่บันทึกไว้ตอนอัปโหลด ไม่ได้รอให้ภาพโหลดเสร็จก่อน
  * ถ้ารอ แถวจะกระโดดทีละใบตอนภาพทยอยมา (layout shift)
@@ -35,13 +34,29 @@ if ($frame) $cls .= ' framed';
 if ($zoom)  $cls .= ' zoomable';
 $multi = count($posters) > 1;
 
-/* มีโปสเตอร์ใบไหนมีข้อความให้แสดงบ้างไหม — ถ้าไม่มีเลยก็ไม่ต้องกันที่ว่างไว้ใต้จอ */
+/* มีโปสเตอร์ใบไหนมีข้อความให้แสดงบ้างไหม — ถ้าไม่มีเลยก็ไม่ต้องกันที่ว่างไว้ */
 $anyCap = false;
 if ($showCap) {
     foreach ($posters as $p) {
         if (trim((string)$p['title']) !== '' || trim((string)$p['caption']) !== '') { $anyCap = true; break; }
     }
 }
+$hasBar = $cinema && ($anyCap || $multi);
+
+/* ตำแหน่งของภาพเล็กที่ลอยอยู่ในฉาก — เขียนไว้ตายตัวเป็นชุด ไม่สุ่ม
+   เพราะถ้าสุ่มทุกครั้งที่โหลดหน้า ภาพจะย้ายที่ไปเรื่อยจนดูไม่ตั้งใจ
+   และทุกจุดเลี่ยงแนวกลางจอไว้ ตรงนั้นเป็นที่ของโปสเตอร์ที่กำลังฉาย
+   [ซ้าย%, บน%, ขนาดpx, ระยะลอยX, ระยะลอยY, องศาเอียง, วินาทีต่อรอบ, หน่วงเริ่ม] */
+$FLOAT_SLOTS = [
+    [ 4, 10,  96,  26, -20, -5, 27,  0],
+    [15, 58,  70, -22,  24,  4, 33, -7],
+    [26, 26,  54,  18,  20, -3, 29, -15],
+    [78, 14,  88, -24, -18,  5, 31, -4],
+    [69, 62,  66,  20,  22, -4, 35, -11],
+    [58, 34,  50, -16, -22,  3, 30, -19],
+    [ 8, 80,  60,  22, -16, -4, 37, -23],
+    [86, 76,  56, -18,  18,  5, 32, -28],
+];
 ?>
 <section class="block mb-4" id="poster">
   <div class="card card-spacious reveal">
@@ -51,7 +66,7 @@ if ($showCap) {
         <h2><?= e(section_title('poster')) ?></h2>
         <p>ภาพประชาสัมพันธ์และอินโฟกราฟิกของหน่วยงาน<?= $zoom ? ' — คลิกที่ภาพเพื่อดูขนาดเต็ม' : '' ?></p>
       </div>
-      <?php /* โหมดโรงฉายวางปุ่มไว้บนจอเอง หัวข้อจึงไม่ต้องมีปุ่มซ้ำ */ ?>
+      <?php /* โหมดโรงฉายวางปุ่มไว้ในจอเอง หัวข้อจึงไม่ต้องมีปุ่มซ้ำ */ ?>
       <?php if ($multi && !in_array($style, ['fade', 'cinema'], true)): ?>
       <div class="ps-nav">
         <button type="button" class="ps-arrow" data-ps-prev aria-label="โปสเตอร์ก่อนหน้า"><span class="material-symbols-rounded">chevron_left</span></button>
@@ -61,10 +76,24 @@ if ($showCap) {
     </div>
 
     <?php /* --dur ส่งจังหวะเปลี่ยนภาพให้ CSS ใช้เป็นระยะเวลาซูมและแถบเวลา จะได้ตรงกันเป๊ะ */ ?>
-    <div class="<?= $cls ?>" data-poster style="--dur:<?= $ivl ?>ms"
+    <div class="<?= $cls ?><?= $hasBar ? ' has-bar' : '' ?>" data-poster style="--dur:<?= $ivl ?>ms"
          <?= $auto && $multi ? ' data-auto="1" data-interval="' . $ivl . '"' : '' ?>>
 
-      <?php if ($cinema): ?><div class="ps-screen"><?php endif; ?>
+      <?php if ($cinema): ?>
+      <div class="ps-screen">
+
+        <?php if ($multi): ?>
+        <?php /* ภาพเล็กลอยอยู่หลังโปสเตอร์ — เป็นบรรยากาศของฉาก ไม่ใช่ปุ่มกด จึงไม่รับคลิกและซ่อนจากโปรแกรมอ่านหน้าจอ */ ?>
+        <div class="ps-floats" aria-hidden="true">
+          <?php foreach (array_slice($posters, 0, count($FLOAT_SLOTS)) as $i => $p):
+            [$fx, $fy, $fs, $dx, $dy, $rot, $dur, $delay] = $FLOAT_SLOTS[$i]; ?>
+          <img class="ps-float" src="<?= e(url($p['image'])) ?>" alt="" loading="lazy" decoding="async"
+               style="left:<?= $fx ?>%;top:<?= $fy ?>%;width:<?= $fs ?>px;--dx:<?= $dx ?>px;--dy:<?= $dy ?>px;--rot:<?= $rot ?>deg;--fdur:<?= $dur ?>s;--fdelay:<?= $delay ?>s">
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+      <?php endif; ?>
+
       <div class="pstage-track" role="list">
         <?php foreach ($posters as $i => $p):
           /* สัดส่วนสำรอง 3:4 เมื่อยังไม่รู้ขนาดจริง (แถวเก่าที่อัปโหลดก่อนมีฟีเจอร์นี้) */
@@ -87,7 +116,7 @@ if ($showCap) {
                  <?= $i === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"' ?> decoding="async"
                  <?= $zoom ? 'data-ps-zoom' : '' ?>>
           <?php if ($href !== ''): ?></a><?php else: ?></div><?php endif; ?>
-          <?php /* โหมดโรงฉายย้ายคำบรรยายไปไว้ใต้จอ ไม่ใส่ตรงนี้ เพื่อไม่ให้ทับตัวโปสเตอร์ */ ?>
+          <?php /* โหมดโรงฉายย้ายคำบรรยายไปไว้ในแถบล่างของจอ ไม่ใส่ตรงนี้ เพื่อไม่ให้ทับตัวโปสเตอร์ */ ?>
           <?php if (!$cinema && $showCap && ($ttl !== '' || $cap !== '')): ?>
           <figcaption>
             <?php if ($ttl !== ''): ?><b><?= e($ttl) ?></b><?php endif; ?>
@@ -102,36 +131,41 @@ if ($showCap) {
         <?php if ($multi): ?>
         <button type="button" class="ps-side prev" data-ps-prev aria-label="โปสเตอร์ก่อนหน้า"><span class="material-symbols-rounded">chevron_left</span></button>
         <button type="button" class="ps-side next" data-ps-next aria-label="โปสเตอร์ถัดไป"><span class="material-symbols-rounded">chevron_right</span></button>
-        <?php if ($auto): ?><div class="ps-prog" aria-hidden="true"><i></i></div><?php endif; ?>
         <?php endif; ?>
-      </div><?php /* /ps-screen */ ?>
 
-        <?php if ($anyCap): ?>
-        <?php /* คำบรรยายทุกใบซ้อนอยู่ที่เดียวกัน โชว์เฉพาะใบที่กำลังฉาย — ความสูงจึงคงที่ ไม่กระตุกตอนเปลี่ยนภาพ */ ?>
-        <div class="ps-caps">
-          <?php foreach ($posters as $i => $p):
-            $cap = trim((string)$p['caption']); $ttl = trim((string)$p['title']); ?>
-          <div class="ps-cap<?= $i === 0 ? ' on' : '' ?>">
-            <?php if ($ttl !== ''): ?><b><?= e($ttl) ?></b><?php endif; ?>
-            <?php if ($cap !== ''): ?><span><?= e($cap) ?></span><?php endif; ?>
+        <?php if ($hasBar): ?>
+        <?php /* แถบล่างในจอ — เหมือนแถบควบคุมของเครื่องเล่นวิดีโอ กันพื้นที่ไว้ต่างหาก
+                 โปสเตอร์จึงไม่มีทางถูกทับ แม้เป็นโปสเตอร์แนวตั้งที่สูงเต็มจอ */ ?>
+        <div class="ps-bar">
+          <?php if ($anyCap): ?>
+          <div class="ps-caps">
+            <?php foreach ($posters as $i => $p):
+              $cap = trim((string)$p['caption']); $ttl = trim((string)$p['title']); ?>
+            <div class="ps-cap<?= $i === 0 ? ' on' : '' ?>">
+              <?php if ($ttl !== ''): ?><b><?= e($ttl) ?></b><?php endif; ?>
+              <?php if ($cap !== ''): ?><span><?= e($cap) ?></span><?php endif; ?>
+            </div>
+            <?php endforeach; ?>
           </div>
-          <?php endforeach; ?>
+          <?php endif; ?>
+
+          <?php if ($multi): ?>
+          <div class="ps-thumbs" role="tablist" aria-label="เลือกโปสเตอร์">
+            <?php foreach ($posters as $i => $p):
+              $ttl = trim((string)$p['title']); ?>
+            <button type="button" class="ps-thumb<?= $i === 0 ? ' on' : '' ?>" role="tab"
+                    aria-selected="<?= $i === 0 ? 'true' : 'false' ?>"
+                    aria-label="<?= e($ttl !== '' ? $ttl : 'โปสเตอร์ที่ ' . ($i + 1)) ?>">
+              <img src="<?= e(url($p['image'])) ?>" alt="" loading="lazy" decoding="async">
+            </button>
+            <?php endforeach; ?>
+          </div>
+          <?php endif; ?>
         </div>
         <?php endif; ?>
 
-        <?php if ($multi): ?>
-        <?php /* แฟ้มภาพ — เห็นทั้งหมดว่ามีอะไรบ้าง และกดข้ามไปใบที่สนใจได้เลย ไม่ต้องรอวน */ ?>
-        <div class="ps-thumbs" role="tablist" aria-label="เลือกโปสเตอร์">
-          <?php foreach ($posters as $i => $p):
-            $ttl = trim((string)$p['title']); ?>
-          <button type="button" class="ps-thumb<?= $i === 0 ? ' on' : '' ?>" role="tab"
-                  aria-selected="<?= $i === 0 ? 'true' : 'false' ?>"
-                  aria-label="<?= e($ttl !== '' ? $ttl : 'โปสเตอร์ที่ ' . ($i + 1)) ?>">
-            <img src="<?= e(url($p['image'])) ?>" alt="" loading="lazy" decoding="async">
-          </button>
-          <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
+        <?php if ($auto && $multi): ?><div class="ps-prog" aria-hidden="true"><i></i></div><?php endif; ?>
+      </div><?php /* /ps-screen */ ?>
 
       <?php elseif ($multi): ?>
       <div class="ps-dots" role="tablist" aria-label="เลือกโปสเตอร์">

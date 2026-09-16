@@ -923,19 +923,43 @@ body.anim-off .st-stage .pcard:not(.on) { opacity: .6; transform: none; }
 }
 
 /* ════════════════════════════════════════════
-   โหมด "โรงฉาย" (cinema) — จอใหญ่ + แฟ้มภาพด้านล่าง
+   โหมด "โรงฉาย" (cinema) — ทั้งกล่องคือจอหนังหนึ่งจอ
    ════════════════════════════════════════════
-   โครง: [จอฉาย (สูง --ph)] → [คำบรรยาย] → [แฟ้มภาพเล็ก]
-   คำบรรยายอยู่ "ใต้จอ" ไม่ทับตัวโปสเตอร์ เพราะโปสเตอร์ราชการมักมีแถบชื่อหน่วยงาน
-   และช่องทางติดต่ออยู่ขอบล่างของภาพเอง ถ้าเอาคำบรรยายไปทับก็บังของที่เขาตั้งใจใส่มา */
+   ทุกอย่างอยู่ในจอเดียว ไม่มีอะไรหลุดออกมาข้างนอก เรียงเป็นชั้นดังนี้
+     z0  ฉากหลังเบลอจากภาพที่กำลังฉาย
+     z1  ภาพเล็กของโปสเตอร์ใบอื่นลอยไปมาช้าๆ เป็นบรรยากาศของฉาก
+     z2  โปสเตอร์ที่กำลังฉาย คมชัด
+     z3  แถบล่างในจอ (ชื่อ + แฟ้มภาพ) และปุ่มเลื่อน
+   แถบล่าง "กันพื้นที่ไว้ต่างหาก" ไม่ได้ลอยทับ โปสเตอร์แนวตั้งที่สูงเต็มจอจึงไม่มีทางถูกบัง */
 
-.st-cinema { position: relative; }
+.st-cinema { position: relative; --barH: 0px; }
+.st-cinema.has-bar { --barH: 96px; }
 
-/* ── จอฉาย ── */
 .ps-screen {
   position: relative; height: var(--ph); border-radius: 20px;
-  overflow: hidden; background: #0b0f16;
+  overflow: hidden; background: #0b0f16; isolation: isolate;
 }
+
+/* ── z1: ภาพเล็กลอยอยู่ในฉาก ── */
+.ps-floats { position: absolute; inset: 0 0 var(--barH) 0; z-index: 1; pointer-events: none; overflow: hidden; }
+.ps-float {
+  position: absolute; display: block; height: auto; border-radius: 8px;
+  opacity: .28; filter: blur(1px) saturate(.9);
+  /* เส้นขอบจางช่วยให้เห็นว่าเป็น "ภาพ" ไม่ใช่รอยเปื้อน แม้โปสเตอร์จะพื้นสีเรียบ */
+  outline: 1px solid rgba(255,255,255,.14); outline-offset: -1px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.5);
+  transform: rotate(var(--rot, 0deg));
+  will-change: transform;
+}
+body.anim-full .ps-float {
+  animation: psFloat var(--fdur, 30s) var(--fdelay, 0s) ease-in-out infinite;
+}
+@keyframes psFloat {
+  0%, 100% { transform: translate(0, 0) rotate(var(--rot, 0deg)); }
+  50%      { transform: translate(var(--dx, 20px), var(--dy, -20px)) rotate(calc(var(--rot, 0deg) * -1)); }
+}
+
+/* ── z0/z2: ฉากหลังเบลอ + โปสเตอร์ที่กำลังฉาย ── */
 .st-cinema .pstage-track {
   display: block; position: absolute; inset: 0; overflow: visible;
   height: 100%; padding: 0; scroll-snap-type: none;
@@ -947,40 +971,87 @@ body.anim-off .st-stage .pcard:not(.on) { opacity: .6; transform: none; }
 }
 .st-cinema .pcard.on { opacity: 1; visibility: visible; transition: opacity .9s ease, visibility 0s; }
 
-/* ฉากหลัง: ภาพเดิมขยายคลุมเต็มจอ เบลอแรงและหรี่ลง ให้เป็นแค่บรรยากาศ ไม่แย่งสายตา */
 .pcard-bg {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; filter: blur(30px) saturate(1.35) brightness(.48);
+  position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0;
+  object-fit: cover; filter: blur(30px) saturate(1.35) brightness(.45);
   transform: scale(1.18);            /* ขยายเกินขอบ กันขอบเบลอโปร่งโผล่มุม */
   pointer-events: none;
 }
 
-/* ตัวโปสเตอร์: สูงเต็มจอ กว้างตามสัดส่วนจริง วางกึ่งกลาง — ไม่ครอปเหมือนเดิม */
+/* โปสเตอร์สูงเต็ม "พื้นที่ที่เหลือจากแถบล่าง" ไม่ใช่เต็มจอ — จึงไม่มีทางถูกแถบทับ
+   --ken คือระดับที่ภาพจะถูกซูมขยายตอนฉาย ต้องเอามาหารความสูงตั้งต้นด้วย
+   ไม่งั้นพอซูมสุด ภาพจะบวมล้นลงไปทับแถบล่าง (วัดแล้วล้น 10px ตอนยังไม่หาร) */
+.st-cinema { --ken: 1.06; }
 .st-cinema .pcard-img {
-  position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%);
-  height: 100%; width: auto; max-width: 94%; background: none;
-  border: 0; border-radius: 0; overflow: visible;
+  position: absolute; top: calc((100% - var(--barH)) / 2); left: 50%;
+  transform: translate(-50%, -50%); z-index: 2;
+  height: calc(100% - var(--barH)); width: auto; max-width: 94%;
+  background: none; border: 0; border-radius: 0; overflow: visible;
+}
+/* ย่อตั้งต้นเฉพาะตอนที่จะมีการซูมจริง ถ้าผู้ใช้ปิดอนิเมชันก็ให้เต็มพื้นที่ไปเลย */
+body.anim-full .st-cinema .pcard-img {
+  height: calc((100% - var(--barH)) / var(--ken));
+  max-width: calc(94% / var(--ken));
 }
 .st-cinema .pcard-img img {
   width: auto; height: 100%; max-width: none; object-fit: contain;
-  box-shadow: 0 18px 60px rgba(0,0,0,.55);
+  box-shadow: 0 18px 60px rgba(0,0,0,.6);
 }
 .st-cinema.framed .pcard-img img { border-radius: 10px; }
 
-/* ซูมช้าระหว่างที่ภาพค้างอยู่ — ระยะเวลาเท่ากับจังหวะเปลี่ยนภาพที่ตั้งไว้ใน admin */
 body.anim-full .st-cinema .pcard.on .pcard-img img { animation: psKen var(--dur, 6s) ease-out both; }
-@keyframes psKen { from { transform: scale(1); } to { transform: scale(1.06); } }
+@keyframes psKen { from { transform: scale(1); } to { transform: scale(var(--ken, 1.06)); } }
+
+/* ── z3: แถบล่างในจอ ── เหมือนแถบควบคุมของเครื่องเล่นวิดีโอ */
+.ps-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+  height: var(--barH); display: flex; align-items: center; gap: 18px;
+  padding: 0 20px 6px; box-sizing: border-box;
+  background: linear-gradient(to top, rgba(6,9,14,.94) 55%, rgba(6,9,14,0));
+}
+.ps-caps { display: grid; flex: 1 1 auto; min-width: 0; }
+.ps-cap {
+  grid-area: 1 / 1; min-width: 0; line-height: 1.5;
+  opacity: 0; visibility: hidden; transition: opacity .45s ease, visibility 0s linear .45s;
+}
+.ps-cap.on { opacity: 1; visibility: visible; transition: opacity .45s .2s ease, visibility 0s; }
+.ps-cap b {
+  display: block; font-size: 16px; font-weight: 600; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ps-cap span {
+  display: block; margin-top: 2px; font-size: 12.5px; color: rgba(255,255,255,.72);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body.anim-full .ps-cap.on b { animation: psRise .6s .2s ease-out both; }
+@keyframes psRise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* แฟ้มภาพอยู่ในแถบล่างของจอ — กดข้ามไปใบที่สนใจได้เลยไม่ต้องรอวน */
+.ps-thumbs {
+  display: flex; gap: 8px; flex: 0 1 auto; margin: 0; padding: 2px;
+  overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+}
+.ps-thumbs::-webkit-scrollbar { display: none; }
+.ps-thumb {
+  flex: 0 0 auto; width: 52px; height: 52px; padding: 0; cursor: pointer;
+  border-radius: 9px; overflow: hidden; background: rgba(255,255,255,.08);
+  border: 2px solid transparent; opacity: .5;
+  transition: opacity .25s ease, border-color .25s ease, transform .25s ease;
+}
+.ps-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ps-thumb:hover { opacity: .85; }
+.ps-thumb.on { opacity: 1; border-color: #fff; transform: translateY(-2px); }
 
 /* ── แถบเวลา ── เดินด้วย CSS animation จึงลื่นและไม่กินซีพียู */
-.ps-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; z-index: 3;
+.ps-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; z-index: 4;
   background: rgba(255,255,255,.16); }
 .ps-prog > i { display: block; height: 100%; width: 0; background: rgba(255,255,255,.92); }
 body.anim-full .st-cinema.playing .ps-prog > i { animation: psProg var(--dur, 6s) linear both; }
 @keyframes psProg { from { width: 0; } to { width: 100%; } }
 
-/* ── ปุ่มเลื่อนลอยบนจอ ── */
+/* ── ปุ่มเลื่อนลอยในจอ ── */
 .ps-side {
-  position: absolute; top: 50%; transform: translateY(-50%); z-index: 4;
+  position: absolute; top: calc((100% - var(--barH)) / 2); transform: translateY(-50%); z-index: 4;
   width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
   border: 1px solid rgba(255,255,255,.25); background: rgba(12,16,24,.42);
   color: #fff; display: grid; place-items: center;
@@ -991,51 +1062,27 @@ body.anim-full .st-cinema.playing .ps-prog > i { animation: psProg var(--dur, 6s
 .ps-side.prev { left: 14px; }
 .ps-side.next { right: 14px; }
 
-/* ── คำบรรยายใต้จอ ── ทุกใบซ้อนที่เดียวกัน โชว์เฉพาะใบที่ฉายอยู่ ความสูงจึงคงที่ */
-.ps-caps { display: grid; margin: 16px 0 0; min-height: 46px; }
-.ps-cap {
-  grid-area: 1 / 1; text-align: center; line-height: 1.55;
-  opacity: 0; visibility: hidden; transition: opacity .45s ease, visibility 0s linear .45s;
-}
-.ps-cap.on { opacity: 1; visibility: visible; transition: opacity .45s .2s ease, visibility 0s; }
-.ps-cap b { display: block; font-size: 17px; font-weight: 600; color: var(--ink); }
-.ps-cap span { display: block; margin-top: 3px; font-size: 13.5px; color: var(--muted); }
-body.anim-full .ps-cap.on { animation: psRise .6s .2s ease-out both; }
-@keyframes psRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-
-/* ── แฟ้มภาพ ── เห็นทั้งหมดว่ามีอะไรบ้าง และกดข้ามไปใบที่สนใจได้เลย */
-.ps-thumbs {
-  display: flex; gap: 10px; justify-content: center; flex-wrap: nowrap;
-  margin: 16px 0 0; padding: 4px 2px 6px;
-  overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
-}
-.ps-thumbs::-webkit-scrollbar { display: none; }
-.ps-thumb {
-  flex: 0 0 auto; width: 62px; height: 62px; padding: 0; cursor: pointer;
-  border-radius: 12px; overflow: hidden; background: var(--surface, #f5f7fb);
-  border: 2px solid transparent; opacity: .55;
-  transition: opacity .25s ease, border-color .25s ease, transform .25s ease;
-}
-.ps-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.ps-thumb:hover { opacity: .85; }
-.ps-thumb.on { opacity: 1; border-color: var(--blue); transform: translateY(-2px); }
+/* เอาเมาส์ไปวาง = หยุดทุกอย่างค้างไว้ตรงนั้น ทั้งการนับเวลา การซูม แถบเวลา และภาพที่ลอยอยู่
+   (ถ้าหยุดแค่การนับ แถบเวลาจะวิ่งจนเต็มแล้วค้าง ดูเหมือนระบบค้าง) */
+.st-cinema.paused .pcard.on .pcard-img img,
+.st-cinema.paused .ps-prog > i,
+.st-cinema.paused .ps-float { animation-play-state: paused; }
 
 @media (prefers-reduced-motion: reduce) {
   .st-cinema .pcard, .ps-cap { transition: none; }
-  .st-cinema .pcard.on .pcard-img img, .ps-cap.on,
-  .st-cinema.playing .ps-prog > i { animation: none; }
+  .st-cinema .pcard.on .pcard-img img, .ps-cap.on b,
+  .st-cinema.playing .ps-prog > i, .ps-float { animation: none; }
 }
-/* เอาเมาส์ไปวาง = หยุดทุกอย่างค้างไว้ตรงนั้น ทั้งการนับเวลา การซูม และแถบเวลา
-   (ถ้าหยุดแค่การนับ แถบเวลาจะวิ่งจนเต็มแล้วค้าง ดูเหมือนระบบค้าง) */
-.st-cinema.paused .pcard.on .pcard-img img,
-.st-cinema.paused .ps-prog > i { animation-play-state: paused; }
 
 @media (max-width: 640px) {
+  .st-cinema.has-bar { --barH: 78px; }
   .ps-screen { border-radius: 14px; }
   .st-cinema .pcard-img { max-width: 100%; }
   .ps-side { display: none; }               /* จอเล็กใช้แฟ้มภาพกดแทน */
-  .ps-thumbs { justify-content: flex-start; gap: 8px; }
-  .ps-thumb { width: 52px; height: 52px; }
-  .ps-cap b { font-size: 15px; }
-  .ps-cap span { font-size: 12.5px; }
+  .ps-bar { gap: 10px; padding: 0 12px 6px; }
+  .ps-cap b { font-size: 14px; }
+  .ps-cap span { display: none; }           /* บรรทัดคำบรรยายยาวเกินไปสำหรับแถบแคบ */
+  .ps-thumb { width: 44px; height: 44px; }
+  /* ลดจำนวนภาพที่ลอยอยู่ ไม่ให้จอเล็กดูรก */
+  .ps-float:nth-child(n+5) { display: none; }
 }
