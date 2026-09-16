@@ -40,6 +40,7 @@ $menu_groups = [
     ]],
     ['เครื่องมือสร้างเอง', [
         ['pages.php',        'description',      'หน้าเพจ',            false],
+        ['custom-sections.php','dashboard_customize','กล่องอิสระหน้าแรก', true],
         ['content-types.php','category',         'ประเภทเนื้อหา',      true],
         ['forms.php',        'dynamic_form',     'แบบฟอร์ม/บริการ',    false],
         ['media.php',        'perm_media',       'คลังสื่อ',           false],

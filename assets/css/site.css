@@ -1096,3 +1096,69 @@ body.anim-full .st-cinema.playing .ps-prog > i { animation: psProg var(--dur, 6s
   /* ลดจำนวนภาพที่ลอยอยู่ ไม่ให้จอเล็กดูรก */
   .ps-float:nth-child(n+5) { display: none; }
 }
+
+/* ════════════════════════════════════════════
+   กล่องอิสระบนหน้าแรก (section: custom-<id>)
+   ════════════════════════════════════════════
+   เนื้อหามาจาก Block Builder ชุดเดียวกับหน้าเพจ จึงใช้สไตล์ .blk-* เดิมได้เลย
+   ที่เพิ่มตรงนี้คือ "เปลือกกล่อง" — พื้นหลัง ความกว้างเนื้อหา และการจัดวาง */
+
+.cs-box { border-radius: 18px; }
+
+/* การ์ดขาว — หน้าตาเดียวกับ section มาตรฐานอื่นบนหน้าแรก */
+.cs-bg-card {
+  background: #fff; border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 10px 30px rgba(26,115,232,.06);
+  padding: clamp(20px, 3vw, 34px);
+}
+/* ไม่มีการ์ด — กลืนไปกับพื้นหน้าเว็บ */
+.cs-bg-plain { background: none; border: 0; box-shadow: none; padding: 4px 0; }
+/* พื้นสีธีมอ่อน */
+.cs-bg-tint {
+  background: color-mix(in srgb, var(--blue) 7%, #fff);
+  border: 1px solid color-mix(in srgb, var(--blue) 16%, transparent);
+  padding: clamp(20px, 3vw, 34px);
+}
+/* พื้นเข้ม และไล่สีธีม — ตัวหนังสือกลับเป็นสีขาวทั้งกล่อง */
+.cs-bg-dark { background: #10151f; padding: clamp(22px, 3.2vw, 38px); }
+.cs-bg-grad {
+  background: linear-gradient(135deg, var(--blue) 0%, var(--blue-700) 100%);
+  padding: clamp(22px, 3.2vw, 38px);
+}
+.cs-bg-dark, .cs-bg-grad { color: rgba(255,255,255,.88); }
+.cs-bg-dark h2, .cs-bg-grad h2,
+.cs-bg-dark .blk-heading, .cs-bg-grad .blk-heading { color: #fff; }
+.cs-bg-dark p, .cs-bg-grad p,
+.cs-bg-dark .blk-text, .cs-bg-grad .blk-text { color: rgba(255,255,255,.8); }
+.cs-bg-dark .blk-accordion, .cs-bg-grad .blk-accordion { color: rgba(255,255,255,.85); }
+.cs-bg-dark .section-head .tag, .cs-bg-grad .section-head .tag {
+  background: rgba(255,255,255,.14); color: #fff;
+}
+/* ปุ่มในกล่องพื้นเข้ม: พื้นขาว ตัวหนังสือสีธีม จะได้อ่านออก */
+.cs-bg-dark .btn.primary, .cs-bg-grad .btn.primary {
+  background: #fff; border-color: #fff; color: var(--blue-700);
+}
+/* รายการคำถาม-คำตอบใช้พื้นสีอ่อนจากสไตล์ FAQ เดิม พอมาอยู่ในกล่องพื้นเข้มจะดูขัดกัน
+   เปลี่ยนเป็นพื้นขาวโปร่งให้กลืนไปกับกล่อง แต่ยังแยกรายการออกจากกันได้ */
+.cs-bg-dark .blk-accordion .faq-item,
+.cs-bg-grad .blk-accordion .faq-item {
+  background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.18);
+}
+.cs-bg-dark .blk-accordion .faq-q,
+.cs-bg-grad .blk-accordion .faq-q { color: #fff; }
+.cs-bg-dark .blk-accordion .faq-a,
+.cs-bg-grad .blk-accordion .faq-a { color: rgba(255,255,255,.8); }
+.cs-bg-dark .blk-quote, .cs-bg-grad .blk-quote {
+  border-left-color: rgba(255,255,255,.4); color: rgba(255,255,255,.9);
+}
+
+/* ความกว้างเนื้อหา — จำกัดไว้ให้บรรทัดไม่ยาวเกินจนอ่านยาก */
+.cs-w-box .cs-body { max-width: 860px; }
+.cs-al-center .cs-body { margin-inline: auto; }
+.cs-al-center { text-align: center; }
+.cs-al-center .section-head { justify-content: center; text-align: center; }
+
+/* หัวข้อในกล่องอิสระไม่ต้องมีปุ่มด้านขวา จึงไม่ต้องดันเป็นสองฝั่ง */
+.cs-head { margin-bottom: 14px; }
+.cs-body > *:first-child { margin-top: 0; }
+.cs-body > *:last-child { margin-bottom: 0; }

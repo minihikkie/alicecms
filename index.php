@@ -19,6 +19,12 @@ $SEC_DIR = APP_ROOT . '/includes/sections/';
 
 /* การ์ดที่เรนเดอร์เป็น "ชิ้นส่วน" (ไม่ครอบ section เอง) ต้องมีตัวครอบจาก index */
 $render_section = function (string $key) use ($SEC_DIR) {
+    /* กล่องอิสระใช้ไฟล์เรนเดอร์ร่วมกันหนึ่งตัว ส่งคีย์เข้าไปบอกว่าเป็นกล่องไหน */
+    if (is_custom_section($key)) {
+        $CUSTOM_KEY = $key;
+        include $SEC_DIR . 'custom.php';
+        return;
+    }
     $file = $SEC_DIR . $key . '.php';
     if (is_file($file)) include $file;
 };

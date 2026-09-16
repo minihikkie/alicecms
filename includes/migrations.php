@@ -490,6 +490,23 @@ function run_migrations(PDO $pdo, ?callable $log = null): void {
     $pdo->prepare("INSERT IGNORE INTO sections (skey, enabled, in_menu, sort_order, custom_title) VALUES ('poster', 1, 0, ?, '')")->execute([$mxp + 1]);
     $log("= sections.poster");
 
+    /* ── กล่องอิสระบนหน้าแรก (section: custom-<id>) ──
+       ตัวเปิด/ปิด ลำดับ และชื่อหัวข้อ ใช้ตาราง sections ร่วมกับ section มาตรฐาน
+       ผู้ดูแลจึงลากสลับลำดับกล่องอิสระกับ section เดิมได้จากหน้าเดียว
+       ตารางนี้เก็บเฉพาะ "เนื้อหาและหน้าตา" ของกล่อง */
+    $pdo->exec("CREATE TABLE IF NOT EXISTS custom_sections (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(150) NOT NULL DEFAULT '',
+      lead VARCHAR(400) NOT NULL DEFAULT '',
+      blocks MEDIUMTEXT NULL,
+      bg VARCHAR(12) NOT NULL DEFAULT 'card',
+      width VARCHAR(10) NOT NULL DEFAULT 'box',
+      align VARCHAR(10) NOT NULL DEFAULT 'left',
+      show_head TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    $log("= custom_sections (ตาราง)");
+
     /* settings เริ่มต้นใหม่ (เพิ่มเฉพาะที่ยังไม่มี) */
     $ins = $pdo->prepare('INSERT IGNORE INTO settings (skey, sval) VALUES (?, ?)');
     $ins->execute(['a11y_bar', '1']);

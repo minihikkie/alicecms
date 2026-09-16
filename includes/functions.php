@@ -127,7 +127,10 @@ function setting_set(string $key, string $val): void {
 
 /** รายชื่อ section ทั้งหมดของระบบ + ชื่อดีฟอลต์ */
 function section_defaults(): array {
-    return [
+    /* แคชไว้เพราะถูกเรียกหลายรอบต่อหนึ่งคำขอ และตอนนี้ต้องแตะฐานข้อมูลด้วย */
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $base = [
         'slider'      => 'แบนเนอร์ประชาสัมพันธ์',
         'hero'        => 'ค้นหาและสถิติ',
         'chief'       => 'สารจากหัวหน้าหน่วยงาน',
@@ -145,6 +148,40 @@ function section_defaults(): array {
         'video'       => 'วิดีโอความรู้',
         'poster'      => 'นิทรรศการโปสเตอร์',
     ];
+    /* กล่องอิสระที่ผู้ดูแลสร้างเอง ต่อท้ายรายการมาตรฐาน */
+    foreach (custom_sections_all() as $k => $c) {
+        $base[$k] = trim((string)$c['title']) !== '' ? $c['title'] : 'กล่องอิสระ';
+    }
+    return $cache = $base;
+}
+
+/* ─────────────────────────────────────────────
+   กล่องอิสระบนหน้าแรก (custom-<id>)
+   เปิด/ปิด ลำดับ ชื่อหัวข้อ ใช้ตาราง sections ร่วมกับ section มาตรฐาน
+   ตาราง custom_sections เก็บเฉพาะเนื้อหาและหน้าตาของกล่อง
+   ───────────────────────────────────────────── */
+
+/** กล่องอิสระทั้งหมด (cache ต่อหนึ่งคำขอ) — คีย์คือ custom-<id> */
+function custom_sections_all(): array {
+    if (!isset($GLOBALS['_customsec_cache'])) {
+        $GLOBALS['_customsec_cache'] = [];
+        try {
+            foreach (db()->query('SELECT * FROM custom_sections ORDER BY id ASC') as $r) {
+                $GLOBALS['_customsec_cache']['custom-' . $r['id']] = $r;
+            }
+        } catch (Throwable $e) { /* ยังไม่มีตาราง (เว็บที่ยังไม่ได้อัปเดต) */ }
+    }
+    return $GLOBALS['_customsec_cache'];
+}
+
+/** ข้อมูลกล่องอิสระจากคีย์ — คืน null ถ้าไม่ใช่กล่องอิสระหรือไม่มีอยู่ */
+function custom_section_get(string $key): ?array {
+    return custom_sections_all()[$key] ?? null;
+}
+
+/** คีย์นี้เป็นกล่องอิสระหรือไม่ */
+function is_custom_section(string $key): bool {
+    return strncmp($key, 'custom-', 7) === 0;
 }
 
 /** โหลด sections ทั้งหมด (cache) เรียงตาม sort_order */

@@ -30,6 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_sections'])) {
     redirect('admin/homepage.php');
 }
 
+/* กล่องอิสระที่กู้คืนจากถังขยะจะไม่มีแถวคู่ใน sections — สร้างให้ก่อนแสดงรายการ */
+foreach (custom_sections_all() as $ck => $cv) {
+    $mx = (int)db()->query('SELECT COALESCE(MAX(sort_order),0) FROM sections')->fetchColumn();
+    db()->prepare("INSERT IGNORE INTO sections (skey, enabled, in_menu, sort_order, custom_title) VALUES (?, 1, 0, ?, '')")
+       ->execute([$ck, $mx + 1]);
+}
+unset($GLOBALS['_sections_cache']);
 $sections = sections_all();
 $defaults = section_defaults();
 $admin_title = 'การแสดงผลหน้าแรก & เมนู';

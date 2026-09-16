@@ -34,6 +34,7 @@ function trash_types(): array {
         'links'         => ['kind' => 'ลิงก์หน่วยงาน',   'label' => 'title', 'files' => ['image']],
         'videos'        => ['kind' => 'วิดีโอ',          'label' => 'title', 'files' => ['cover']],
         'posters'       => ['kind' => 'โปสเตอร์',        'label' => 'title', 'files' => ['image']],
+        'custom_sections' => ['kind' => 'กล่องอิสระหน้าแรก', 'label' => 'title', 'files' => []],
         'footer_links'  => ['kind' => 'ลิงก์ท้ายเว็บ',    'label' => 'label', 'files' => []],
         'slides'        => ['kind' => 'สไลด์แบนเนอร์',   'label' => 'title', 'files' => ['image']],
         'faqs'          => ['kind' => 'คำถามที่พบบ่อย',  'label' => 'question', 'files' => []],
