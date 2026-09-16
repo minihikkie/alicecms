@@ -420,6 +420,9 @@
     var track = stage.querySelector('.pstage-track');
     var cards = Array.prototype.slice.call(stage.querySelectorAll('.pcard'));
     var dots  = Array.prototype.slice.call(stage.querySelectorAll('.ps-dots button'));
+    var thumbs = Array.prototype.slice.call(stage.querySelectorAll('.ps-thumb'));
+    var caps   = Array.prototype.slice.call(stage.querySelectorAll('.ps-cap'));
+    var strip  = stage.querySelector('.ps-thumbs');
     var head  = stage.closest('.card') || document;
     var prev  = head.querySelector('[data-ps-prev]');
     var next  = head.querySelector('[data-ps-next]');
@@ -455,6 +458,16 @@
         d.classList.toggle('on', n === i);
         d.setAttribute('aria-selected', n === i ? 'true' : 'false');
       });
+      caps.forEach(function (c, n) { c.classList.toggle('on', n === i); });
+      thumbs.forEach(function (b, n) {
+        b.classList.toggle('on', n === i);
+        b.setAttribute('aria-selected', n === i ? 'true' : 'false');
+      });
+      /* เลื่อนแฟ้มภาพให้ใบที่กำลังฉายอยู่ในสายตาเสมอ — ใช้ scrollLeft ตรงๆ ไม่ใช้ scrollIntoView
+         เพราะ scrollIntoView จะพาทั้งหน้าเว็บเลื่อนตามไปด้วยขณะที่คนกำลังอ่านอย่างอื่นอยู่ */
+      if (strip && thumbs[i] && strip.scrollWidth > strip.clientWidth) {
+        strip.scrollLeft = thumbs[i].offsetLeft + thumbs[i].offsetWidth / 2 - strip.clientWidth / 2;
+      }
       /* โหมดสลับใบวนกลับมาใบแรกได้ ปุ่มจึงไม่ต้องถูกปิด ส่วนโหมดเลื่อนแถวมีจุดสุดทางจริง */
       if (prev) prev.disabled = !swaps && (i === 0);
       if (next) next.disabled = !swaps && (i === cards.length - 1);
@@ -474,6 +487,7 @@
       };
       var go = function (i) { mark((i + cards.length) % cards.length); replay(); };
       dots.forEach(function (d, n) { d.addEventListener('click', function () { go(n); }); });
+      thumbs.forEach(function (b, n) { b.addEventListener('click', function () { go(n); }); });
       if (prev) prev.addEventListener('click', function () { go(cur - 1); });
       if (next) next.addEventListener('click', function () { go(cur + 1); });
       replay();
