@@ -13,6 +13,7 @@ $edit = null;
 
 /* ตัวเลือกลูกเล่น — กำหนดไว้ที่เดียว ใช้ทั้งตอนตรวจค่าที่ส่งมาและตอนวาดฟอร์ม */
 $STYLES = [
+    'cinema' => ['โรงฉาย (แนะนำ)', 'ฉายทีละใบเต็มเวที ฉากหลังเบลอจากภาพเดียวกัน ซูมช้าๆ แล้วค่อยๆ จางเปลี่ยน — ให้ความรู้สึกเหมือนวิดีโอพรีเซนต์'],
     'stage' => ['ไล่ระดับเวทีกลาง', 'ใบที่อยู่กลางเด่นเต็มที่ ใบข้างจางและเล็กลง — ดูหรูที่สุด เหมาะกับโปสเตอร์ไม่กี่ใบ'],
     'strip' => ['แถบเลื่อนต่อเนื่อง', 'เห็นหลายใบพร้อมกัน เลื่อนดูได้เรื่อยๆ — เหมาะเมื่อมีโปสเตอร์เยอะ'],
     'fade'  => ['จางสลับทีละใบ',    'แสดงทีละใบอยู่กับที่ ค่อยๆ จางเปลี่ยน — เรียบและนิ่งที่สุด'],
@@ -37,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     /* ── บันทึกลูกเล่นการแสดงผล ── */
     if (($_POST['action'] ?? '') === 'display') {
-        $style  = isset($STYLES[$_POST['poster_style'] ?? '']) ? $_POST['poster_style'] : 'stage';
+        $style  = isset($STYLES[$_POST['poster_style'] ?? '']) ? $_POST['poster_style'] : 'cinema';
         $height = isset($HEIGHTS[$_POST['poster_height'] ?? '']) ? $_POST['poster_height'] : 'md';
         $ivl    = max(2000, min(30000, (int)($_POST['poster_interval'] ?? 5000)));
         setting_set('poster_style', $style);
@@ -110,7 +111,7 @@ if (isset($_GET['edit'])) {
 $posters = db()->query('SELECT * FROM posters ORDER BY sort_order ASC, id DESC')->fetchAll();
 $sec_on  = section_on('poster');
 $cur     = [
-    'style'    => setting('poster_style', 'stage'),
+    'style'    => setting('poster_style', 'cinema'),
     'height'   => setting('poster_height', 'md'),
     'auto'     => setting('poster_auto', '1') === '1',
     'interval' => (int)setting('poster_interval', '5000'),

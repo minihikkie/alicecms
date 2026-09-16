@@ -921,3 +921,102 @@ body.anim-off .st-stage .pcard:not(.on) { opacity: .6; transform: none; }
   .pcard figcaption { font-size: 12.5px; }
   .pcard figcaption b { font-size: 13.5px; }
 }
+
+/* ════════════════════════════════════════════
+   โหมด "โรงฉาย" (cinema) — ให้ความรู้สึกเหมือนวิดีโอพรีเซนต์ ไม่ใช่แกลเลอรีเลื่อนได้
+   ════════════════════════════════════════════
+   สามอย่างที่ทำให้ต่างจากสไลด์ธรรมดา:
+   1) ฉากหลังเบลอจากภาพใบเดียวกัน — โปสเตอร์แนวตั้งบนเวทีกว้างจะเหลือที่ว่างสองข้างเสมอ
+      ถ้าปล่อยเป็นพื้นขาวจะดูเหมือนภาพหลุดมาวาง แต่ถ้าเอาภาพเดิมมาเบลอเป็นฉากหลัง
+      สีจะกลมกลืนกับตัวโปสเตอร์เอง (วิธีเดียวกับที่แอปดูหนัง/ฟังเพลงใช้)
+   2) ซูมช้าๆ ตลอดเวลาที่ภาพค้างอยู่ (Ken Burns) — ภาพนิ่งจึงดู "มีชีวิต" เหมือนกล้องค่อยๆ เคลื่อน
+   3) เปลี่ยนภาพด้วยการค่อยๆ จางทับกัน ไม่ใช่กระโดด
+   ทั้งหมดทำด้วย CSS animation ไม่ใช่ JS — ลื่นระดับการ์ดจอ และไม่ต้องรอ requestAnimationFrame */
+
+.st-cinema { position: relative; border-radius: 20px; overflow: hidden; background: #0b0f16; }
+.st-cinema .pstage-track {
+  display: block; position: relative; overflow: visible;
+  height: var(--ph); padding: 0; scroll-snap-type: none;
+}
+.st-cinema .pcard {
+  position: absolute; inset: 0; width: 100%; margin: 0;
+  opacity: 0; visibility: hidden;
+  transition: opacity .9s ease, visibility 0s linear .9s;
+}
+.st-cinema .pcard.on { opacity: 1; visibility: visible; transition: opacity .9s ease, visibility 0s; }
+
+/* ฉากหลัง: ภาพเดิมขยายคลุมเต็มเวที เบลอแรงและหรี่ลง ให้เป็นแค่บรรยากาศ ไม่แย่งสายตา */
+.pcard-bg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; filter: blur(30px) saturate(1.35) brightness(.5);
+  transform: scale(1.18);            /* ขยายเกินขอบ กันขอบเบลอโปร่งโผล่มุม */
+  pointer-events: none;
+}
+
+/* ตัวโปสเตอร์: สูงเต็มเวที กว้างตามสัดส่วนจริง วางกึ่งกลาง — ยังไม่ครอปเหมือนเดิม */
+.st-cinema .pcard-img {
+  position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%);
+  height: 100%; width: auto; max-width: 92%; background: none;
+  border: 0; border-radius: 0; overflow: hidden;
+}
+.st-cinema .pcard-img img {
+  width: auto; height: 100%; max-width: none;
+  box-shadow: 0 18px 60px rgba(0,0,0,.55);
+}
+.st-cinema.framed .pcard-img img { border-radius: 10px; }
+
+/* ซูมช้าระหว่างที่ภาพค้างอยู่ — ระยะเวลาเท่ากับจังหวะเปลี่ยนภาพที่ตั้งไว้ใน admin */
+body.anim-full .st-cinema .pcard.on .pcard-img img { animation: psKen var(--dur, 6s) ease-out both; }
+@keyframes psKen { from { transform: scale(1); } to { transform: scale(1.06); } }
+
+/* คำบรรยายลอยทับด้านล่างบนแถบไล่สี ค่อยๆ ลอยขึ้นมาพร้อมภาพ */
+.st-cinema .pcard figcaption {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; margin: 0;
+  padding: 64px 28px 24px; text-align: center; color: rgba(255,255,255,.88);
+  background: linear-gradient(to top, rgba(6,9,14,.88) 12%, rgba(6,9,14,0));
+}
+.st-cinema .pcard figcaption b { color: #fff; font-size: 18px; }
+body.anim-full .st-cinema .pcard.on figcaption { animation: psRise .9s .15s ease-out both; }
+@keyframes psRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+/* แถบเวลา — เดินด้วย CSS animation จึงลื่นและไม่กินซีพียู */
+.ps-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; z-index: 3;
+  background: rgba(255,255,255,.16); }
+.ps-prog > i { display: block; height: 100%; width: 0; background: rgba(255,255,255,.92); }
+body.anim-full .st-cinema.playing .ps-prog > i { animation: psProg var(--dur, 6s) linear both; }
+@keyframes psProg { from { width: 0; } to { width: 100%; } }
+
+/* ปุ่มลูกศรของโหมดนี้ลอยอยู่บนเวที ไม่ใช่บนหัวข้อ */
+.st-cinema .ps-side {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 4;
+  width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.25); background: rgba(12,16,24,.42);
+  color: #fff; display: grid; place-items: center;
+  opacity: 0; transition: opacity .3s ease, background .2s ease;
+}
+.st-cinema:hover .ps-side, .st-cinema:focus-within .ps-side { opacity: 1; }
+.st-cinema .ps-side:hover { background: rgba(12,16,24,.75); }
+.st-cinema .ps-side.prev { left: 14px; }
+.st-cinema .ps-side.next { right: 14px; }
+
+/* จุดบอกตำแหน่งวางทับบนเวที ไม่ใช่ใต้เวที */
+.st-cinema .ps-dots { position: absolute; left: 0; right: 0; bottom: 14px; z-index: 4; margin: 0; }
+.st-cinema .ps-dots i { background: rgba(255,255,255,.45); }
+.st-cinema .ps-dots button.on i { background: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .st-cinema .pcard { transition: none; }
+  .st-cinema .pcard.on .pcard-img img, .st-cinema .pcard.on figcaption,
+  .st-cinema.playing .ps-prog > i { animation: none; }
+}
+@media (max-width: 640px) {
+  .st-cinema .pcard-img { max-width: 96%; }
+  .st-cinema .pcard figcaption { padding: 48px 16px 20px; font-size: 12.5px; }
+  .st-cinema .pcard figcaption b { font-size: 15px; }
+  .st-cinema .ps-side { display: none; }
+}
+
+/* เอาเมาส์ไปวาง = หยุดทุกอย่างค้างไว้ตรงนั้น ทั้งการนับเวลา การซูม และแถบเวลา
+   (ถ้าหยุดแค่การนับ แถบเวลาจะวิ่งจนเต็มแล้วค้าง ดูเหมือนระบบค้าง) */
+.st-cinema.paused .pcard.on .pcard-img img,
+.st-cinema.paused .ps-prog > i { animation-play-state: paused; }

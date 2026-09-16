@@ -18,7 +18,7 @@ if (!defined('APP_ROOT')) exit('Forbidden');
 $posters = db()->query('SELECT * FROM posters WHERE enabled = 1 ORDER BY sort_order ASC, id ASC')->fetchAll();
 if (!$posters) return;            /* ยังไม่มีโปสเตอร์ = ไม่แสดงกล่องเปล่า */
 
-$style   = in_array(setting('poster_style', 'stage'), ['stage', 'strip', 'fade'], true) ? setting('poster_style', 'stage') : 'stage';
+$style   = in_array(setting('poster_style', 'cinema'), ['cinema', 'stage', 'strip', 'fade'], true) ? setting('poster_style', 'cinema') : 'cinema';
 $height  = in_array(setting('poster_height', 'md'), ['sm', 'md', 'lg'], true) ? setting('poster_height', 'md') : 'md';
 $auto    = setting('poster_auto', '1') === '1';
 $ivl     = max(2000, min(30000, (int)setting('poster_interval', '5000')));
@@ -39,7 +39,8 @@ $multi = count($posters) > 1;
         <h2><?= e(section_title('poster')) ?></h2>
         <p>ภาพประชาสัมพันธ์และอินโฟกราฟิกของหน่วยงาน<?= $zoom ? ' — คลิกที่ภาพเพื่อดูขนาดเต็ม' : '' ?></p>
       </div>
-      <?php if ($multi && $style !== 'fade'): ?>
+      <?php /* โหมดโรงฉายวางปุ่มไว้บนเวทีเอง หัวข้อจึงไม่ต้องมีปุ่มซ้ำ */ ?>
+      <?php if ($multi && !in_array($style, ['fade', 'cinema'], true)): ?>
       <div class="ps-nav">
         <button type="button" class="ps-arrow" data-ps-prev aria-label="โปสเตอร์ก่อนหน้า"><span class="material-symbols-rounded">chevron_left</span></button>
         <button type="button" class="ps-arrow" data-ps-next aria-label="โปสเตอร์ถัดไป"><span class="material-symbols-rounded">chevron_right</span></button>
@@ -47,7 +48,8 @@ $multi = count($posters) > 1;
       <?php endif; ?>
     </div>
 
-    <div class="<?= $cls ?>" data-poster
+    <?php /* --dur ส่งจังหวะเปลี่ยนภาพให้ CSS ใช้เป็นระยะเวลาซูมและแถบเวลา จะได้ตรงกันเป๊ะ */ ?>
+    <div class="<?= $cls ?>" data-poster style="--dur:<?= $ivl ?>ms"
          <?= $auto && $multi ? ' data-auto="1" data-interval="' . $ivl . '"' : '' ?>>
       <div class="pstage-track" role="list">
         <?php foreach ($posters as $i => $p):
@@ -60,6 +62,11 @@ $multi = count($posters) > 1;
           $href = safe_link_url((string)$p['link_url']);
         ?>
         <figure class="pcard<?= $i === 0 ? ' on' : '' ?>" style="--ar:<?= $ar ?>" role="listitem">
+          <?php if ($style === 'cinema'): ?>
+          <?php /* ภาพเดิมซ้ำอีกใบเป็นฉากหลังเบลอ — เบราว์เซอร์ใช้ไฟล์ที่โหลดแล้วซ้ำ ไม่ได้ยิงขอเพิ่ม */ ?>
+          <img class="pcard-bg" src="<?= e(url($p['image'])) ?>" alt="" aria-hidden="true"
+               <?= $i === 0 ? 'loading="eager"' : 'loading="lazy"' ?> decoding="async">
+          <?php endif; ?>
           <?php if ($href !== ''): ?><a class="pcard-img" href="<?= e($href) ?>"><?php else: ?><div class="pcard-img"><?php endif; ?>
             <img src="<?= e(url($p['image'])) ?>" alt="<?= e($ttl !== '' ? $ttl : 'โปสเตอร์ประชาสัมพันธ์') ?>"
                  <?= $w > 0 && $h > 0 ? 'width="' . $w . '" height="' . $h . '"' : '' ?>
@@ -75,6 +82,12 @@ $multi = count($posters) > 1;
         </figure>
         <?php endforeach; ?>
       </div>
+
+      <?php if ($style === 'cinema' && $multi): ?>
+      <button type="button" class="ps-side prev" data-ps-prev aria-label="โปสเตอร์ก่อนหน้า"><span class="material-symbols-rounded">chevron_left</span></button>
+      <button type="button" class="ps-side next" data-ps-next aria-label="โปสเตอร์ถัดไป"><span class="material-symbols-rounded">chevron_right</span></button>
+      <?php if ($auto): ?><div class="ps-prog" aria-hidden="true"><i></i></div><?php endif; ?>
+      <?php endif; ?>
 
       <?php if ($multi): ?>
       <div class="ps-dots" role="tablist" aria-label="เลือกโปสเตอร์">

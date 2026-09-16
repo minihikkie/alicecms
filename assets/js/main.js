@@ -425,8 +425,10 @@
     var next  = head.querySelector('[data-ps-next]');
     if (!track || cards.length === 0) return;
 
-    var isFade  = stage.classList.contains('st-fade');
-    var isStage = stage.classList.contains('st-stage');
+    var isFade   = stage.classList.contains('st-fade');
+    var isStage  = stage.classList.contains('st-stage');
+    var isCinema = stage.classList.contains('st-cinema');
+    var swaps    = isFade || isCinema;      /* สองโหมดนี้สลับใบอยู่กับที่ ไม่ได้เลื่อนแถว */
     var cur = 0;
 
     /* เล่นอัตโนมัติ — หยุดเมื่อเมาส์อยู่บนกล่อง โฟกัสอยู่ข้างใน หรือแท็บถูกซ่อน
@@ -437,8 +439,9 @@
       if (cards.length < 2) return;
       var ivl = Math.max(2000, parseInt(stage.getAttribute('data-interval') || '5000', 10));
       var hold = false;
-      stage.addEventListener('mouseenter', function () { hold = true; });
-      stage.addEventListener('mouseleave', function () { hold = false; });
+      var setHold = function (v) { hold = v; stage.classList.toggle('paused', v); };
+      stage.addEventListener('mouseenter', function () { setHold(true); });
+      stage.addEventListener('mouseleave', function () { setHold(false); });
       stage.addEventListener('focusin',  function () { hold = true; });
       stage.addEventListener('focusout', function () { hold = false; });
       setInterval(function () { if (!hold && !document.hidden) step(); }, ivl);
@@ -452,16 +455,29 @@
         d.classList.toggle('on', n === i);
         d.setAttribute('aria-selected', n === i ? 'true' : 'false');
       });
-      if (prev) prev.disabled = (i === 0);
-      if (next) next.disabled = (i === cards.length - 1);
+      /* โหมดสลับใบวนกลับมาใบแรกได้ ปุ่มจึงไม่ต้องถูกปิด ส่วนโหมดเลื่อนแถวมีจุดสุดทางจริง */
+      if (prev) prev.disabled = !swaps && (i === 0);
+      if (next) next.disabled = !swaps && (i === cards.length - 1);
     }
 
-    /* ── แบบจางสลับ: สลับคลาสอย่างเดียว ไม่มีการเลื่อน ── */
-    if (isFade) {
+    /* ── แบบสลับใบอยู่กับที่ (จางสลับ / โรงฉาย) ── */
+    if (swaps) {
       mark(0);
-      var goFade = function (i) { mark((i + cards.length) % cards.length); };
-      dots.forEach(function (d, n) { d.addEventListener('click', function () { goFade(n); }); });
-      startAuto(function () { goFade(cur + 1); });
+      /* อนิเมชันซูมและแถบเวลาผูกกับคลาส .on และ .playing — พอเปลี่ยนใบต้องสั่งให้เริ่มรอบใหม่
+         การอ่าน offsetWidth คือการบังคับให้เบราว์เซอร์คำนวณเลย์เอาต์ทันที ไม่งั้นการถอด
+         แล้วใส่คลาสกลับในจังหวะเดียวกันจะถูกยุบรวมเป็นไม่มีอะไรเกิดขึ้น อนิเมชันก็ไม่เริ่มใหม่ */
+      var replay = function () {
+        if (!isCinema) return;
+        stage.classList.remove('playing');
+        void stage.offsetWidth;
+        if (stage.getAttribute('data-auto') === '1' && LEVEL !== 0) stage.classList.add('playing');
+      };
+      var go = function (i) { mark((i + cards.length) % cards.length); replay(); };
+      dots.forEach(function (d, n) { d.addEventListener('click', function () { go(n); }); });
+      if (prev) prev.addEventListener('click', function () { go(cur - 1); });
+      if (next) next.addEventListener('click', function () { go(cur + 1); });
+      replay();
+      startAuto(function () { go(cur + 1); });
       return;
     }
 

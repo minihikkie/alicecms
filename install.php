@@ -456,7 +456,7 @@ CREATE TABLE IF NOT EXISTS login_logs (
                 'a11y_bar' => '1',
                 'site_description' => $site_name . ($site_dept ? ' ' . $site_dept : '') . ' — ศูนย์ข้อมูลข่าวสารและบริการประชาชนออนไลน์',
                 /* ลูกเล่นนิทรรศการโปสเตอร์ (ต้องตรงกับค่าเริ่มต้นใน includes/migrations.php) */
-                'poster_style' => 'stage', 'poster_height' => 'md', 'poster_auto' => '1',
+                'poster_style' => 'cinema', 'poster_height' => 'md', 'poster_auto' => '1',
                 'poster_interval' => '5000', 'poster_caption' => '1', 'poster_frame' => '1', 'poster_zoom' => '1',
             ];
             $st = $pdo->prepare('INSERT INTO settings (skey, sval) VALUES (?,?) ON DUPLICATE KEY UPDATE sval = VALUES(sval)');
