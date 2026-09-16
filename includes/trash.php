@@ -33,6 +33,7 @@ function trash_types(): array {
         'personnel'     => ['kind' => 'บุคลากร',         'label' => 'name',  'files' => ['photo']],
         'links'         => ['kind' => 'ลิงก์หน่วยงาน',   'label' => 'title', 'files' => ['image']],
         'videos'        => ['kind' => 'วิดีโอ',          'label' => 'title', 'files' => ['cover']],
+        'posters'       => ['kind' => 'โปสเตอร์',        'label' => 'title', 'files' => ['image']],
         'footer_links'  => ['kind' => 'ลิงก์ท้ายเว็บ',    'label' => 'label', 'files' => []],
         'slides'        => ['kind' => 'สไลด์แบนเนอร์',   'label' => 'title', 'files' => ['image']],
         'faqs'          => ['kind' => 'คำถามที่พบบ่อย',  'label' => 'question', 'files' => []],

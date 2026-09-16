@@ -467,9 +467,40 @@ function run_migrations(PDO $pdo, ?callable $log = null): void {
     $pdo->prepare("INSERT IGNORE INTO sections (skey, enabled, in_menu, sort_order, custom_title) VALUES ('video', 1, 1, ?, '')")->execute([$mxv + 1]);
     $log("= sections.video");
 
+    /* ── นิทรรศการโปสเตอร์ (section: poster) ──
+       เก็บ width/height ของภาพจริงไว้ด้วย เพราะเวทีใช้ความสูงคงที่แล้วให้ความกว้าง
+       ผันตามสัดส่วนภาพ ถ้าไม่รู้สัดส่วนล่วงหน้าแถวจะกระโดดตอนรูปทยอยโหลดเสร็จ */
+    $pdo->exec("CREATE TABLE IF NOT EXISTS posters (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(200) NOT NULL DEFAULT '',
+      caption VARCHAR(400) NOT NULL DEFAULT '',
+      image VARCHAR(300) NOT NULL,
+      img_w INT NOT NULL DEFAULT 0,
+      img_h INT NOT NULL DEFAULT 0,
+      link_url VARCHAR(300) NOT NULL DEFAULT '',
+      enabled TINYINT(1) NOT NULL DEFAULT 1,
+      sort_order INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_enabled_sort (enabled, sort_order)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    $log("= posters (ตาราง)");
+    /* เปิดไว้ได้เลย — ตัว section คืนค่าว่างเมื่อยังไม่มีโปสเตอร์ หน้าแรกของเว็บที่มีอยู่จึงไม่เปลี่ยน
+       จนกว่าผู้ดูแลจะเพิ่มรูปเอง (ไม่แสดงกล่องเปล่า) */
+    $mxp = (int)$pdo->query('SELECT COALESCE(MAX(sort_order),0) FROM sections')->fetchColumn();
+    $pdo->prepare("INSERT IGNORE INTO sections (skey, enabled, in_menu, sort_order, custom_title) VALUES ('poster', 1, 0, ?, '')")->execute([$mxp + 1]);
+    $log("= sections.poster");
+
     /* settings เริ่มต้นใหม่ (เพิ่มเฉพาะที่ยังไม่มี) */
     $ins = $pdo->prepare('INSERT IGNORE INTO settings (skey, sval) VALUES (?, ?)');
     $ins->execute(['a11y_bar', '1']);
+    /* ลูกเล่นของนิทรรศการโปสเตอร์ — ตั้งได้ที่หน้า admin/posters.php */
+    $ins->execute(['poster_style', 'stage']);      /* stage | strip | fade */
+    $ins->execute(['poster_height', 'md']);        /* sm | md | lg */
+    $ins->execute(['poster_auto', '1']);
+    $ins->execute(['poster_interval', '5000']);
+    $ins->execute(['poster_caption', '1']);
+    $ins->execute(['poster_frame', '1']);
+    $ins->execute(['poster_zoom', '1']);
     $name = (string)($pdo->query("SELECT sval FROM settings WHERE skey='site_name'")->fetchColumn() ?: 'หน่วยงานราชการ');
     $ins->execute(['site_description', $name . ' — ศูนย์ข้อมูลข่าวสารและบริการประชาชนออนไลน์']);
     $log("= settings (a11y_bar, site_description)");

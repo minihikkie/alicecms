@@ -27,6 +27,7 @@ $menu_groups = [
     ['เนื้อหาเว็บไซต์', [
         ['posts.php',        'newspaper',        'ข่าวสาร',            false],
         ['videos.php',       'smart_display',    'วิดีโอความรู้',      false],
+        ['posters.php',      'gallery_thumbnail','นิทรรศการโปสเตอร์',  false],
         ['slides.php',       'view_carousel',    'แบนเนอร์สไลด์',      false],
         ['exec-message.php', 'person',           'สารหัวหน้าหน่วยงาน', false],
         ['documents.php',    'folder_open',      'เอกสารเผยแพร่',      false],

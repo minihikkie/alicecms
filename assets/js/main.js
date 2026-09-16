@@ -401,4 +401,171 @@
       play(); /* คลิกในรายการ = ตั้งใจดูอยู่แล้ว เล่นต่อทันที */
     });
   });
+
 })();
+
+/* ─── นิทรรศการโปสเตอร์ ───
+   แยกเป็น IIFE ของตัวเองเหมือนบล็อกวิดีโอ ไม่ใช่ต่อท้ายบล็อกอื่น —
+   บล็อกวิดีโอมี 'if (!sec) return;' อยู่บนสุด ถ้าเอาโค้ดนี้ไปวางไว้ข้างใน
+   หน้าที่ไม่มี section วิดีโอจะไม่รันโค้ดนี้เลย (เจอจริงตอนทดสอบ) */
+(function () {
+  'use strict';
+  var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var LEVEL = (document.body.classList.contains('anim-off') || reducedMotion) ? 0 : 2;
+  /* ─── นิทรรศการโปสเตอร์ ───────────────────────────────────
+     รองรับสามแบบในตัวเดียว: เวที (stage) / แถบเลื่อน (strip) / จางสลับ (fade)
+     สองแบบแรกใช้การเลื่อนแนวนอนจริงของเบราว์เซอร์ ไม่ได้ย้าย transform เอง
+     จึงปัดนิ้ว เลื่อนเทร็กแพด และใช้คีย์บอร์ดได้ตามธรรมชาติโดยไม่ต้องเขียนเพิ่ม */
+  document.querySelectorAll('[data-poster]').forEach(function (stage) {
+    var track = stage.querySelector('.pstage-track');
+    var cards = Array.prototype.slice.call(stage.querySelectorAll('.pcard'));
+    var dots  = Array.prototype.slice.call(stage.querySelectorAll('.ps-dots button'));
+    var head  = stage.closest('.card') || document;
+    var prev  = head.querySelector('[data-ps-prev]');
+    var next  = head.querySelector('[data-ps-next]');
+    if (!track || cards.length === 0) return;
+
+    var isFade  = stage.classList.contains('st-fade');
+    var isStage = stage.classList.contains('st-stage');
+    var cur = 0;
+
+    /* เล่นอัตโนมัติ — หยุดเมื่อเมาส์อยู่บนกล่อง โฟกัสอยู่ข้างใน หรือแท็บถูกซ่อน
+       คนกำลังอ่านโปสเตอร์อยู่แล้วภาพเลื่อนหนีคือสิ่งที่น่ารำคาญที่สุดของสไลด์โชว์ */
+    function startAuto(step) {
+      if (LEVEL === 0) return;                       /* ผู้ใช้ขอให้ลดการเคลื่อนไหว */
+      if (stage.getAttribute('data-auto') !== '1') return;
+      if (cards.length < 2) return;
+      var ivl = Math.max(2000, parseInt(stage.getAttribute('data-interval') || '5000', 10));
+      var hold = false;
+      stage.addEventListener('mouseenter', function () { hold = true; });
+      stage.addEventListener('mouseleave', function () { hold = false; });
+      stage.addEventListener('focusin',  function () { hold = true; });
+      stage.addEventListener('focusout', function () { hold = false; });
+      setInterval(function () { if (!hold && !document.hidden) step(); }, ivl);
+    }
+
+    function mark(i) {
+      if (i < 0 || i >= cards.length) return;
+      cur = i;
+      cards.forEach(function (c, n) { c.classList.toggle('on', n === i); });
+      dots.forEach(function (d, n) {
+        d.classList.toggle('on', n === i);
+        d.setAttribute('aria-selected', n === i ? 'true' : 'false');
+      });
+      if (prev) prev.disabled = (i === 0);
+      if (next) next.disabled = (i === cards.length - 1);
+    }
+
+    /* ── แบบจางสลับ: สลับคลาสอย่างเดียว ไม่มีการเลื่อน ── */
+    if (isFade) {
+      mark(0);
+      var goFade = function (i) { mark((i + cards.length) % cards.length); };
+      dots.forEach(function (d, n) { d.addEventListener('click', function () { goFade(n); }); });
+      startAuto(function () { goFade(cur + 1); });
+      return;
+    }
+
+    /* ── แบบเลื่อน: ใบที่ "อยู่กลางเวที" คือใบที่กำลังถูกดู ── */
+    function centerOf(el) { return el.offsetLeft + el.offsetWidth / 2; }
+    function nearest() {
+      var mid = track.scrollLeft + track.clientWidth / 2, best = 0, bd = Infinity;
+      cards.forEach(function (c, n) {
+        var d = Math.abs(centerOf(c) - mid);
+        if (d < bd) { bd = d; best = n; }
+      });
+      return best;
+    }
+    /* เลื่อนเองทีละเฟรมแทนการพึ่ง scroll-behavior:smooth — บางเบราว์เซอร์ยกเลิกอนิเมชัน
+       ของเบราว์เซอร์ทิ้งเมื่อใช้คู่กับ scroll snap แล้วเด้งกลับที่เดิม (ทดสอบเจอจริง) */
+    var anim = null;
+    function goTo(i) {
+      i = Math.max(0, Math.min(cards.length - 1, i));
+      var to = Math.max(0, Math.min(track.scrollWidth - track.clientWidth,
+                                    centerOf(cards[i]) - track.clientWidth / 2));
+      if (anim) cancelAnimationFrame(anim);
+      if (LEVEL === 0) { track.scrollLeft = to; mark(i); return; }   /* ขอให้ลดการเคลื่อนไหว = ไปทันที */
+      var from = track.scrollLeft, t0 = performance.now(), ms = 420, done = false;
+      var land = function () {                 /* ปิดงานให้เรียบร้อยไม่ว่าจะมาทางไหน */
+        if (done) return;
+        done = true;
+        if (anim) { cancelAnimationFrame(anim); anim = null; }
+        track.scrollLeft = to;
+        mark(i);
+      };
+      var step = function (now) {
+        if (done) return;
+        var k = Math.min(1, (now - t0) / ms);
+        k = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;   /* ease-in-out */
+        track.scrollLeft = from + (to - from) * k;
+        if (k < 1) anim = requestAnimationFrame(step); else land();
+      };
+      anim = requestAnimationFrame(step);
+      /* บางเบราว์เซอร์ฝัง (webview/แท็บที่ถูกพักไว้) ไม่เรียก rAF เลย ถ้าไม่มีตัวรับประกันแบบนี้
+         ปุ่มลูกศรกับจุดบอกตำแหน่งจะกดแล้วไม่เกิดอะไรขึ้นทั้งหมด — ยอมให้ไม่นุ่ม ดีกว่ากดไม่ติด */
+      setTimeout(land, ms + 120);
+    }
+
+    /* ใบแรกและใบสุดท้ายต้องเลื่อนมาอยู่กึ่งกลางได้ด้วย จึงต้องเว้นขอบเท่าครึ่งการ์ดจริง
+       คำนวณจาก JS เพราะการ์ดแต่ละใบกว้างไม่เท่ากัน (สัดส่วนภาพต่างกัน) CSS อย่างเดียวรู้ไม่ได้ */
+    function pad() {
+      if (!isStage) return;
+      var half = track.clientWidth / 2;
+      track.style.paddingLeft  = Math.max(0, half - cards[0].offsetWidth / 2) + 'px';
+      track.style.paddingRight = Math.max(0, half - cards[cards.length - 1].offsetWidth / 2) + 'px';
+    }
+
+    var tick = null;
+    track.addEventListener('scroll', function () {
+      if (tick) return;                       /* จำกัดความถี่ด้วยเวลา ไม่ใช้ rAF ด้วยเหตุผลเดียวกับด้านบน */
+      tick = setTimeout(function () { tick = null; mark(nearest()); }, 90);
+    }, { passive: true });
+
+    if (prev) prev.addEventListener('click', function () { goTo(cur - 1); });
+    if (next) next.addEventListener('click', function () { goTo(cur + 1); });
+    dots.forEach(function (d, n) { d.addEventListener('click', function () { goTo(n); }); });
+    window.addEventListener('resize', function () { pad(); goTo(cur); });
+
+    pad();
+    mark(0);
+    startAuto(function () { goTo(cur >= cards.length - 1 ? 0 : cur + 1); });
+  });
+
+  /* ─── ดูโปสเตอร์ขนาดเต็ม ─── */
+  (function () {
+    var zoomable = document.querySelectorAll('[data-ps-zoom]');
+    if (!zoomable.length) return;
+    var box = null;
+
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    function close() {
+      if (!box) return;
+      var b = box; box = null;
+      b.classList.remove('on');
+      setTimeout(function () { if (b.parentNode) b.parentNode.removeChild(b); }, 250);
+      document.removeEventListener('keydown', onKey);
+    }
+
+    zoomable.forEach(function (img) {
+      img.addEventListener('click', function (e) {
+        /* การ์ดที่ผูกลิงก์ไว้ ให้ลิงก์ทำงานตามปกติ ไม่แย่งคลิกไปเปิดภาพ */
+        if (img.closest('a')) return;
+        e.preventDefault();
+        box = document.createElement('div');
+        box.className = 'ps-lightbox';
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ps-close';
+        btn.setAttribute('aria-label', 'ปิด');
+        btn.innerHTML = '<span class="material-symbols-rounded">close</span>';
+        var big = document.createElement('img');
+        big.src = img.currentSrc || img.src;
+        big.alt = img.alt || '';
+        box.appendChild(btn);
+        box.appendChild(big);
+        box.addEventListener('click', close);
+        document.body.appendChild(box);
+        requestAnimationFrame(function () { box.classList.add('on'); });
+        document.addEventListener('keydown', onKey);
+      });
+    });
+  })();})();

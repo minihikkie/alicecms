@@ -29,7 +29,7 @@ $all_sections = [
     'activity' => 'กิจกรรม', 'pr' => 'ประชาสัมพันธ์', 'announce' => 'ประกาศ', 'video' => 'วิดีโอความรู้',
     'documents' => 'เอกสารเผยแพร่', 'ita' => 'ITA / OIT', 'procurement' => 'จัดซื้อจัดจ้าง',
     'faq' => 'คำถามที่พบบ่อย', 'complaint' => 'ร้องเรียน-ร้องทุกข์', 'contact' => 'ติดต่อหน่วยงาน',
-    'links' => 'ลิงก์ที่เกี่ยวข้อง',
+    'links' => 'ลิงก์ที่เกี่ยวข้อง', 'poster' => 'นิทรรศการโปสเตอร์',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -377,6 +377,20 @@ CREATE TABLE IF NOT EXISTS footer_links (
   INDEX idx_col_sort (col, sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS posters (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(200) NOT NULL DEFAULT '',
+  caption VARCHAR(400) NOT NULL DEFAULT '',
+  image VARCHAR(300) NOT NULL,
+  img_w INT NOT NULL DEFAULT 0,
+  img_h INT NOT NULL DEFAULT 0,
+  link_url VARCHAR(300) NOT NULL DEFAULT '',
+  enabled TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_enabled_sort (enabled, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS videos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(200) NOT NULL,
@@ -441,6 +455,9 @@ CREATE TABLE IF NOT EXISTS login_logs (
                 'anim_level' => 'full', 'logo_icon' => 'account_balance',
                 'a11y_bar' => '1',
                 'site_description' => $site_name . ($site_dept ? ' ' . $site_dept : '') . ' — ศูนย์ข้อมูลข่าวสารและบริการประชาชนออนไลน์',
+                /* ลูกเล่นนิทรรศการโปสเตอร์ (ต้องตรงกับค่าเริ่มต้นใน includes/migrations.php) */
+                'poster_style' => 'stage', 'poster_height' => 'md', 'poster_auto' => '1',
+                'poster_interval' => '5000', 'poster_caption' => '1', 'poster_frame' => '1', 'poster_zoom' => '1',
             ];
             $st = $pdo->prepare('INSERT INTO settings (skey, sval) VALUES (?,?) ON DUPLICATE KEY UPDATE sval = VALUES(sval)');
             foreach ($settings as $k => $v) $st->execute([$k, $v]);

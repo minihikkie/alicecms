@@ -799,3 +799,125 @@ img.is-missing { opacity: 0; }
   .vid-main-title { font-size: 17px; }
   .vid-library { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ════════════════════════════════════════════
+   นิทรรศการโปสเตอร์ (section: poster)
+   ════════════════════════════════════════════
+   หลักการเดียวที่ทำให้แนวตั้งกับแนวนอนอยู่ด้วยกันได้โดยไม่ต้องครอป:
+   ตรึงความสูงเวที (--ph) แล้วให้ความกว้างของการ์ด = ความสูง x สัดส่วนภาพ (--ar)
+   ทุกใบจึงสูงเท่ากันและวางบนเส้นฐานเดียวกัน ส่วนกว้างจะต่างกันไปตามธรรมชาติของภาพ */
+
+.pstage { position: relative; }
+.pstage.h-sm { --ph: clamp(190px, 38vw, 300px); }
+.pstage.h-md { --ph: clamp(230px, 50vw, 420px); }
+.pstage.h-lg { --ph: clamp(280px, 62vw, 560px); }
+
+.pstage-track {
+  display: flex; align-items: flex-start; gap: 20px;
+  overflow-x: auto; overscroll-behavior-x: contain;
+  /* ไม่ใช้ scroll-behavior:smooth เพราะบางเบราว์เซอร์ยกเลิกอนิเมชันทิ้งเมื่อใช้คู่กับ scroll snap
+     แล้วเด้งกลับที่เดิม (ทดสอบเจอจริง) — เลื่อนเองทีละเฟรมใน main.js แทน คุมได้แน่นอนกว่า */
+  scroll-snap-type: x proximity;
+  padding: 4px 0 12px;
+  /* ซ่อนแถบเลื่อนแต่ยังเลื่อนด้วยนิ้ว/เทร็กแพดได้ตามปกติ */
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.pstage-track::-webkit-scrollbar { display: none; }
+
+.pcard {
+  flex: 0 0 auto; margin: 0;
+  /* กันการ์ดแนวนอนล้นจอแคบ — ภาพจะย่อลงทั้งใบ ไม่ถูกตัดขอบ */
+  width: min(calc(var(--ph) * var(--ar)), 86vw);
+  scroll-snap-align: center;
+}
+.st-strip .pcard { scroll-snap-align: start; }
+
+.pcard-img {
+  display: block; height: var(--ph); width: 100%;
+  border-radius: 4px; overflow: hidden; background: var(--surface, #f5f7fb);
+}
+.pcard-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.framed .pcard-img {
+  border-radius: 16px; border: 1px solid var(--border);
+  box-shadow: 0 2px 6px rgba(0,0,0,.05), 0 14px 32px rgba(0,0,0,.10);
+}
+.zoomable .pcard-img img { cursor: zoom-in; }
+
+.pcard figcaption {
+  margin-top: 12px; font-size: 13.5px; line-height: 1.55; color: var(--muted);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.pcard figcaption b { color: var(--ink); font-weight: 600; font-size: 14.5px; }
+
+/* ── แบบ "เวที" — ใบที่อยู่กลางเด่น ใบข้างถอยหลังไปเป็นฉาก ──
+   ให้สายตารู้ทันทีว่าตอนนี้กำลังดูใบไหน โดยไม่ต้องมีกรอบหรือลูกศรมาบอก */
+.st-stage .pcard { transition: opacity .45s ease, transform .45s ease; }
+.st-stage .pcard:not(.on) { opacity: .38; transform: scale(.88); }
+.st-stage .pcard.on { opacity: 1; transform: scale(1); }
+
+/* ── แบบ "จางสลับ" — ทีละใบ ซ้อนกันอยู่กับที่ ── */
+.st-fade .pstage-track { display: grid; overflow: visible; padding-bottom: 0; }
+.st-fade .pcard {
+  grid-area: 1 / 1; width: 100%; justify-self: center; max-width: 100%;
+  opacity: 0; visibility: hidden; transition: opacity .6s ease;
+}
+.st-fade .pcard.on { opacity: 1; visibility: visible; }
+.st-fade .pcard-img { width: min(calc(var(--ph) * var(--ar)), 100%); margin: 0 auto; }
+.st-fade .pcard figcaption { text-align: center; align-items: center; }
+
+/* ── ปุ่มเลื่อนบนหัวข้อ ── */
+.ps-nav { display: flex; gap: 8px; flex-shrink: 0; }
+.ps-arrow {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  border: 1px solid var(--border); background: #fff; color: var(--ink);
+  display: grid; place-items: center; cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, opacity .2s ease;
+}
+.ps-arrow:hover:not(:disabled) { background: var(--blue); border-color: var(--blue); color: #fff; }
+.ps-arrow:disabled { opacity: .35; cursor: default; }
+
+/* ── จุดบอกตำแหน่ง ── */
+.ps-dots { display: flex; justify-content: center; gap: 8px; margin-top: 4px; }
+.ps-dots button {
+  border: 0; background: none; padding: 6px 2px; cursor: pointer; line-height: 0;
+}
+.ps-dots i {
+  display: block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--border); transition: width .3s ease, background .3s ease;
+}
+.ps-dots button.on i { width: 22px; border-radius: 4px; background: var(--blue); }
+
+/* ── ดูขนาดเต็ม ── */
+.ps-lightbox {
+  position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center;
+  background: rgba(10, 14, 22, .92); padding: 24px; cursor: zoom-out;
+  opacity: 0; transition: opacity .25s ease;
+}
+.ps-lightbox.on { opacity: 1; }
+.ps-lightbox img {
+  max-width: 94vw; max-height: 90vh; width: auto; height: auto;
+  border-radius: 8px; box-shadow: 0 24px 70px rgba(0,0,0,.5);
+}
+.ps-lightbox .ps-close {
+  position: absolute; top: 16px; right: 16px; width: 44px; height: 44px;
+  border-radius: 50%; border: 0; cursor: pointer; color: #fff;
+  background: rgba(255,255,255,.14); display: grid; place-items: center;
+}
+.ps-lightbox .ps-close:hover { background: rgba(255,255,255,.26); }
+
+/* ── ลดการเคลื่อนไหวตามที่ผู้ใช้และเครื่องตั้งไว้ ── */
+body.anim-off .st-stage .pcard,
+body.anim-off .st-fade .pcard,
+body.anim-off .ps-dots i { transition: none; }
+body.anim-off .st-stage .pcard:not(.on) { opacity: .6; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .st-stage .pcard, .st-fade .pcard { transition: none; }
+  .st-stage .pcard:not(.on) { opacity: .6; transform: none; }
+}
+
+@media (max-width: 640px) {
+  .pstage-track { gap: 14px; }
+  .ps-nav { display: none; }          /* จอเล็กใช้ปัดนิ้วแทน ปุ่มกินที่หัวข้อ */
+  .pcard figcaption { font-size: 12.5px; }
+  .pcard figcaption b { font-size: 13.5px; }
+}
