@@ -94,7 +94,10 @@ html.contrast .btn, html.contrast .badge { border: 1px solid #000 !important; }
 .nav-has-sub { position: relative; display: inline-flex; align-items: center; }
 .nav-has-sub > .navlink { display: inline-flex; align-items: center; gap: 1px; }
 /* ปุ่มกางเมนูย่อย — หัวข้อล้วนใช้ทั้งปุ่มเป็น navlink ส่วนเมนูที่มีลิงก์ใช้เฉพาะลูกศรข้างๆ */
-.nav-subtoggle { font: inherit; background: none; border: 0; cursor: pointer; color: inherit; }
+/* ห้ามใช้ font: inherit ตรงนี้ — shorthand จะรีเซ็ตขนาดและน้ำหนักตัวอักษรไปเอาค่าที่สืบทอดมา
+   ทับ .navlink ที่กำหนด 14px/500 ไว้ (site.css โหลดหลัง theme-kit.css จึงชนะ)
+   ผลคือหัวข้อ dropdown ตัวใหญ่กว่าเมนูอื่นทั้งแถบ ต้องรับมาเฉพาะ font-family กับ line-height */
+.nav-subtoggle { font-family: inherit; line-height: inherit; background: none; border: 0; cursor: pointer; color: inherit; }
 .nav-caret-btn { display: inline-grid; place-items: center; padding: 8px 6px 8px 0; margin-left: -8px;
   border-radius: 999px; color: var(--text); }
 .nav-caret-btn:hover { color: var(--blue-700); }
