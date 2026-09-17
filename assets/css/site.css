@@ -88,20 +88,31 @@ html.contrast .btn, html.contrast .badge { border: 1px solid #000 !important; }
   .topbar .brand { font-size: 19px; }
 }
 
-/* ── เมนูย่อย (dropdown) สำหรับโหมดคุมเมนูเอง ── */
-.nav-has-sub { position: relative; }
+/* ── เมนูย่อย (dropdown) สำหรับโหมดคุมเมนูเอง ──
+   เปิดได้ 3 ทาง: ชี้เมาส์ (hover) · กด Tab เข้าไป (focus-within) · กดปุ่มลูกศร (.open)
+   ทางที่สามจำเป็นสำหรับจอสัมผัสซึ่งไม่มี hover เลย และสำหรับคนที่ใช้คีย์บอร์ดอย่างเดียว */
+.nav-has-sub { position: relative; display: inline-flex; align-items: center; }
 .nav-has-sub > .navlink { display: inline-flex; align-items: center; gap: 1px; }
+/* ปุ่มกางเมนูย่อย — หัวข้อล้วนใช้ทั้งปุ่มเป็น navlink ส่วนเมนูที่มีลิงก์ใช้เฉพาะลูกศรข้างๆ */
+.nav-subtoggle { font: inherit; background: none; border: 0; cursor: pointer; color: inherit; }
+.nav-caret-btn { display: inline-grid; place-items: center; padding: 8px 6px 8px 0; margin-left: -8px;
+  border-radius: 999px; color: var(--text); }
+.nav-caret-btn:hover { color: var(--blue-700); }
+.nav-subtoggle:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 999px; }
 .nav-sub { position: absolute; top: calc(100% + 4px); left: 0; min-width: 192px; background: var(--card);
   border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 30px rgba(2,6,23,.14);
   padding: 7px; display: flex; flex-direction: column; gap: 2px; z-index: 60;
   opacity: 0; visibility: hidden; transform: translateY(6px); transition: opacity .18s, transform .18s, visibility .18s; }
-.nav-has-sub:hover .nav-sub, .nav-has-sub:focus-within .nav-sub { opacity: 1; visibility: visible; transform: none; }
+.nav-has-sub:hover .nav-sub, .nav-has-sub:focus-within .nav-sub,
+.nav-has-sub.open .nav-sub { opacity: 1; visibility: visible; transform: none; }
 .nav-sub a { padding: 9px 13px; border-radius: 8px; color: var(--text); font-size: 15px; white-space: nowrap; }
 .nav-sub a:hover { background: color-mix(in srgb, var(--blue) 8%, transparent); color: var(--blue-700); }
 .nav-caret { transition: transform .2s; opacity: .65; }
-.nav-has-sub:hover .nav-caret { transform: rotate(180deg); }
+.nav-has-sub:hover .nav-caret, .nav-has-sub.open .nav-caret { transform: rotate(180deg); }
 @media (max-width: 860px) {
+  /* บนมือถือเมนูย่อยกางค้างไว้เลย ไม่ต้องกดเปิด — ปุ่มลูกศรจึงไม่มีประโยชน์ */
   .nav-has-sub { display: block; }
+  .nav-caret-btn { display: none; }
   .nav-sub { position: static; opacity: 1; visibility: visible; transform: none; box-shadow: none; border: 0;
     border-left: 2px solid var(--border); border-radius: 0; margin: 0 0 4px 14px; padding: 2px 0 2px 8px; min-width: 0; }
   .nav-sub a { white-space: normal; display: block; }

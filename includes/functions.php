@@ -667,7 +667,12 @@ function custom_menu(): array {
     static $c = null;
     if ($c === null) {
         try {
-            $c = db()->query("SELECT label, url, new_tab FROM menu_items WHERE enabled = 1 ORDER BY sort_order ASC, id ASC")->fetchAll();
+            /* เฉพาะเมนูหลักที่มีปลายทาง — โหมดอัตโนมัติวางเมนูเรียงกันชั้นเดียว ไม่มี dropdown
+               ถ้าดึงเมนูย่อยมาด้วยจะกลายเป็นเมนูหลักเรียงเต็มแถบ ส่วนหัวข้อที่ไม่มีปลายทาง
+               ก็จะกลายเป็นลิงก์ตายกดแล้วไม่ไปไหน (dropdown มีเฉพาะโหมดคุมเมนูเอง) */
+            $c = db()->query("SELECT label, url, new_tab FROM menu_items
+                              WHERE enabled = 1 AND parent_id IS NULL AND url <> ''
+                              ORDER BY sort_order ASC, id ASC")->fetchAll();
         } catch (Throwable $e) { $c = []; }
     }
     return $c;
@@ -684,6 +689,9 @@ function custom_menu_tree(): array {
     $top = [];
     foreach ($rows as $r) if (empty($r['parent_id'])) { $r['children'] = []; $top[(int)$r['id']] = $r; }
     foreach ($rows as $r) if (!empty($r['parent_id']) && isset($top[(int)$r['parent_id']])) $top[(int)$r['parent_id']]['children'][] = $r;
+    /* หัวข้อที่ไม่มีปลายทางและไม่เหลือเมนูย่อย (ถูกลบ/ปิดไปหมด) ต้องไม่โผล่บนเว็บ
+       ไม่งั้นจะเป็นหัวข้อค้างอยู่บนแถบเมนู กดแล้วไม่มีอะไรเกิดขึ้นและไม่มีอะไรให้กาง */
+    $top = array_filter($top, fn($r) => trim((string)$r['url']) !== '' || $r['children']);
     return $tree = array_values($top);
 }
 
@@ -702,8 +710,16 @@ function menu_href(string $u): array {
  * ทั้งสองช่องใช้ name="url" เหมือนกัน แต่ช่องที่ไม่ได้ใช้จะถูก disabled
  * (เบราว์เซอร์ไม่ส่งค่า และไม่ตรวจ required ของ control ที่ disabled จึงไม่ตีกัน)
  * ถ้า JS ไม่ทำงาน จะเหลือ dropdown ใช้ได้ตามปกติ (ช่อง URL ภายนอกถูก disabled ไว้ตั้งแต่ต้น)
+ *
+ * @param string|null $current ปลายทางปัจจุบัน — null = รายการใหม่ยังไม่ได้เลือก, '' = ตั้งใจไม่ลิงก์
+ * @param string $noneLabel   ใส่ข้อความ = เปิดตัวเลือก "ไม่ต้องลิงก์" ด้วย (เมนูนำทางใช้ทำหัวข้อ dropdown)
+ *                            เว้นว่าง = บังคับต้องมีปลายทางเหมือนเดิม (เมนูท้ายเว็บใช้แบบนี้)
  */
-function dest_picker_field(string $current, array $sysTargets, array $pages): void {
+function dest_picker_field(?string $current, array $sysTargets, array $pages, string $noneLabel = ''): void {
+    $allowNone  = $noneLabel !== '';
+    /* null = ยังไม่เคยเลือก จึงไม่ใช่ "ไม่ลิงก์" — ต่างจาก '' ที่แปลว่าเลือกไม่ลิงก์ไว้แล้ว */
+    $isNone     = $allowNone && $current === '';
+    $current    = (string)$current;
     $isExternal = $current !== '' && (bool)preg_match('#^https?://#', $current);
 
     /* ปลายทางภายในที่ไม่มีในรายการ (เช่นของเก่าที่พิมพ์เอง) — เติมเป็นตัวเลือกไว้ ไม่งั้นแก้ไขแล้วค่าหาย */
@@ -711,17 +727,22 @@ function dest_picker_field(string $current, array $sysTargets, array $pages): vo
     foreach ($pages as $pg) $known[] = 'page.php?slug=' . $pg['slug'];
     $orphan = (!$isExternal && $current !== '' && !in_array($current, $known, true)) ? $current : '';
     ?>
-    <label>ปลายทาง <span style="color:var(--danger);">*</span></label>
+    <label>ปลายทาง <?= $allowNone ? '' : '<span style="color:var(--danger);">*</span>' ?></label>
     <div data-dest class="mb-2">
       <div class="dest-modes">
         <label class="inline-check" style="margin:0;">
-          <input type="radio" name="dest_mode" value="system" data-dest-mode <?= $isExternal ? '' : 'checked' ?>>หน้าในระบบ
+          <input type="radio" name="dest_mode" value="system" data-dest-mode <?= !$isExternal && !$isNone ? 'checked' : '' ?>>หน้าในระบบ
         </label>
         <label class="inline-check" style="margin:0;">
           <input type="radio" name="dest_mode" value="external" data-dest-mode <?= $isExternal ? 'checked' : '' ?>>ลิงก์ภายนอก
         </label>
+        <?php if ($allowNone): ?>
+        <label class="inline-check" style="margin:0;">
+          <input type="radio" name="dest_mode" value="none" data-dest-mode <?= $isNone ? 'checked' : '' ?>><?= e($noneLabel) ?>
+        </label>
+        <?php endif; ?>
       </div>
-      <select name="url" data-dest-system required <?= $isExternal ? 'disabled hidden' : '' ?>>
+      <select name="url" data-dest-system required <?= $isExternal || $isNone ? 'disabled hidden' : '' ?>>
         <option value="">— เลือกหน้าที่ต้องการ —</option>
         <optgroup label="หน้าระบบ">
           <?php foreach ($sysTargets as $tu => $tl): ?>
@@ -743,6 +764,13 @@ function dest_picker_field(string $current, array $sysTargets, array $pages): vo
       </select>
       <input type="text" name="url" data-dest-external required placeholder="https://..."
              value="<?= $isExternal ? e($current) : '' ?>" <?= $isExternal ? '' : 'disabled hidden' ?>>
+      <?php if ($allowNone): ?>
+      <?php /* โหมด "ไม่ลิงก์" ไม่มีช่องให้กรอก — ปิดสองช่องบนแล้วส่ง url ว่างมาแทน
+               ต้องมี input จริงส่งค่ามา ไม่งั้นแยกไม่ออกว่า "ไม่ลิงก์" หรือ "ฟอร์มไม่ได้ส่งช่องนี้" */ ?>
+      <input type="hidden" name="url" value="" data-dest-none <?= $isNone ? '' : 'disabled' ?>>
+      <p class="text-muted" data-dest-none-hint style="font-size:13px;margin:2px 0 0;<?= $isNone ? '' : 'display:none;' ?>">
+        เมนูนี้จะกลายเป็นหัวข้อที่กดแล้วไม่ไปไหน ใช้เปิดเมนูย่อยอย่างเดียว — ต้องมีเมนูย่อยอย่างน้อย 1 รายการ ไม่งั้นจะไม่แสดงบนเว็บ</p>
+      <?php endif; ?>
     </div>
     <?php
 }

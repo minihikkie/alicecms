@@ -39,6 +39,45 @@
     });
   }
 
+  /* ─── เมนูย่อย (dropdown) บนแถบเมนู ───
+     บนจอคอมพิวเตอร์เมนูย่อยกางด้วยการชี้เมาส์อยู่แล้ว แต่จอสัมผัสไม่มี hover
+     และคนที่ใช้คีย์บอร์ดอย่างเดียวก็เข้าไม่ถึง จึงต้องมีปุ่มกดเปิด/ปิดด้วย
+     (บนมือถือ CSS กางเมนูย่อยค้างไว้และซ่อนปุ่มนี้ โค้ดตรงนี้จึงไม่ถูกเรียก) */
+  document.querySelectorAll('.nav-subtoggle').forEach(function (btn) {
+    var box = btn.closest('.nav-has-sub');
+    if (!box) return;
+    btn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      var open = !box.classList.contains('open');
+      /* เปิดได้ทีละอันเดียว ไม่งั้นเมนูย่อยหลายชุดจะซ้อนทับกัน */
+      document.querySelectorAll('.nav-has-sub.open').forEach(function (o) {
+        if (o !== box) {
+          o.classList.remove('open');
+          o.querySelectorAll('.nav-subtoggle').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+        }
+      });
+      box.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
+  document.addEventListener('click', function (ev) {
+    if (ev.target.closest('.nav-has-sub')) return;
+    document.querySelectorAll('.nav-has-sub.open').forEach(function (o) {
+      o.classList.remove('open');
+      o.querySelectorAll('.nav-subtoggle').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+    });
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Escape') return;
+    document.querySelectorAll('.nav-has-sub.open').forEach(function (o) {
+      o.classList.remove('open');
+      o.querySelectorAll('.nav-subtoggle').forEach(function (b) {
+        b.setAttribute('aria-expanded', 'false');
+        b.focus();
+      });
+    });
+  });
+
   /* ─── 8) Topbar หดเมื่อเลื่อน ─── */
   var topbar = document.querySelector('.topbar');
   var ticking = false;

@@ -23,12 +23,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $i = 0;
         foreach ($ids as $id) {
             $id = (int)$id;
-            /* กันซ้อนเกิน 1 ชั้น: ถ้า item นี้มีเมนูย่อยอยู่ ห้ามเอาไปเป็นเมนูย่อย */
+            /* กันซ้อนเกิน 1 ชั้น: ถ้า item นี้มีเมนูย่อยอยู่ ห้ามเอาไปเป็นเมนูย่อย
+               และหัวข้อที่ไม่มีปลายทางก็เป็นเมนูย่อยไม่ได้ เพราะกดแล้วจะไม่มีอะไรเกิดขึ้นเลย */
             $p = $parent;
             if ($p !== null) {
-                $has = db()->prepare('SELECT COUNT(*) FROM menu_items WHERE parent_id = ?');
+                $has = db()->prepare('SELECT (SELECT COUNT(*) FROM menu_items WHERE parent_id = m.id) AS kids, m.url
+                                      FROM menu_items m WHERE m.id = ?');
                 $has->execute([$id]);
-                if ((int)$has->fetchColumn() > 0) $p = null;
+                $row = $has->fetch();
+                if (!$row || (int)$row['kids'] > 0 || trim((string)$row['url']) === '') $p = null;
             }
             db()->prepare('UPDATE menu_items SET sort_order = ?, parent_id = ? WHERE id = ?')->execute([$i++, $p, $id]);
         }
@@ -84,7 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $enabled = !empty($_POST['enabled']) ? 1 : 0;
 
     if ($label === '') $errors[] = 'กรุณากรอกชื่อเมนู';
-    if ($u === '')     $errors[] = 'กรุณาเลือกหรือกรอกปลายทาง';
+    /* เมนูหลักเว้นปลายทางว่างได้ = เป็นแค่หัวข้อไว้เปิดเมนูย่อย (เช่น "หน่วยงานในสังกัด")
+       แต่เมนูย่อยต้องมีปลายทางเสมอ เพราะเป็นปลายทางสุดท้ายที่ผู้ใช้กด ไม่มีชั้นถัดไปให้เปิด */
+    if ($u === '' && $parent) $errors[] = 'เมนูย่อยต้องมีปลายทาง — มีเฉพาะเมนูหลักเท่านั้นที่เว้นว่างไว้เป็นหัวข้อได้';
     if ($u !== '' && !preg_match('#^(https?://|/|[a-z0-9_\-]+\.php)#i', $u)) $errors[] = 'ปลายทางไม่ถูกต้อง';
     /* เมนูแม่ต้องเป็นเมนูหลัก (กันซ้อนเกิน 1 ชั้น) และต้องไม่ใช่ตัวเอง */
     if ($parent) {
@@ -133,6 +138,7 @@ $nav_custom = setting('nav_custom', '0') === '1';
 
 /* ป้ายปลายทางอ่านง่าย */
 $label_target = function ($u) use ($sys_targets) {
+    if (trim((string)$u) === '') return 'หัวข้อ (ไม่ลิงก์)';
     if (preg_match('#^https?://#', $u)) return 'ลิงก์ภายนอก';
     if (preg_match('#page\.php\?slug=#', $u)) return 'หน้าเพจ';
     return $sys_targets[$u] ?? $u;
@@ -184,7 +190,12 @@ require __DIR__ . '/_top.php';
           <?php endforeach; ?>
         </select></div>
     </div>
-    <?php dest_picker_field(old('url', $edit['url'] ?? ''), $sys_targets, $pages); ?>
+    <?php
+    /* null = รายการใหม่ที่ยังไม่ได้เลือกอะไร ต่างจาก '' ที่แปลว่าเลือก "ไม่ลิงก์" ไว้แล้ว
+       ถ้าไม่แยกสองกรณีนี้ ฟอร์มเพิ่มเมนูใหม่จะเปิดมาโดยติ๊ก "ไม่ลิงก์" ไว้ให้เองซึ่งไม่ใช่สิ่งที่คนส่วนใหญ่ต้องการ */
+    $cur_url = isset($_POST['url']) ? old('url') : ($edit ? (string)$edit['url'] : null);
+    dest_picker_field($cur_url, $sys_targets, $pages, 'ไม่ลิงก์ (เป็นหัวข้อเปิดเมนูย่อย)');
+    ?>
     <div class="flex gap-2 items-center" style="flex-wrap:wrap;">
       <label class="inline-check" style="margin:0;"><input type="checkbox" name="new_tab" value="1" <?= !empty($edit['new_tab']) ? 'checked' : '' ?>>เปิดแท็บใหม่</label>
       <label class="inline-check" style="margin:0;"><input type="checkbox" name="enabled" value="1" <?= !isset($edit) || !empty($edit['enabled']) ? 'checked' : '' ?>>แสดงบนเมนู</label>
@@ -197,7 +208,8 @@ require __DIR__ . '/_top.php';
 <div class="card">
   <div class="section-head" style="margin-bottom:8px;">
     <div><span class="tag">ALL MENU</span><h3>เมนูทั้งหมด (<?= count($all) ?>)</h3>
-    <p>ลากเพื่อจัดลำดับ — เมนูย่อยจะแสดงเป็น dropdown ใต้เมนูหลักบนเว็บ</p></div>
+    <p>ลากเพื่อจัดลำดับ — เมนูย่อยจะแสดงเป็น dropdown ใต้เมนูหลักบนเว็บ<br>
+    อยากได้หัวข้อที่กดแล้วไม่ไปไหน (เช่น "หน่วยงานในสังกัด" ที่มีแต่รายชื่อหน่วยข้างใน) ให้เลือกปลายทางเป็น <b>ไม่ลิงก์</b></p></div>
   </div>
   <?php if ($tops): ?>
   <div id="menuBuilder" data-csrf="<?= e(csrf_token()) ?>">
@@ -209,6 +221,10 @@ require __DIR__ . '/_top.php';
           <span class="menu-name"><?= e($m['label']) ?></span>
           <span class="badge" style="font-size:10px;"><?= e($label_target($m['url'])) ?></span>
           <?php if (!$m['enabled']): ?><span class="badge" style="font-size:10px;">ซ่อน</span><?php endif; ?>
+          <?php /* หัวข้อที่ไม่มีเมนูย่อยจะไม่แสดงบนเว็บเลย บอกไว้ตรงนี้ ไม่ให้ผู้ดูแลงงว่าทำไมหาไม่เจอ */ ?>
+          <?php if (trim((string)$m['url']) === '' && empty($kids[(int)$m['id']])): ?>
+          <span class="badge warning" style="font-size:10px;">ยังไม่มีเมนูย่อย — ไม่แสดงบนเว็บ</span>
+          <?php endif; ?>
           <span class="menu-actions">
             <a class="btn small" href="<?= e(url('admin/menu.php?edit=' . $m['id'])) ?>">แก้ไข</a>
             <form method="post" action="" style="display:inline;"><?= csrf_field() ?><input type="hidden" name="toggle_id" value="<?= (int)$m['id'] ?>"><button class="btn small" type="submit"><?= $m['enabled'] ? 'ซ่อน' : 'แสดง' ?></button></form>

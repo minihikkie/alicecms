@@ -581,11 +581,17 @@
     var ext = wrap.querySelector('[data-dest-external]');
     var modes = wrap.querySelectorAll('[data-dest-mode]');
     if (!sys || !ext || !modes.length) return;
+    /* โหมด "ไม่ลิงก์" มีเฉพาะเมนูนำทาง — เมนูท้ายเว็บไม่มีช่องนี้ */
+    var none = wrap.querySelector('[data-dest-none]');
+    var hint = wrap.querySelector('[data-dest-none-hint]');
     function applyMode() {
       var picked = wrap.querySelector('[data-dest-mode]:checked');
-      var useExt = picked && picked.value === 'external';
-      sys.disabled = useExt;  sys.hidden = useExt;
-      ext.disabled = !useExt; ext.hidden = !useExt;
+      var mode = picked ? picked.value : 'system';
+      var useExt = mode === 'external', useNone = mode === 'none';
+      sys.disabled = useExt || useNone;  sys.hidden = sys.disabled;
+      ext.disabled = !useExt;            ext.hidden = ext.disabled;
+      if (none) none.disabled = !useNone;
+      if (hint) hint.style.display = useNone ? '' : 'none';
     }
     modes.forEach(function (m) { m.addEventListener('change', applyMode); });
     applyMode();

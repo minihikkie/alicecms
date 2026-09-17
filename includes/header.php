@@ -229,9 +229,18 @@ if ($alert_text !== ''):
     <nav class="nav">
       <?php if ($nav_tree): /* ── โหมดคุมเมนูเอง: เมนูหลัก + ย่อย ── */ ?>
         <?php foreach ($nav_tree as $mi): $h = menu_href($mi['url']); ?>
-        <?php if (!empty($mi['children'])): ?>
+        <?php if (!empty($mi['children'])): $isHead = trim((string)$mi['url']) === ''; ?>
         <div class="nav-has-sub">
-          <a class="navlink" href="<?= e($h['href']) ?>"<?= $mi['new_tab'] ? ' target="_blank" rel="noopener"' : '' ?>><?= e($mi['label']) ?><span class="material-symbols-rounded icon-sm nav-caret">expand_more</span></a>
+          <?php /* เมนูแม่ที่ไม่มีปลายทาง = หัวข้อล้วน ต้องเป็น <button> ไม่ใช่ <a> ที่ไม่มี href
+                   เพราะ <a> ไม่มี href จะกด Tab ไม่ถึงและโปรแกรมอ่านหน้าจอไม่ประกาศว่าเป็นปุ่ม
+                   ส่วนเมนูแม่ที่มีปลายทางยังเป็นลิงก์เหมือนเดิม โดยมีปุ่มลูกศรแยกไว้กางเมนูย่อย
+                   — จอสัมผัสไม่มี hover ถ้าไม่มีปุ่มนี้จะเข้าเมนูย่อยไม่ได้เลย */ ?>
+          <?php if ($isHead): ?>
+          <button type="button" class="navlink nav-subtoggle" aria-expanded="false"><?= e($mi['label']) ?><span class="material-symbols-rounded icon-sm nav-caret">expand_more</span></button>
+          <?php else: ?>
+          <a class="navlink" href="<?= e($h['href']) ?>"<?= $mi['new_tab'] ? ' target="_blank" rel="noopener"' : '' ?>><?= e($mi['label']) ?></a>
+          <button type="button" class="nav-subtoggle nav-caret-btn" aria-expanded="false" aria-label="เปิดเมนูย่อยของ<?= e($mi['label']) ?>"><span class="material-symbols-rounded icon-sm nav-caret">expand_more</span></button>
+          <?php endif; ?>
           <div class="nav-sub">
             <?php foreach ($mi['children'] as $ch): $ch_h = menu_href($ch['url']); ?>
             <a href="<?= e($ch_h['href']) ?>"<?= $ch['new_tab'] ? ' target="_blank" rel="noopener"' : '' ?>><?= e($ch['label']) ?></a>
