@@ -52,7 +52,7 @@ $nav_tree = (setting('nav_custom', '0') === '1') ? custom_menu_tree() : [];
 <meta name="theme-color" content="<?= e($theme) ?>">
 <!-- PWA (ติดตั้งเป็นแอปบนมือถือ/เดสก์ท็อป) -->
 <link rel="manifest" href="<?= e(url('manifest.php')) ?>">
-<link rel="apple-touch-icon" href="<?= e(url('assets/img/pwa/icon-192.png')) ?>">
+<link rel="apple-touch-icon" href="<?= e(asset_url('assets/img/pwa/icon-192.png')) ?>">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -89,7 +89,7 @@ window.APP_BASE=<?= json_encode(url(''), JSON_UNESCAPED_SLASHES) ?>;
 <?php if ($favicon): ?>
 <link rel="icon" href="<?= e(url($favicon)) ?>">
 <?php else: ?>
-<link rel="icon" type="image/svg+xml" href="<?= e(url('assets/img/alicecms-mark.svg')) ?>">
+<link rel="icon" type="image/svg+xml" href="<?= e(asset_url('assets/img/alicecms-mark.svg')) ?>">
 <?php endif; ?>
 <?php
 /* ธีมทั้งชุดถูกฉีดเป็นตัวแปร CSS ตรงนี้จุดเดียว — สี ตัวอักษร ความโค้งมุม เงา แสงเรือง

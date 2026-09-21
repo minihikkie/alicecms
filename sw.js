@@ -16,10 +16,11 @@ var CORE = [
   './assets/css/animations.css',
   './assets/js/main.js',
   './assets/js/a11y.js',
-  './assets/img/alicecms-mark.svg',
-  './assets/img/pwa/icon-192.png',
-  './assets/img/pwa/icon-512.png'
 ];
+/* ไม่เก็บไอคอนแอปกับไอคอนแท็บไว้ล่วงหน้า — ระบบเรียกไฟล์พวกนั้นด้วย URL ที่มี
+   ?v=เวอร์ชัน กำกับ (กันไฟล์เก่าค้างเพราะกฎแคช 1 ปี) URL ที่เขียนไว้ตรงนี้จึงไม่ตรงกัน
+   เก็บไปก็ไม่มีใครเรียกใช้ แถมยังเสี่ยงเสิร์ฟลายไอคอนเก่าทับของใหม่
+   อีกอย่างคือไอคอนพวกนี้ระบบปฏิบัติการใช้ ไม่ใช่สิ่งที่หน้าเว็บต้องใช้ตอนออฟไลน์ */
 
 self.addEventListener('install', function (e) {
   e.waitUntil(

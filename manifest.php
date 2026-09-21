@@ -1,5 +1,10 @@
 <?php
-/** manifest.php — Web App Manifest (PWA) สร้างจากค่าตั้งค่าเว็บไซต์ */
+/** manifest.php — Web App Manifest (PWA) สร้างจากค่าตั้งค่าเว็บไซต์
+ *
+ *  ไอคอนต้องเรียกผ่าน asset_url() เสมอ เพราะ .htaccess สั่งแคชไฟล์ภาพไว้ 1 ปี
+ *  แบบ immutable ถ้า URL ไม่มี ?v=เวอร์ชัน กำกับ พออัปเดตระบบแล้วเปลี่ยนลายไอคอน
+ *  เบราว์เซอร์กับ CDN จะยังเสิร์ฟไฟล์เดิมต่อไปจนกว่าจะครบปี
+ */
 require __DIR__ . '/includes/init.php';
 
 header('Content-Type: application/manifest+json; charset=utf-8');
@@ -23,14 +28,14 @@ $manifest = [
     'background_color' => '#ffffff',
     'theme_color'      => $theme,
     'icons'            => [
-        ['src' => url('assets/img/pwa/icon-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
-        ['src' => url('assets/img/pwa/icon-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
-        ['src' => url('assets/img/pwa/icon-maskable-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+        ['src' => asset_url('assets/img/pwa/icon-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+        ['src' => asset_url('assets/img/pwa/icon-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+        ['src' => asset_url('assets/img/pwa/icon-maskable-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
     ],
     'shortcuts'        => [
-        ['name' => 'ข่าวสาร',    'url' => url('news.php'),      'icons' => [['src' => url('assets/img/pwa/icon-192.png'), 'sizes' => '192x192']]],
-        ['name' => 'ร้องเรียน',  'url' => url('complaint.php'), 'icons' => [['src' => url('assets/img/pwa/icon-192.png'), 'sizes' => '192x192']]],
-        ['name' => 'ติดต่อเรา',  'url' => url('contact.php'),   'icons' => [['src' => url('assets/img/pwa/icon-192.png'), 'sizes' => '192x192']]],
+        ['name' => 'ข่าวสาร',    'url' => url('news.php'),      'icons' => [['src' => asset_url('assets/img/pwa/icon-192.png'), 'sizes' => '192x192']]],
+        ['name' => 'ร้องเรียน',  'url' => url('complaint.php'), 'icons' => [['src' => asset_url('assets/img/pwa/icon-192.png'), 'sizes' => '192x192']]],
+        ['name' => 'ติดต่อเรา',  'url' => url('contact.php'),   'icons' => [['src' => asset_url('assets/img/pwa/icon-192.png'), 'sizes' => '192x192']]],
     ],
 ];
 
