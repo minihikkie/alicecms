@@ -105,7 +105,18 @@ Options -Indexes
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
   # หน้าเว็บ/ไฟล์ที่สร้างจาก PHP — ต้องสดเสมอ
+  #
+  # ใส่ always เพราะ Header set เฉยๆ ไม่ติดไปกับคำตอบที่ "Apache สร้างเอง"
+  # เช่นหน้า 404 ตอนเรียกไฟล์ที่ไม่มีอยู่ หรือ 403 จากกฎ Require all denied ด้านบน
+  # คำตอบพวกนั้นจึงออกไปโดยไม่มี Cache-Control เลย แล้ว CDN/พร็อกซีจะใช้นโยบายของตัวเอง
+  # ตัดสินใจแทน ซึ่งอาจเก็บหน้า error ไว้เสิร์ฟต่อ
+  #
+  # (วัดกับ Apache 2.4.58 จริงแล้ว: คำตอบ 500 ที่ PHP สร้างเอง — ทั้ง fatal error
+  #  และหน่วยความจำหมด — ได้ header นี้อยู่แล้วแม้ไม่ใส่ always ต่างกันเฉพาะกรณีข้างต้น)
+  #
+  # no-cache ไม่ได้แปลว่าห้ามเก็บ แต่แปลว่า "ต้องถามต้นทางก่อนเสิร์ฟทุกครั้ง"
+  # แคชจึงยังช่วยแบ่งเบาโหลดได้ แต่จะไม่เสิร์ฟของเก่าค้างไว้
   <FilesMatch "\.(php)$">
-    Header set Cache-Control "no-cache, must-revalidate"
+    Header always set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 </IfModule>
