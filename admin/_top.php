@@ -92,7 +92,7 @@ $flash = flash_get();
 <link rel="stylesheet" href="<?= e(asset_url('assets/css/site.css')) ?>">
 <link rel="stylesheet" href="<?= e(asset_url('assets/css/animations.css')) ?>">
 <link rel="stylesheet" href="<?= e(asset_url('assets/css/admin.css')) ?>">
-<link rel="icon" type="image/svg+xml" href="<?= e(setting('favicon') ? url(setting('favicon')) : url('assets/img/favicon.svg')) ?>">
+<link rel="icon" type="image/svg+xml" href="<?= e(setting('favicon') ? url(setting('favicon')) : url('assets/img/alicecms-mark.svg')) ?>">
 <style>:root { --blue: <?= e($theme) ?>; --blue-700: <?= e($theme700) ?>; }</style>
 </head>
 <body class="anim-<?= e(in_array($anim, ['full','min','off'], true) ? $anim : 'full') ?>">

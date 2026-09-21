@@ -20,7 +20,7 @@ $meta_desc = isset($meta_description) && $meta_description !== ''
     : meta_excerpt(setting('site_description', $site_name . ($site_dept ? ' ' . $site_dept : '') . ' — ศูนย์ข้อมูลข่าวสารและบริการประชาชนออนไลน์'));
 $og_img = isset($og_image) && $og_image
     ? abs_url($og_image)
-    : ($logo ? abs_url($logo) : abs_url('assets/img/favicon.svg'));
+    : ($logo ? abs_url($logo) : abs_url('assets/img/alicecms-mark.svg'));
 /* REQUEST_URI มี path เต็มจาก host อยู่แล้ว — ต่อ scheme+host ตรงๆ ไม่ผ่าน url() */
 $_scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $canonical = $_scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . strtok($_SERVER['REQUEST_URI'] ?? '/', '#');
@@ -89,7 +89,7 @@ window.APP_BASE=<?= json_encode(url(''), JSON_UNESCAPED_SLASHES) ?>;
 <?php if ($favicon): ?>
 <link rel="icon" href="<?= e(url($favicon)) ?>">
 <?php else: ?>
-<link rel="icon" type="image/svg+xml" href="<?= e(url('assets/img/favicon.svg')) ?>">
+<link rel="icon" type="image/svg+xml" href="<?= e(url('assets/img/alicecms-mark.svg')) ?>">
 <?php endif; ?>
 <?php
 /* ธีมทั้งชุดถูกฉีดเป็นตัวแปร CSS ตรงนี้จุดเดียว — สี ตัวอักษร ความโค้งมุม เงา แสงเรือง

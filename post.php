@@ -54,7 +54,7 @@ $json_ld_extra = [
         'publisher'     => [
             '@type' => 'GovernmentOrganization',
             'name'  => setting('site_name', 'หน่วยงานราชการ'),
-            'logo'  => ['@type' => 'ImageObject', 'url' => abs_url(setting('logo') ?: 'assets/img/favicon.svg')],
+            'logo'  => ['@type' => 'ImageObject', 'url' => abs_url(setting('logo') ?: 'assets/img/alicecms-mark.svg')],
         ],
     ],
     [

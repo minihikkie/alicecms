@@ -16,7 +16,7 @@ var CORE = [
   './assets/css/animations.css',
   './assets/js/main.js',
   './assets/js/a11y.js',
-  './assets/img/favicon.svg',
+  './assets/img/alicecms-mark.svg',
   './assets/img/pwa/icon-192.png',
   './assets/img/pwa/icon-512.png'
 ];

@@ -175,6 +175,26 @@ function up_is_protected(string $rel): bool {
     return false;
 }
 
+/* ───────── โหมดปิดปรับปรุงระหว่างติดตั้งไฟล์ ─────────
+   ธงอยู่ใต้ storage/ ซึ่ง up_is_protected() กันไม่ให้อัปเดตทับอยู่แล้ว
+   init.php อ่านธงนี้ก่อนทำอย่างอื่นทั้งหมด แล้วตอบ 503 ให้หน้าเว็บฝั่งประชาชน */
+
+/** ที่อยู่ของธงปิดปรับปรุง — ต้องตรงกับที่ init.php อ่าน */
+function up_maintenance_flag(): string {
+    return APP_ROOT . '/storage/updating.flag';
+}
+
+function up_maintenance_on(): void {
+    $f = up_maintenance_flag();
+    $d = dirname($f);
+    if (!is_dir($d)) @mkdir($d, 0775, true);
+    @file_put_contents($f, (string)time());
+}
+
+function up_maintenance_off(): void {
+    @unlink(up_maintenance_flag());
+}
+
 /** ทำสำเนาโค้ดปัจจุบันเป็น .zip (ไม่รวม uploads/storage/.git เพื่อให้เล็ก) */
 function up_backup_files(string $zip_path, ?string &$err = null): bool {
     if (!class_exists('ZipArchive')) { $err = 'เซิร์ฟเวอร์ไม่มี ZipArchive'; return false; }
@@ -380,7 +400,13 @@ function up_perform(array $m, ?callable $progress = null, ?string $localPackageP
     if (!is_file($root . '/version.php')) return $fail('แพ็กเกจไม่สมบูรณ์ (ไม่พบ version.php)');
     $add('แตกไฟล์สำเร็จ');
 
-    /* 5) คัดลอกทับ */
+    /* 5) คัดลอกทับ
+       ระหว่างนี้ไฟล์ระบบอยู่ในสภาพครึ่งๆ กลางๆ (เช่น init.php ตัวใหม่ถูกเขียนแล้ว
+       แต่ไฟล์ที่มัน require ยังมาไม่ถึง) ใครเปิดเว็บจังหวะนี้จะเจอ error จริง
+       และถ้า CDN หรือ Service Worker ของผู้ใช้ไปเก็บหน้านั้นไว้ เว็บจะพังค้าง
+       ทั้งที่เครื่องกลับมาปกติแล้ว — เคยเกิดขึ้นจริง จึงต้องปิดปรับปรุงไว้ก่อน */
+    up_maintenance_on();
+    $add('เปิดโหมดปิดปรับปรุงชั่วคราวระหว่างติดตั้ง');
     $add('กำลังติดตั้งไฟล์ใหม่...');
     $aerr = null;
     $n = up_apply_files($root, $aerr);
@@ -388,12 +414,15 @@ function up_perform(array $m, ?callable $progress = null, ?string $localPackageP
         /* rollback ไฟล์ */
         $add('เกิดข้อผิดพลาด — กำลังคืนค่าไฟล์เดิม (rollback)...');
         up_restore_files($bakdir . '/files.zip');
+        up_maintenance_off();
         /* ถึงตรงนี้ไฟล์ระบบถูกแตะไปแล้ว ต้องเก็บชุดสำรองไว้ให้กู้คืนด้วยมือได้
            ถ้า rollback อัตโนมัติทำได้ไม่ครบ (เช่น ดิสก์เต็มระหว่างคืนค่า) */
         return $failKeepBackup('ติดตั้งไฟล์ล้มเหลว: ' . $aerr . ' (คืนค่าไฟล์เดิมแล้ว '
                              . 'ชุดสำรองอยู่ที่ storage/updates/' . basename($bakdir) . ')');
     }
     $add("ติดตั้งไฟล์ใหม่ $n รายการ");
+    up_maintenance_off();
+    $add('ปิดโหมดปิดปรับปรุง — เว็บกลับมาให้บริการแล้ว');
 
     /* 5.1) ซ่อมไฟล์ป้องกัน .htaccess ที่อาจขาด (uploads/storage/backups ไม่ได้มากับแพ็กเกจ) */
     try {

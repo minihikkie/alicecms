@@ -13,6 +13,43 @@ if (!file_exists(APP_ROOT . '/config.php')) {
     exit;
 }
 
+/* ─── โหมดปิดปรับปรุงระหว่างอัปเดตระบบ ───
+   ต้องตรวจก่อน require อะไรทั้งสิ้น เพราะช่วงที่ตัวอัปเดตกำลังคัดลอกไฟล์ทับทีละไฟล์
+   ไฟล์ที่จะ require ข้างล่างอาจยังเขียนไม่เสร็จ การตอบ 503 พร้อม Retry-After
+   บอก CDN กับ Google ว่าเป็นเรื่องชั่วคราว จะได้ไม่เก็บหน้านี้ไว้แทนหน้าจริง
+   ต่างจากการปล่อยให้ error 500 หลุดออกไปซึ่งอาจถูกเก็บค้าง
+
+   หน้า admin ผ่านได้ ไม่งั้นผู้ดูแลที่กำลังกดอัปเดตอยู่จะถูกล็อกออกจากระบบตัวเอง
+   และถ้าอัปเดตค้างกลางคัน ธงจะหมดอายุเองใน 5 นาที เว็บไม่ติดค้างถาวร */
+$_upflag = APP_ROOT . '/storage/updating.flag';
+if (is_file($_upflag)) {
+    $_age = time() - (int)@filemtime($_upflag);
+    if ($_age >= 300) {
+        @unlink($_upflag);
+    } elseif (strpos(str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? ''), '/admin/') === false) {
+        http_response_code(503);
+        header('Retry-After: 30');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Content-Type: text/html; charset=utf-8');
+        /* เขียน HTML ไว้ในไฟล์นี้เลย ห้ามไปเรียกไฟล์อื่น เพราะไฟล์อื่นอาจกำลังถูกเขียนทับอยู่ */
+        exit('<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">'
+           . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+           . '<meta http-equiv="refresh" content="30">'
+           . '<title>ปิดปรับปรุงชั่วคราว</title><style>'
+           . 'body{margin:0;min-height:100vh;display:grid;place-items:center;background:#F6F8FC;'
+           . 'color:#1F2937;font-family:"Prompt","Segoe UI",system-ui,sans-serif;text-align:center;padding:24px}'
+           . '.b{max-width:30rem}h1{font-size:23px;color:#0B1220;margin:18px 0 10px}'
+           . 'p{line-height:1.8;margin:0 0 6px}small{color:#6B7280}'
+           . '.s{width:62px;height:62px;border-radius:18px;background:#1A73E8;display:inline-grid;'
+           . 'place-items:center;color:#fff;font-size:30px;font-weight:700}</style></head><body>'
+           . '<div class="b"><div class="s">&#8635;</div>'
+           . '<h1>ปิดปรับปรุงระบบชั่วคราว</h1>'
+           . '<p>กำลังติดตั้งเวอร์ชันใหม่ ใช้เวลาประมาณ 1 นาที</p>'
+           . '<p>หน้านี้จะรีเฟรชเองอัตโนมัติ ไม่ต้องกดอะไร</p>'
+           . '<p><small>ขออภัยในความไม่สะดวก</small></p></div></body></html>');
+    }
+}
+
 require APP_ROOT . '/config.php';
 require APP_ROOT . '/version.php';
 require APP_ROOT . '/includes/functions.php';
