@@ -1,83 +1,146 @@
 <?php
-/** gen-pwa-icons.php — สร้างไอคอนแอป PWA (อาคารราชการ บนพื้นไล่สีน้ำเงิน) ด้วย GD
- *  php tools/gen-pwa-icons.php   → assets/img/pwa/icon-192.png, icon-512.png, icon-maskable-512.png
+/**
+ * gen-pwa-icons.php — สร้างไอคอนแอป PWA จากตรา AliceCMS ด้วย GD
+ *
+ *   php tools/gen-pwa-icons.php
+ *     → assets/img/pwa/icon-192.png
+ *       assets/img/pwa/icon-512.png
+ *       assets/img/pwa/icon-maskable-512.png
+ *
+ * ลายตราลอกพิกัดมาจาก assets/img/alicecms-mark.svg ตรงๆ (ระบบพิกัด 64×64)
+ * ถ้าแก้ไฟล์ SVG ต้องมาแก้ค่าคงที่ในไฟล์นี้ให้ตรงกันแล้วรันใหม่
+ *
+ * วาดที่ความละเอียด 4 เท่าแล้วค่อยย่อลง เพื่อให้ขอบมนและปลายแฉกของประกายเรียบ
+ * — GD ไม่มี antialiasing ให้กับรูปทรงที่ระบายสีทึบ
  */
 if (PHP_SAPI !== 'cli') exit('CLI only');
-$out = dirname(__DIR__) . '/assets/img/pwa';
-if (!is_dir($out)) mkdir($out, 0755, true);
 
-function hx($im, $hex) { $n = hexdec(ltrim($hex, '#')); return imagecolorallocate($im, ($n >> 16) & 255, ($n >> 8) & 255, $n & 255); }
+const VB    = 64.0;          /* ระบบพิกัดของ SVG ต้นฉบับ */
+const SS    = 4;             /* ตัวคูณความละเอียดตอนวาด */
+const BLUE  = [0x1A, 0x73, 0xE8];
+const RADIUS = 15.0;         /* rx ของกรอบสี่เหลี่ยมมุมมน */
 
-/** วาดไอคอน S×S; $pad = สัดส่วนขอบปลอดภัย (สำหรับ maskable) */
-function draw_icon(int $S, float $pad = 0.0): \GdImage {
-    $im = imagecreatetruecolor($S, $S);
-    imagealphablending($im, true); imagesavealpha($im, true);
+/* แถบสามขีด: [x, y, กว้าง, สูง, ความทึบ] — ปลายมนเต็ม (rx = สูง/2) */
+const BARS = [
+    [20.05, 20.75, 23.90, 5.29, 0.55],
+    [16.65, 29.37, 30.70, 5.29, 0.82],
+    [24.30, 37.98, 15.35, 5.29, 1.00],
+];
 
-    // พื้นไล่สีแนวทแยง (น้ำเงิน -> น้ำเงินเข้ม)
-    $c1 = [26, 115, 232]; $c2 = [21, 87, 176];
-    for ($y = 0; $y < $S; $y++) {
-        $t = $y / $S;
-        $col = imagecolorallocate($im,
-            (int)round($c1[0] + ($c2[0] - $c1[0]) * $t),
-            (int)round($c1[1] + ($c2[1] - $c1[1]) * $t),
-            (int)round($c1[2] + ($c2[2] - $c1[2]) * $t));
-        imagefilledrectangle($im, 0, $y, $S, $y, $col);
-    }
+/* ประกาย AI: [จุดกึ่งกลาง x, y, สเกล] — ตัวแฉกมีรัศมี 9 หน่วยก่อนสเกล */
+const SPARKS = [
+    [46.0, 14.0, 0.9444],
+    [54.0, 22.0, 0.4667],
+    [53.0,  9.5, 0.3111],
+];
 
-    $white = imagecolorallocatealpha($im, 255, 255, 255, 0);
-    // พื้นที่วาดอาคาร (เว้นขอบปลอดภัย)
-    $m = $S * (0.22 + $pad);          // ขอบซ้าย/ขวา
-    $w = $S - 2 * $m;                  // ความกว้างอาคาร
-    $cx = $S / 2;
-    $top = $S * (0.26 + $pad * 0.5);   // ยอดหน้าจั่ว
-    $colTop = $S * (0.46 + $pad * 0.4);
-    $base = $S * (0.72 - $pad * 0.4);
+/* เส้นโค้งของแฉกประกาย เทียบกับจุดกึ่งกลาง (จาก path id="sp" ใน SVG)
+   แต่ละชุด = [c1x, c1y, c2x, c2y, ปลายทาง x, y] ของ cubic Bézier */
+const SPARK_PATH = [
+    [ 1.35, -2.70,  2.70, -1.35,  9.00,  0.00],
+    [ 2.70,  1.35,  1.35,  2.70,  0.00,  9.00],
+    [-1.35,  2.70, -2.70,  1.35, -9.00,  0.00],
+    [-2.70, -1.35, -1.35, -2.70,  0.00, -9.00],
+];
 
-    // หน้าจั่ว (สามเหลี่ยม)
-    $tri = [$cx, $top,  $cx + $w / 2 + $S * 0.02, $colTop,  $cx - $w / 2 - $S * 0.02, $colTop];
-    imagefilledpolygon($im, $tri, $white);
-    // คาน
-    imagefilledrectangle($im, (int)($cx - $w / 2), (int)$colTop, (int)($cx + $w / 2), (int)($colTop + $S * 0.035), $white);
-    // เสา 4 ต้น
-    $cols = 4; $gap = $w / $cols;
-    $cw = $gap * 0.46;
-    $cTop = $colTop + $S * 0.06;
-    for ($i = 0; $i < $cols; $i++) {
-        $x = $cx - $w / 2 + $gap * ($i + 0.5);
-        imagefilledrectangle($im, (int)($x - $cw / 2), (int)$cTop, (int)($x + $cw / 2), (int)$base, $white);
-    }
-    // ฐาน (สองชั้น)
-    imagefilledrectangle($im, (int)($cx - $w / 2 - $S * 0.03), (int)$base, (int)($cx + $w / 2 + $S * 0.03), (int)($base + $S * 0.04), $white);
-    imagefilledrectangle($im, (int)($cx - $w / 2 - $S * 0.06), (int)($base + $S * 0.05), (int)($cx + $w / 2 + $S * 0.06), (int)($base + $S * 0.09), $white);
-    return $im;
+/** จุดบนเส้นโค้ง cubic Bézier ที่พารามิเตอร์ t */
+function bez(float $p0, float $c1, float $c2, float $p3, float $t): float {
+    $u = 1 - $t;
+    return $u * $u * $u * $p0 + 3 * $u * $u * $t * $c1 + 3 * $u * $t * $t * $c2 + $t * $t * $t * $p3;
 }
 
-/** ใส่มุมโค้งให้ภาพ (สำหรับไอคอนปกติ ไม่ใช่ maskable) */
-function round_corners(\GdImage $im, int $S, float $r): void {
-    $rad = (int)($S * $r);
-    $mask = imagecreatetruecolor($S, $S);
-    imagealphablending($mask, false); imagesavealpha($mask, true);
-    $trans = imagecolorallocatealpha($mask, 0, 0, 0, 127);
-    imagefilledrectangle($mask, 0, 0, $S, $S, $trans);
-    // คัดลอกเฉพาะในพื้นที่โค้ง: ง่ายสุด—เคลียร์มุมเป็นโปร่งใส
-    for ($y = 0; $y < $S; $y++) for ($x = 0; $x < $S; $x++) {
-        $inX = ($x < $rad) ? $rad - $x : (($x > $S - $rad) ? $x - ($S - $rad) : 0);
-        $inY = ($y < $rad) ? $rad - $y : (($y > $S - $rad) ? $y - ($S - $rad) : 0);
-        if ($inX && $inY && ($inX * $inX + $inY * $inY) > $rad * $rad) {
-            imagesetpixel($im, $x, $y, imagecolorallocatealpha($im, 0, 0, 0, 127));
+/** แฉกประกายหนึ่งดวง — คืนรายการพิกัดสำหรับ imagefilledpolygon */
+function spark_points(float $cx, float $cy, float $scale, float $k): array {
+    $pts = [];
+    $x = 0.0; $y = -9.0;                       /* เริ่มที่ปลายแฉกด้านบน */
+    foreach (SPARK_PATH as [$c1x, $c1y, $c2x, $c2y, $ex, $ey]) {
+        for ($i = 1; $i <= 12; $i++) {         /* 12 ช่วงต่อเส้นโค้ง เรียบพอที่ 4 เท่า */
+            $t = $i / 12;
+            $pts[] = ($cx + bez($x, $c1x, $c2x, $ex, $t) * $scale) * $k;
+            $pts[] = ($cy + bez($y, $c1y, $c2y, $ey, $t) * $scale) * $k;
         }
+        $x = $ex; $y = $ey;
+    }
+    return $pts;
+}
+
+/** สีขาวความทึบ $op ที่ผสมกับพื้นน้ำเงินไว้แล้ว — ได้สีทึบที่วาดซ้อนกันได้ไม่เพี้ยน */
+function blend_white($im, float $op) {
+    $mix = fn(int $c) => (int)round(255 * $op + $c * (1 - $op));
+    return imagecolorallocate($im, $mix(BLUE[0]), $mix(BLUE[1]), $mix(BLUE[2]));
+}
+
+/** สี่เหลี่ยมมุมมนแบบระบายทึบ (GD ไม่มีให้ในตัว) */
+function rounded_rect($im, float $x, float $y, float $w, float $h, float $r, $color): void {
+    $r = min($r, $w / 2, $h / 2);
+    $x2 = $x + $w; $y2 = $y + $h;
+    imagefilledrectangle($im, (int)round($x + $r), (int)round($y), (int)round($x2 - $r), (int)round($y2), $color);
+    imagefilledrectangle($im, (int)round($x), (int)round($y + $r), (int)round($x2), (int)round($y2 - $r), $color);
+    $d = (int)round($r * 2);
+    foreach ([[$x + $r, $y + $r], [$x2 - $r, $y + $r], [$x + $r, $y2 - $r], [$x2 - $r, $y2 - $r]] as [$ex, $ey]) {
+        imagefilledellipse($im, (int)round($ex), (int)round($ey), $d, $d, $color);
     }
 }
 
-foreach ([192, 512] as $S) {
-    $im = draw_icon($S, 0.0);
-    round_corners($im, $S, 0.18);
-    imagepng($im, "$out/icon-$S.png", 6);
-    imagedestroy($im);
-}
-// maskable: เต็มสี่เหลี่ยม + เว้น safe zone ~10%
-$im = draw_icon(512, 0.06);
-imagepng($im, "$out/icon-maskable-512.png", 6);
-imagedestroy($im);
+/**
+ * วาดตรา AliceCMS ขนาด $size พิกเซล
+ * @param bool $maskable true = พื้นเต็มสี่เหลี่ยมไม่มุมมน และย่อลายลงให้อยู่ในเขตปลอดภัย
+ *                       (ระบบปฏิบัติการจะตัดมุมเป็นรูปทรงของตัวเองทับอีกที)
+ */
+function draw_mark(int $size, bool $maskable): \GdImage {
+    $S  = $size * SS;
+    $im = imagecreatetruecolor($S, $S);
+    imagealphablending($im, false);
+    imagesavealpha($im, true);
+    imagefilledrectangle($im, 0, 0, $S, $S, imagecolorallocatealpha($im, 0, 0, 0, 127));
+    imagealphablending($im, true);
 
-echo "สร้างไอคอน PWA แล้ว: " . implode(', ', array_map('basename', glob("$out/*.png"))) . "\n";
+    $blue = imagecolorallocate($im, BLUE[0], BLUE[1], BLUE[2]);
+    $k    = $S / VB;                 /* พิกัด SVG → พิกเซล */
+
+    if ($maskable) {
+        imagefilledrectangle($im, 0, 0, $S, $S, $blue);
+        /* เขตปลอดภัยของ maskable คือวงกลมกลางภาพขนาด 80% — ย่อลายลงให้อยู่ในนั้น */
+        $k *= 0.80;
+    } else {
+        rounded_rect($im, 0, 0, $S, $S, RADIUS * ($S / VB), $blue);
+    }
+    /* จุดกึ่งกลางของลายหลังย่อ (ตอนไม่ย่อ ค่า off เป็น 0) */
+    $off = ($S - VB * $k) / 2;
+
+    foreach (BARS as [$bx, $by, $bw, $bh, $op]) {
+        /* ผสมสีเองแล้ววาดทึบ ห้ามใช้สีโปร่งใส — rounded_rect วาดสี่เหลี่ยมสองอันกับวงกลมสี่มุม
+           ซ้อนกัน ถ้าสีโปร่งใสส่วนที่ซ้อนจะถูกผสมสองรอบ ปลายมนของแถบจะออกมาขาวกว่าตรงกลาง
+           พื้นหลังใต้แถบเป็นสีน้ำเงินเรียบอยู่แล้ว ผสมล่วงหน้าจึงได้ผลเหมือนกันเป๊ะ */
+        rounded_rect($im, $off + $bx * $k, $off + $by * $k, $bw * $k, $bh * $k, ($bh / 2) * $k,
+                     blend_white($im, $op));
+    }
+
+    $white = imagecolorallocate($im, 255, 255, 255);
+    foreach (SPARKS as [$sx, $sy, $sc]) {
+        $pts = spark_points($sx, $sy, $sc, $k);
+        /* เลื่อนตามระยะกึ่งกลางหลังย่อ */
+        for ($i = 0; $i < count($pts); $i++) $pts[$i] += $off;
+        imagefilledpolygon($im, array_map('intval', array_map('round', $pts)), $white);
+    }
+
+    /* ย่อกลับเป็นขนาดจริง — ขั้นนี้เองที่ทำให้ขอบเรียบ */
+    $out = imagecreatetruecolor($size, $size);
+    imagealphablending($out, false);
+    imagesavealpha($out, true);
+    imagecopyresampled($out, $im, 0, 0, 0, 0, $size, $size, $S, $S);
+    imagedestroy($im);
+    return $out;
+}
+
+$dir = dirname(__DIR__) . '/assets/img/pwa';
+if (!is_dir($dir) && !mkdir($dir, 0755, true)) exit("สร้างโฟลเดอร์ปลายทางไม่ได้\n");
+
+foreach ([['icon-192.png', 192, false], ['icon-512.png', 512, false], ['icon-maskable-512.png', 512, true]] as [$name, $size, $mask]) {
+    $im = draw_mark($size, $mask);
+    if (!imagepng($im, $dir . '/' . $name, 9)) exit("เขียน $name ไม่สำเร็จ\n");
+    imagedestroy($im);
+    printf("%-26s %d×%d  %s  %s\n", $name, $size, $size,
+        $mask ? 'maskable' : 'any     ', number_format(filesize($dir . '/' . $name)) . ' ไบต์');
+}
+echo "เสร็จแล้ว — ไอคอนแอปใช้ตรา AliceCMS แล้ว\n";
