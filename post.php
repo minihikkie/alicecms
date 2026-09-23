@@ -105,7 +105,31 @@ $share_url = $canonical; // URL เต็มของหน้านี้ (จ�
   <div class="card card-spacious">
     <div class="post-body"><?= nl2br(e($post['body'])) ?></div>
 
-    <?php if ($post['attachment'] || $attachments): ?>
+    <?php
+    /* แยกไฟล์แนบที่เป็นรูปออกมาแสดงเป็นตารางภาพย่อ ส่วนเอกสารคงเป็นรายการดาวน์โหลดเหมือนเดิม
+       ภาพถ่ายงานที่แนบมาหลายรูปเคยขึ้นเป็นแถวชื่อไฟล์เรียงกัน ผู้อ่านไม่รู้ว่าข้างในเป็นรูปอะไร
+       ต้องกดดาวน์โหลดทีละไฟล์ถึงจะเห็น */
+    $att_images = [];
+    $att_files  = [];
+    foreach ($attachments as $att) {
+        if (in_array(strtolower((string)$att['ext']), ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) $att_images[] = $att;
+        else $att_files[] = $att;
+    }
+    ?>
+    <?php if ($att_images): ?>
+    <div class="mt-3">
+      <div class="lr-title mb-1" style="font-weight:600;"><span class="material-symbols-rounded icon-sm" style="vertical-align:-4px;color:var(--blue);">photo_library</span> ภาพประกอบ (<?= count($att_images) ?>)</div>
+      <div class="post-shots">
+        <?php foreach ($att_images as $im): $src = url($im['file']); $cap = $im['name'] ?: basename($im['file']); ?>
+        <a href="<?= e($src) ?>" data-lightbox="<?= e($src) ?>" title="<?= e($cap) ?>">
+          <img loading="lazy" src="<?= e($src) ?>" alt="<?= e($cap) ?>">
+        </a>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($post['attachment'] || $att_files): ?>
     <div class="mt-3">
       <div class="lr-title mb-1" style="font-weight:600;"><span class="material-symbols-rounded icon-sm" style="vertical-align:-4px;color:var(--danger);">attach_file</span> ไฟล์แนบ</div>
       <?php if ($post['attachment']): ?>
@@ -116,7 +140,7 @@ $share_url = $canonical; // URL เต็มของหน้านี้ (จ�
         <a class="btn primary" href="<?= e(url($post['attachment'])) ?>" target="_blank" rel="noopener"><span class="material-symbols-rounded icon-sm">download</span>ดาวน์โหลด</a>
       </div>
       <?php endif; ?>
-      <?php foreach ($attachments as $att): ?>
+      <?php foreach ($att_files as $att): ?>
       <div class="attach-box" style="margin:8px 0;">
         <div class="lr-icon" style="background:rgba(234,67,53,.08);color:var(--danger);"><span class="material-symbols-rounded">description</span></div>
         <div style="flex:1;"><div class="lr-title"><?= e($att['name'] ?: basename($att['file'])) ?></div>

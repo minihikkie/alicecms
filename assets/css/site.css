@@ -254,6 +254,25 @@ body.gov-dialog-open { overflow: hidden; }
 .blk-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 1.2em 0; }
 .blk-gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; transition: transform .25s; }
 .blk-gallery a:hover img { transform: scale(1.03); }
+/* ภาพประกอบที่แนบมากับข่าว — ตารางรูปย่อขนาดพอดี ตั้งใจให้เล็กกว่าแกลเลอรีในเนื้อหา
+   (.blk-gallery) เพราะเป็นของแนบท้าย ไม่ควรแย่งความสนใจไปจากตัวข่าว
+   สัดส่วน 4:3 เท่ากันทุกใบ ภาพถ่ายงานส่วนใหญ่เป็นแนวนอนอยู่แล้ว จึงถูกตัดน้อยกว่าจัตุรัส
+   และได้ตารางที่เรียงเป็นระเบียบไม่ว่าไฟล์ต้นฉบับจะสัดส่วนไหน */
+.post-shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 10px; margin-top: 10px; }
+.post-shots a { display: block; border-radius: 12px; overflow: hidden; border: 1px solid var(--border);
+  background: var(--card-soft); line-height: 0; }
+.post-shots img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; transition: transform .25s; }
+.post-shots a:hover img { transform: scale(1.04); }
+.post-shots a:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+@media (max-width: 480px) {
+  /* บนมือถือบังคับ 3 คอลัมน์ตายตัว ไม่ใช้ auto-fill
+     เพราะพื้นที่จริงในการ์ดเหลือแค่ราว 250-320px (ขอบการ์ด 32px สองข้าง + แถบเลื่อน)
+     ค่า minmax ที่พอดีกับจอหนึ่งจะไปตกเป็น 2 หรือกระโดดเป็น 4 คอลัมน์บนอีกจอหนึ่ง
+     ตรึงไว้ 3 คอลัมน์แล้วให้ไทล์ยืดตามจอ (ราว 77-101px) ได้ผลสม่ำเสมอกว่า
+     และชุดภาพ 6 ใบลงตัวเป็น 3×2 พอดีทุกเครื่อง */
+  .post-shots { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+}
+
 .blk-video { position: relative; aspect-ratio: 16 / 9; margin: 1.2em 0; border-radius: var(--r16); overflow: hidden; background: #000; }
 .blk-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .blk-button { margin: 1.3em 0; }
