@@ -183,12 +183,6 @@
       slider.addEventListener('mouseenter', function () { paused = true; });
       slider.addEventListener('mouseleave', function () { paused = false; });
 
-      // ปุ่มลูกศร
-      var prev = slider.querySelector('.hs-arrow.prev');
-      var next = slider.querySelector('.hs-arrow.next');
-      if (prev) prev.addEventListener('click', function () { show(cur - 1); });
-      if (next) next.addEventListener('click', function () { show(cur + 1); });
-
       // จุดเลือกสไลด์
       dots.forEach(function (d, i) { d.addEventListener('click', function () { show(i); }); });
 

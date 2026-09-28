@@ -69,9 +69,8 @@ $render_btn = function (string $text, string $url, array $s, bool $secondary = f
   </div>
   <?php endforeach; ?>
   <?php if (count($slides) > 1): ?>
-  <button class="hs-arrow prev" aria-label="สไลด์ก่อนหน้า"><span class="material-symbols-rounded">chevron_left</span></button>
-  <button class="hs-arrow next" aria-label="สไลด์ถัดไป"><span class="material-symbols-rounded">chevron_right</span></button>
-  <?php /* ใช้ <button> จริงเพื่อให้กดด้วยคีย์บอร์ดได้ และมีพื้นที่กดกว้างพอตามเกณฑ์การเข้าถึง */ ?>
+  <?php /* ไม่มีปุ่มลูกศรซ้าย-ขวาแล้ว (เจ้าของเว็บขอเอาออก ดูรกบนแบนเนอร์)
+           ยังเลื่อนได้ครบ: จุดด้านล่างเป็น <button> กดด้วยคีย์บอร์ดได้ · ปัดบนมือถือ · เล่นอัตโนมัติ */ ?>
   <div class="dots" role="tablist" aria-label="เลือกสไลด์"><?php foreach ($slides as $i => $s): ?><button type="button" class="<?= $i === 0 ? 'on' : '' ?>" role="tab" aria-label="สไลด์ที่ <?= $i + 1 ?>" aria-selected="<?= $i === 0 ? 'true' : 'false' ?>"><i></i></button><?php endforeach; ?></div>
   <div class="hs-prog"><i></i></div>
   <?php endif; ?>

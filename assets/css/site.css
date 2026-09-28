@@ -52,7 +52,7 @@ html.contrast .btn, html.contrast .badge { border: 1px solid #000 !important; }
 
 /* ── Print: ซ่อนเครื่องมือนำทาง เหลือเนื้อหา ── */
 @media print {
-  .a11y-fab-wrap, .topbar .nav, .menu-btn, .totop, .cookiebar, .ticker, .hs-arrow, .dots, .hs-prog,
+  .a11y-fab-wrap, .topbar .nav, .menu-btn, .totop, .cookiebar, .ticker, .dots, .hs-prog,
   .share-bar, .pagination, footer .foot-grid > div:nth-child(n+2) { display: none !important; }
   .topbar { position: static; box-shadow: none; background: #fff; }
   body { background: #fff; }
@@ -316,28 +316,9 @@ body.gov-dialog-open { overflow: hidden; }
   font-family: inherit; font-size: 12.5px; cursor: pointer; box-shadow: 0 4px 14px rgba(2,6,23,.1); }
 .cookie-reopen:hover { color: var(--blue); border-color: var(--blue); }
 @media (max-width: 560px) { .cookie-reopen { font-size: 11.5px; padding: 6px 11px; } }
-/* ปุ่มเลื่อนสไลด์ — เหลือแค่ลูกศรเปล่า ไม่มีจานพื้นหลัง
-   เดิมเป็นวงกลมขาวโปร่ง 22% + เบลอพื้นหลัง พอซ้อนบนภาพโทนเข้ม (ซึ่งเป็นภาพส่วนใหญ่
-   ของแบนเนอร์) จะออกมาเป็นจานสีเทาขุ่นติดขอบภาพทั้งสองข้าง ดูไม่สะอาด
-   ยังคงพื้นที่กดไว้ 44px ตามเกณฑ์การเข้าถึง แค่มองไม่เห็นกรอบ
-   ลูกศรมีเงาเข้มรองไว้ อ่านออกทั้งบนภาพมืดและภาพสว่าง */
-.hs-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 5; width: 44px; height: 44px;
-  border-radius: 50%; border: none; cursor: pointer; display: grid; place-items: center; padding: 0;
-  background: transparent; color: #fff; opacity: .82;
-  transition: background .2s, opacity .2s, transform .2s; }
-/* เงาสองชั้น: ชั้นแรกคมรองขอบลูกศร ชั้นที่สองฟุ้งเป็นรัศมีจางๆ
-   ทำให้ลูกศรขาวยังอ่านออกบนภาพสว่าง โดยไม่ต้องกลับไปใช้จานพื้นหลัง */
-.hs-arrow .material-symbols-rounded { font-size: 36px;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)) drop-shadow(0 0 7px rgba(0,0,0,.35)); }
-/* ชี้หรือโฟกัสค่อยขึ้นจานเข้มบางๆ ให้รู้ว่ากดได้ — สีเข้มกลืนกับภาพดีกว่าสีขาว */
-.hs-arrow:hover, .hs-arrow:focus-visible { background: rgba(0,0,0,.28); opacity: 1; }
-.hs-arrow:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-.hs-arrow.prev { left: 14px; } .hs-arrow.next { right: 14px; }
 .hs-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,.18); z-index: 5; }
 .hs-prog > i { display: block; height: 100%; width: 0; background: rgba(255,255,255,.9); }
-@media (max-width: 860px) { .slider { min-height: 260px; max-height: 380px; }
-  .hs-arrow { width: 40px; height: 40px; } .hs-arrow .material-symbols-rounded { font-size: 30px; }
-  .hs-arrow.prev { left: 6px; } .hs-arrow.next { right: 6px; } }
+@media (max-width: 860px) { .slider { min-height: 260px; max-height: 380px; } }
 
 /* ── แถบประกาศล่าสุด (ticker) ── */
 .ticker { display: flex; align-items: center; gap: 0; margin-top: 14px; padding: 0;
