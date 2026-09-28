@@ -456,9 +456,6 @@
     var thumbs = Array.prototype.slice.call(stage.querySelectorAll('.ps-thumb'));
     var caps   = Array.prototype.slice.call(stage.querySelectorAll('.ps-cap'));
     var strip  = stage.querySelector('.ps-thumbs');
-    var head  = stage.closest('.card') || document;
-    var prev  = head.querySelector('[data-ps-prev]');
-    var next  = head.querySelector('[data-ps-next]');
     if (!track || cards.length === 0) return;
 
     var isFade   = stage.classList.contains('st-fade');
@@ -502,8 +499,6 @@
         strip.scrollLeft = thumbs[i].offsetLeft + thumbs[i].offsetWidth / 2 - strip.clientWidth / 2;
       }
       /* โหมดสลับใบวนกลับมาใบแรกได้ ปุ่มจึงไม่ต้องถูกปิด ส่วนโหมดเลื่อนแถวมีจุดสุดทางจริง */
-      if (prev) prev.disabled = !swaps && (i === 0);
-      if (next) next.disabled = !swaps && (i === cards.length - 1);
     }
 
     /* ── แบบสลับใบอยู่กับที่ (จางสลับ / โรงฉาย) ── */
@@ -521,8 +516,6 @@
       var go = function (i) { mark((i + cards.length) % cards.length); replay(); };
       dots.forEach(function (d, n) { d.addEventListener('click', function () { go(n); }); });
       thumbs.forEach(function (b, n) { b.addEventListener('click', function () { go(n); }); });
-      if (prev) prev.addEventListener('click', function () { go(cur - 1); });
-      if (next) next.addEventListener('click', function () { go(cur + 1); });
       replay();
       startAuto(function () { go(cur + 1); });
       return;
@@ -583,8 +576,6 @@
       tick = setTimeout(function () { tick = null; mark(nearest()); }, 90);
     }, { passive: true });
 
-    if (prev) prev.addEventListener('click', function () { goTo(cur - 1); });
-    if (next) next.addEventListener('click', function () { goTo(cur + 1); });
     dots.forEach(function (d, n) { d.addEventListener('click', function () { goTo(n); }); });
     window.addEventListener('resize', function () { pad(); goTo(cur); });
 

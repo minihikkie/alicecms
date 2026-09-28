@@ -66,13 +66,8 @@ $FLOAT_SLOTS = [
         <h2><?= e(section_title('poster')) ?></h2>
         <p>ภาพประชาสัมพันธ์และอินโฟกราฟิกของหน่วยงาน<?= $zoom ? ' — คลิกที่ภาพเพื่อดูขนาดเต็ม' : '' ?></p>
       </div>
-      <?php /* โหมดโรงฉายวางปุ่มไว้ในจอเอง หัวข้อจึงไม่ต้องมีปุ่มซ้ำ */ ?>
-      <?php if ($multi && !in_array($style, ['fade', 'cinema'], true)): ?>
-      <div class="ps-nav">
-        <button type="button" class="ps-arrow" data-ps-prev aria-label="โปสเตอร์ก่อนหน้า"><span class="material-symbols-rounded">chevron_left</span></button>
-        <button type="button" class="ps-arrow" data-ps-next aria-label="โปสเตอร์ถัดไป"><span class="material-symbols-rounded">chevron_right</span></button>
-      </div>
-      <?php endif; ?>
+      <?php /* ไม่มีปุ่มลูกศรซ้าย-ขวา (เจ้าของเว็บขอเอาออก) — เลื่อนด้วยแฟ้มภาพย่อ/จุด
+               ปัดนิ้ว เลื่อนแถว หรือเล่นอัตโนมัติแทน */ ?>
     </div>
 
     <?php /* --dur ส่งจังหวะเปลี่ยนภาพให้ CSS ใช้เป็นระยะเวลาซูมและแถบเวลา จะได้ตรงกันเป๊ะ */ ?>
@@ -128,11 +123,6 @@ $FLOAT_SLOTS = [
       </div>
 
       <?php if ($cinema): ?>
-        <?php if ($multi): ?>
-        <button type="button" class="ps-side prev" data-ps-prev aria-label="โปสเตอร์ก่อนหน้า"><span class="material-symbols-rounded">chevron_left</span></button>
-        <button type="button" class="ps-side next" data-ps-next aria-label="โปสเตอร์ถัดไป"><span class="material-symbols-rounded">chevron_right</span></button>
-        <?php endif; ?>
-
         <?php if ($hasBar): ?>
         <?php /* แถบล่างในจอ — เหมือนแถบควบคุมของเครื่องเล่นวิดีโอ กันพื้นที่ไว้ต่างหาก
                  โปสเตอร์จึงไม่มีทางถูกทับ แม้เป็นโปสเตอร์แนวตั้งที่สูงเต็มจอ */ ?>
