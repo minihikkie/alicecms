@@ -434,3 +434,22 @@ textarea { resize: vertical; min-height: 90px; }
 }
 /* ตัวอย่างธีมโทนเข้ม — เส้นขอบด้านนอกต้องมองเห็นบนพื้นการ์ดสีขาวของหน้า admin */
 .tp-prev.tp-dark { border-color: rgba(255,255,255,.22); outline: 1px solid rgba(15,23,42,.10); outline-offset: -1px; }
+
+/* ── จัดรูปบุคลากรในวงกลม (admin/personnel.php) ──
+   ตัวอย่างใช้ .person/.avatar ชุดเดียวกับหน้าเว็บจริงจาก site.css */
+.pf-tune { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center;
+  margin-top: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 14px;
+  background: color-mix(in srgb, var(--blue) 3%, var(--card)); }
+.pf-previews { display: flex; gap: 14px; align-items: flex-end; }
+.pf-previews .person { width: auto; padding: 0; }
+.pf-previews .person small { display: block; font-size: 11.5px; color: var(--muted); }
+.pf-click { cursor: crosshair; }
+.pf-click:hover { transform: none; }
+.pf-sliders label { margin: 6px 0 2px; font-size: 13px; }
+.pf-sliders input[type="range"] { width: 100%; margin: 0; }
+.pf-sliders .btn { margin-top: 8px; }
+/* รูปย่อในตารางรายชื่อ — ครอปแบบเดียวกับหน้าเว็บ */
+.pf-mini { display: inline-block; position: relative; width: 38px; height: 38px; border-radius: 50%;
+  overflow: hidden; vertical-align: middle; background: var(--border); }
+.pf-mini img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
+@media (max-width: 640px) { .pf-tune { grid-template-columns: 1fr; } .pf-previews { justify-content: center; } }

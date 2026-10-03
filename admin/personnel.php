@@ -24,6 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = mb_substr(trim((string)($_POST['email'] ?? '')), 0, 150);
     $sort     = (int)($_POST['sort_order'] ?? 0);
     $status   = ($_POST['status'] ?? '') === 'draft' ? 'draft' : 'published';
+    /* ตำแหน่งและการซูมของรูปในวงกลม (ดู personnel_photo_style) */
+    $px = max(0, min(100, (int)($_POST['photo_x'] ?? 50)));
+    $py = max(0, min(100, (int)($_POST['photo_y'] ?? 18)));
+    $pz = max(100, min(250, (int)($_POST['photo_zoom'] ?? 100)));
 
     if ($name === '') $errors[] = 'กรุณากรอกชื่อ';
 
@@ -41,13 +45,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($photo && $old) delete_upload($old['photo']);
             if (!empty($_POST['remove_photo']) && $old) { delete_upload($old['photo']); }
             $ph = $photo['path'] ?? (!empty($_POST['remove_photo']) ? null : ($old['photo'] ?? null));
-            db()->prepare('UPDATE personnel SET name=?, position=?, level=?, photo=?, phone=?, email=?, sort_order=?, status=? WHERE id=?')
-                ->execute([$name, $position, $level, $ph, $phone, $email, $sort, $status, $id]);
+            db()->prepare('UPDATE personnel SET name=?, position=?, level=?, photo=?, photo_x=?, photo_y=?, photo_zoom=?, phone=?, email=?, sort_order=?, status=? WHERE id=?')
+                ->execute([$name, $position, $level, $ph, $px, $py, $pz, $phone, $email, $sort, $status, $id]);
             log_action('แก้ไขบุคลากร', $name);
             flash_set('success', 'บันทึกรายชื่อเรียบร้อยแล้ว');
         } else {
-            db()->prepare('INSERT INTO personnel (name, position, level, photo, phone, email, sort_order, status) VALUES (?,?,?,?,?,?,?,?)')
-                ->execute([$name, $position, $level, $photo['path'] ?? null, $phone, $email, $sort, $status]);
+            db()->prepare('INSERT INTO personnel (name, position, level, photo, photo_x, photo_y, photo_zoom, phone, email, sort_order, status) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+                ->execute([$name, $position, $level, $photo['path'] ?? null, $px, $py, $pz, $phone, $email, $sort, $status]);
             log_action('เพิ่มบุคลากร', $name);
             flash_set('success', 'เพิ่มรายชื่อเรียบร้อยแล้ว');
         }
@@ -119,6 +123,37 @@ require __DIR__ . '/_top.php';
         <div class="current-file"><img src="<?= e(url($edit['photo'])) ?>" alt="">รูปปัจจุบัน
           <label class="inline-check" style="margin:0;"><input type="checkbox" name="remove_photo" value="1">ลบรูป</label></div>
         <?php endif; ?>
+        <?php
+        /* จัดรูปในวงกลม — ตัวอย่างใช้คลาส .avatar ชุดเดียวกับหน้าเว็บจริง และสไตล์จาก
+           personnel_photo_style() ตัวเดียวกัน สิ่งที่เห็นตรงนี้จึงตรงกับหน้าเว็บเป๊ะ
+           เลือกไฟล์ใหม่ก็แสดงตัวอย่างทันทีก่อนบันทึก */
+        $pv = ['photo_x' => old('photo_x', (string)($edit['photo_x'] ?? 50)),
+               'photo_y' => old('photo_y', (string)($edit['photo_y'] ?? 18)),
+               'photo_zoom' => old('photo_zoom', (string)($edit['photo_zoom'] ?? 100))];
+        $pvSrc = !empty($edit['photo']) ? url($edit['photo']) : '';
+        ?>
+        <div class="pf-tune mb-2" data-photo-tune>
+          <div class="pf-previews" title="คลิกบนรูปเพื่อเลือกจุดที่ต้องการให้อยู่กลางวง">
+            <div class="person person-lead"><div class="avatar pf-click">
+              <img data-pf-img src="<?= e($pvSrc) ?>" alt="" style="<?= e(personnel_photo_style($pv)) ?>"<?= $pvSrc ? '' : ' hidden' ?>>
+              <span class="material-symbols-rounded" data-pf-empty<?= $pvSrc ? ' hidden' : '' ?>>person</span>
+            </div><small>ผู้บริหารสูงสุด</small></div>
+            <div class="person"><div class="avatar pf-click">
+              <img data-pf-img src="<?= e($pvSrc) ?>" alt="" style="<?= e(personnel_photo_style($pv)) ?>"<?= $pvSrc ? '' : ' hidden' ?>>
+              <span class="material-symbols-rounded" data-pf-empty<?= $pvSrc ? ' hidden' : '' ?>>person</span>
+            </div><small>ระดับอื่น</small></div>
+          </div>
+          <div class="pf-sliders">
+            <label>ซูม — <b data-pf-out="photo_zoom"><?= (int)$pv['photo_zoom'] ?>%</b></label>
+            <input type="range" name="photo_zoom" min="100" max="250" step="5" value="<?= (int)$pv['photo_zoom'] ?>" data-pf="photo_zoom">
+            <label>ขึ้น-ลง — <b data-pf-out="photo_y"><?= (int)$pv['photo_y'] ?>%</b> <span class="text-muted">(0 = ชิดบน)</span></label>
+            <input type="range" name="photo_y" min="0" max="100" step="1" value="<?= (int)$pv['photo_y'] ?>" data-pf="photo_y">
+            <label>ซ้าย-ขวา — <b data-pf-out="photo_x"><?= (int)$pv['photo_x'] ?>%</b></label>
+            <input type="range" name="photo_x" min="0" max="100" step="1" value="<?= (int)$pv['photo_x'] ?>" data-pf="photo_x">
+            <button type="button" class="btn small" data-pf-reset><span class="material-symbols-rounded icon-sm">restart_alt</span>ค่าเริ่มต้น</button>
+            <p class="text-muted" style="font-size:12px;margin:6px 0 0;">รูปติดบัตรทั่วไปใช้ค่าเริ่มต้นได้เลย ถ้าผมยังถูกตัดให้ลด "ขึ้น-ลง" · ถ้าหน้าดูเล็กให้เพิ่ม "ซูม"</p>
+          </div>
+        </div>
         <div class="dropzone" style="padding:28px;">
           <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp">
           <span class="material-symbols-rounded icon-lg" style="color:var(--blue)">add_photo_alternate</span>
@@ -141,7 +176,7 @@ require __DIR__ . '/_top.php';
     <?php foreach ($people as $p): ?>
     <tr>
       <td><span class="badge" style="font-size:11px;">ระดับ <?= (int)$p['level'] ?></span></td>
-      <td><?php if ($p['photo']): ?><img class="thumb-sm" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" src="<?= e(url($p['photo'])) ?>" alt=""><?php else: ?><span class="material-symbols-rounded" style="color:var(--muted);">person</span><?php endif; ?></td>
+      <td><?php if ($p['photo']): ?><span class="pf-mini"><img src="<?= e(url($p['photo'])) ?>" style="<?= e(personnel_photo_style($p)) ?>" alt=""></span><?php else: ?><span class="material-symbols-rounded" style="color:var(--muted);">person</span><?php endif; ?></td>
       <td><?= e($p['name']) ?></td>
       <td class="lr-date" style="max-width:220px;"><?= e(mb_strimwidth((string)$p['position'], 0, 50, '…')) ?></td>
       <td><?= $p['status'] === 'published' ? '<span class="badge success" style="font-size:11px;">เผยแพร่</span>' : '<span class="badge" style="font-size:11px;">ร่าง</span>' ?></td>

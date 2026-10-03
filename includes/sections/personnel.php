@@ -20,7 +20,7 @@ $total = 0; foreach ($levels as $g) $total += count($g);
         <?php foreach ($people as $p): ?>
         <div class="person reveal<?= $lv == 1 ? ' person-lead' : '' ?>">
           <div class="avatar">
-            <?php if ($p['photo']): ?><img class="lazyimg" loading="lazy" src="<?= e(url($p['photo'])) ?>" alt="<?= e($p['name']) ?>"><?php else: ?><span class="material-symbols-rounded">person</span><?php endif; ?>
+            <?php if ($p['photo']): ?><img class="lazyimg" loading="lazy" src="<?= e(url($p['photo'])) ?>" style="<?= e(personnel_photo_style($p)) ?>" alt="<?= e($p['name']) ?>"><?php else: ?><span class="material-symbols-rounded">person</span><?php endif; ?>
           </div>
           <div class="pn"><?= e($p['name']) ?></div>
           <?php if ($p['position']): ?><div class="pp"><?= e($p['position']) ?></div><?php endif; ?>

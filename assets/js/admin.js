@@ -875,3 +875,72 @@
 
   paint();
 })();
+
+/* ════════════════════════════════════════════════════════════
+   จัดรูปบุคลากรในวงกลม (admin/personnel.php)
+   สูตรต้องตรงกับ personnel_photo_style() ใน includes/functions.php
+   — ตำแหน่งด้วย object-position, ซูมด้วยการขยายกล่องแล้วเลื่อนให้จุดโฟกัสคงที่
+   ════════════════════════════════════════════════════════════ */
+(function () {
+  var box = document.querySelector('[data-photo-tune]');
+  if (!box) return;
+  var form = box.closest('form');
+  var imgs = box.querySelectorAll('[data-pf-img]');
+  var empties = box.querySelectorAll('[data-pf-empty]');
+  function inp(n) { return box.querySelector('[data-pf="' + n + '"]'); }
+  var DEF = { photo_x: 50, photo_y: 18, photo_zoom: 100 };
+
+  function paint() {
+    var x = +inp('photo_x').value, y = +inp('photo_y').value, z = +inp('photo_zoom').value;
+    var r = function (v) { return Math.round(v * 100) / 100; };
+    imgs.forEach(function (im) {
+      im.style.objectPosition = x + '% ' + y + '%';
+      if (z === 100) {
+        im.style.width = im.style.height = im.style.left = im.style.top = '';
+      } else {
+        im.style.width = z + '%'; im.style.height = z + '%';
+        im.style.left = '-' + r((z - 100) * x / 100) + '%';
+        im.style.top  = '-' + r((z - 100) * y / 100) + '%';
+      }
+    });
+    ['photo_x', 'photo_y', 'photo_zoom'].forEach(function (n) {
+      var o = box.querySelector('[data-pf-out="' + n + '"]');
+      if (o) o.textContent = inp(n).value + '%';
+    });
+  }
+
+  ['photo_x', 'photo_y', 'photo_zoom'].forEach(function (n) { inp(n).addEventListener('input', paint); });
+
+  /* คลิกบนวงกลม = ตั้งจุดนั้นเป็นจุดโฟกัส (ไม่ต้องลากแถบทีละแกน) */
+  box.querySelectorAll('.pf-click').forEach(function (av) {
+    av.addEventListener('click', function (ev) {
+      var im = av.querySelector('[data-pf-img]');
+      if (!im || im.hidden) return;
+      var b = im.getBoundingClientRect();          /* กล่องรูปจริง (อาจใหญ่กว่าวงเมื่อซูม) */
+      var fx = (ev.clientX - b.left) / b.width, fy = (ev.clientY - b.top) / b.height;
+      inp('photo_x').value = Math.max(0, Math.min(100, Math.round(fx * 100)));
+      inp('photo_y').value = Math.max(0, Math.min(100, Math.round(fy * 100)));
+      paint();
+    });
+  });
+
+  var reset = box.querySelector('[data-pf-reset]');
+  if (reset) reset.addEventListener('click', function () {
+    Object.keys(DEF).forEach(function (n) { inp(n).value = DEF[n]; });
+    paint();
+  });
+
+  /* เลือกไฟล์ใหม่ → แสดงในวงกลมทันที และเริ่มจากค่าเริ่มต้น เพราะรูปใหม่จัดองค์ประกอบต่างจากรูปเดิม */
+  var file = form && form.querySelector('input[type="file"][name="photo"]');
+  if (file) file.addEventListener('change', function () {
+    var f = file.files && file.files[0];
+    if (!f || !/^image\//.test(f.type)) return;
+    var u = URL.createObjectURL(f);
+    imgs.forEach(function (im) { im.src = u; im.hidden = false; });
+    empties.forEach(function (e) { e.hidden = true; });
+    Object.keys(DEF).forEach(function (n) { inp(n).value = DEF[n]; });
+    paint();
+  });
+
+  paint();
+})();

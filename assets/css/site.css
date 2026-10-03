@@ -394,7 +394,9 @@ body.gov-dialog-open { overflow: hidden; }
   display: grid; place-items: center; color: color-mix(in srgb, var(--blue) 45%, transparent);
   background: linear-gradient(150deg, color-mix(in srgb, var(--blue) 18%, transparent), color-mix(in srgb, var(--special) 12%, transparent));
   border: 3px solid #fff; box-shadow: var(--shadow-soft); transition: transform .2s, box-shadow .2s; }
-.avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* ค่าเริ่มต้นเอนขึ้นด้านบน — รูปบุคลากรมักเป็นรูปติดบัตรแนวตั้ง ครอปกลางภาพแล้วผมถูกตัด
+   ตำแหน่ง/ซูมรายคนมาจาก personnel_photo_style() เป็น style ในแท็กอีกที */
+.avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
 .avatar .material-symbols-rounded { font-size: 44px; }
 .person:hover .avatar { transform: translateY(-3px); box-shadow: var(--shadow); }
 .person .pn { font-weight: 600; color: var(--ink); font-size: 15px; line-height: 1.4; }

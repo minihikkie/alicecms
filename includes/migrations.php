@@ -507,6 +507,13 @@ function run_migrations(PDO $pdo, ?callable $log = null): void {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     $log("= custom_sections (ตาราง)");
 
+    /* v1.56.0 — ตำแหน่งและการซูมรูปบุคลากรในวงกลม
+       รูปติดบัตรแนวตั้งถูกครอปเป็นวงกลมโดยใช้กลางภาพ ผมด้านบนเลยถูกตัด
+       ค่าเริ่มต้น y=18 เอนขึ้นด้านบน แก้รูปเดิมทั้งหมดได้ทันทีโดยไม่ต้องตั้งทีละคน */
+    migr_add_col($pdo, 'personnel', 'photo_x',    "photo_x TINYINT NOT NULL DEFAULT 50 AFTER photo", $log);
+    migr_add_col($pdo, 'personnel', 'photo_y',    "photo_y TINYINT NOT NULL DEFAULT 18 AFTER photo_x", $log);
+    migr_add_col($pdo, 'personnel', 'photo_zoom', "photo_zoom SMALLINT NOT NULL DEFAULT 100 AFTER photo_y", $log);
+
     /* settings เริ่มต้นใหม่ (เพิ่มเฉพาะที่ยังไม่มี) */
     $ins = $pdo->prepare('INSERT IGNORE INTO settings (skey, sval) VALUES (?, ?)');
     $ins->execute(['a11y_bar', '1']);
