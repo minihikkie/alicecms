@@ -623,3 +623,79 @@
       });
     });
   })();})();
+
+/* ════════════════════════════════════════════════════════════
+   ข่าวด่วน · ประชาสัมพันธ์ — popup เล่นวิดีโอ
+   iframe ของ Facebook/YouTube/TikTok ถูกสร้างตอนผู้ชมกดเท่านั้น ก่อนหน้านั้นเห็นแค่ภาพปกของเรา
+   (หน้าเว็บไม่ต้องโหลดของหนักจากโซเชียล และโซเชียลไม่ได้เก็บข้อมูลผู้ชมแค่เพราะเปิดหน้า)
+   ปิด popup = ลบ iframe ทิ้ง วิดีโอจึงหยุดเล่นจริง ไม่ค้างเสียงอยู่เบื้องหลัง
+   ════════════════════════════════════════════════════════════ */
+(function () {
+  var modal = null, lastFocus = null;
+
+  function close() {
+    if (!modal) return;
+    modal.remove(); modal = null;
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', onKey);
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  function onKey(ev) { if (ev.key === 'Escape') close(); }
+
+  function open(a) {
+    lastFocus = a;
+    var title = a.getAttribute('data-hl-title') || '';
+    var src = a.getAttribute('data-hl-src') || '';
+    var plat = a.getAttribute('data-hl-plat') || 'ต้นฉบับ';
+    var vertical = a.getAttribute('data-hl-vertical') === '1';
+
+    modal = document.createElement('div');
+    modal.className = 'hl-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', title);
+    modal.innerHTML =
+      '<div class="hl-modal-box' + (vertical ? ' is-vertical' : '') + '">' +
+        '<div class="hl-modal-bar"><b class="hl-modal-title"></b>' +
+          '<a class="hl-modal-src" target="_blank" rel="noopener noreferrer"><span class="material-symbols-rounded icon-sm">open_in_new</span><span></span></a>' +
+          '<button type="button" class="hl-modal-close" aria-label="ปิด"><span class="material-symbols-rounded">close</span></button></div>' +
+        '<div class="hl-frame"><iframe allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write" allowfullscreen></iframe></div>' +
+      '</div>';
+    /* ใส่ข้อความด้วย textContent ไม่ประกอบลง innerHTML — หัวข้อมาจากผู้ดูแล แต่ไม่ควรไว้ใจให้เป็น HTML */
+    modal.querySelector('.hl-modal-title').textContent = title;
+    var s = modal.querySelector('.hl-modal-src');
+    if (src) { s.href = src; s.lastChild.textContent = 'เปิดใน ' + plat; } else { s.remove(); }
+    var f = modal.querySelector('iframe');
+    f.title = title || 'วิดีโอ';
+    f.src = a.getAttribute('data-hl-play');
+
+    modal.addEventListener('click', function (ev) { if (ev.target === modal) close(); });
+    modal.querySelector('.hl-modal-close').addEventListener('click', close);
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKey);
+    modal.querySelector('.hl-modal-close').focus();
+  }
+
+  document.addEventListener('click', function (ev) {
+    var a = ev.target.closest && ev.target.closest('[data-hl-play]');
+    if (!a) return;
+    /* กดค้าง Ctrl/⌘/Shift หรือคลิกกลาง = ตั้งใจเปิดแท็บใหม่ ปล่อยให้ลิงก์ทำงานปกติ */
+    if (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button === 1) return;
+    ev.preventDefault();
+    open(a);
+  });
+
+  /* หน้าคลัง: เปิดมาจากลิงก์แชร์ (?h=) → เลื่อนไปที่เรื่องนั้นแล้วไฮไลต์ให้เห็นชัด */
+  var grid = document.querySelector('[data-hl-focus]');
+  if (grid) {
+    var card = document.getElementById('h-' + grid.getAttribute('data-hl-focus'));
+    if (card) {
+      card.classList.add('is-target');
+      /* behavior: instant — html ตั้ง scroll-behavior: smooth ไว้ทั้งเว็บ การเลื่อนแบบนุ่มตอนหน้าเพิ่งโหลด
+         ถูกขัดจังหวะได้ง่าย (รูปที่โหลดตามมาดันความสูงหน้า) เปิดจากลิงก์แชร์กระโดดไปทันทีชัวร์กว่า */
+      setTimeout(function () { card.scrollIntoView({ block: 'center', behavior: 'instant' }); }, 150);
+      setTimeout(function () { card.classList.remove('is-target'); }, 4000);
+    }
+  }
+})();

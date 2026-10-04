@@ -132,6 +132,7 @@ function section_defaults(): array {
     if ($cache !== null) return $cache;
     $base = [
         'slider'      => 'แบนเนอร์ประชาสัมพันธ์',
+        'highlight'   => 'ข่าวด่วน · ประชาสัมพันธ์',
         'hero'        => 'ค้นหาและสถิติ',
         'chief'       => 'สารจากหัวหน้าหน่วยงาน',
         'personnel'   => 'โครงสร้างผู้บริหาร',
@@ -243,6 +244,7 @@ function nav_section_defs(): array {
         ['file' => 'procurement.php', 'label' => 'จัดซื้อจัดจ้าง', 'keys' => ['procurement']],
         ['file' => 'ita.php',         'label' => 'ITA',            'keys' => ['ita']],
         ['file' => 'personnel.php',   'label' => 'ผู้บริหาร',      'keys' => ['personnel']],
+        ['file' => 'highlights.php',  'label' => 'ข่าวด่วน',       'keys' => ['highlight']],
     ];
 }
 

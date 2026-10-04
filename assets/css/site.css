@@ -1167,3 +1167,121 @@ body.anim-full .st-cinema.playing .ps-prog > i { animation: psProg var(--dur, 6s
 .cs-head { margin-bottom: 14px; }
 .cs-body > *:first-child { margin-top: 0; }
 .cs-body > *:last-child { margin-bottom: 0; }
+
+/* ════════════════════════════════════════════════════════════
+   ข่าวด่วน · ประชาสัมพันธ์จากโซเชียล (includes/highlights.php)
+   ใบใหญ่ + ใบเล็กบนหน้าแรก · การ์ดตารางในหน้าคลัง · popup เล่นวิดีโอ
+   ════════════════════════════════════════════════════════════ */
+.hl-section.has-critical { border-top: 4px solid #D93025; }
+.hl-layout { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 18px; }
+.hl-layout.is-single { grid-template-columns: minmax(0, 1fr); }
+.hl-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.hl-card { position: relative; display: flex; flex-direction: column; overflow: hidden; min-width: 0;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--r16);
+  transition: transform .2s ease, box-shadow .2s ease; }
+.hl-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.hl-card.is-target { outline: 3px solid var(--blue); outline-offset: 3px; }
+
+/* ── สื่อ ── */
+.hl-media { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; background: #0b0f16; color: #fff; }
+.hl-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .45s ease; }
+.hl-card:hover .hl-media img { transform: scale(1.04); }
+.hl-card.is-ended .hl-media img { filter: grayscale(.4); }
+.hl-fallback { position: absolute; inset: 0; display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--pc, var(--blue)), color-mix(in srgb, var(--pc, var(--blue)) 50%, #000)); }
+.hl-fallback svg { width: 22%; max-width: 80px; height: auto; opacity: .92; }
+.hl-fallback .material-symbols-rounded { font-size: 56px; opacity: .9; }
+.hl-play { position: absolute; inset: 0; margin: auto; width: 64px; height: 64px; border-radius: 50%;
+  display: grid; place-items: center; color: #fff; background: rgba(0,0,0,.55);
+  box-shadow: 0 6px 20px rgba(0,0,0,.35); transition: transform .2s ease, background .2s ease; }
+.hl-play .material-symbols-rounded { font-size: 40px; font-variation-settings: 'FILL' 1, 'wght' 500, 'opsz' 40; }
+.hl-media:hover .hl-play, .hl-media:focus-visible .hl-play { transform: scale(1.08); background: var(--blue); }
+.hl-plat { position: absolute; left: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.3; color: #fff;
+  background: color-mix(in srgb, var(--pc, var(--blue)) 90%, #000); box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.hl-plat[hidden] { display: none; }
+.hl-plat svg { width: 14px; height: 14px; }
+.hl-plat .material-symbols-rounded { font-size: 15px; }
+
+/* ── เนื้อหา ── */
+.hl-body { flex: 1; display: flex; flex-direction: column; gap: 6px; padding: 14px 16px 16px; min-width: 0; }
+.hl-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.hl-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; line-height: 1.4; }
+.hl-badge.u-critical { background: #FDE8E7; color: #B3261E; }
+.hl-badge.u-urgent   { background: #FFF0DB; color: #8A4500; }
+.hl-badge.u-normal   { background: color-mix(in srgb, var(--blue) 12%, var(--card)); color: var(--blue-ink); }
+.hl-badge.u-ended    { background: color-mix(in srgb, var(--muted) 14%, var(--card)); color: var(--muted); }
+.hl-new { font-size: 11px; padding: 2px 8px; }
+/* จุดแดงของ "ด่วนมาก" — กะพริบเฉพาะเมื่อเปิดอนิเมชันเต็ม ผู้ที่ปิดการเคลื่อนไหวเห็นเป็นจุดนิ่ง */
+.hl-pulse { width: 8px; height: 8px; border-radius: 50%; background: #D93025; }
+body.anim-full .hl-pulse { animation: hlPulse 1.6s ease-out infinite; }
+@keyframes hlPulse { 0% { box-shadow: 0 0 0 0 rgba(217,48,37,.55); } 70% { box-shadow: 0 0 0 8px rgba(217,48,37,0); } 100% { box-shadow: 0 0 0 0 rgba(217,48,37,0); } }
+@media (prefers-reduced-motion: reduce) { .hl-pulse { animation: none !important; } }
+.hl-pin { margin-left: auto; color: var(--muted); display: inline-flex; }
+.hl-pin .material-symbols-rounded { font-size: 18px; }
+.hl-title { margin: 2px 0 0; font-size: 17px; line-height: 1.4; color: var(--ink); }
+.hl-title a { color: inherit; }
+.hl-title a:hover { color: var(--blue-700); }
+.hl-summary { margin: 0; font-size: 14px; line-height: 1.65; color: var(--text);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.hl-meta { margin-top: auto; padding-top: 2px; display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--muted); }
+.hl-meta .material-symbols-rounded { font-size: 15px; }
+.hl-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+/* ── ใบใหญ่ ── */
+.hl-feat .hl-title { font-size: clamp(19px, 2.2vw, 24px); }
+.hl-feat .hl-summary { font-size: 15px; }
+.hl-feat.u-critical { border-color: color-mix(in srgb, #D93025 40%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, #D93025 10%, transparent); }
+
+/* ── ใบเล็ก (ภาพซ้าย ข้อความขวา) ── */
+.hl-side .hl-card { flex: 1; flex-direction: row; align-items: stretch; }
+.hl-side .hl-media { width: 42%; flex: none; aspect-ratio: auto; min-height: 98px; }
+.hl-side .hl-play { width: 40px; height: 40px; }
+.hl-side .hl-play .material-symbols-rounded { font-size: 26px; }
+.hl-side .hl-plat { left: 6px; bottom: 6px; padding: 3px 8px 3px 6px; font-size: 11px; }
+.hl-side .hl-body { padding: 10px 12px; gap: 4px; }
+.hl-side .hl-title { font-size: 14.5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ── หน้าคลัง ── */
+.hl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.hl-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.hl-search { display: flex; align-items: center; gap: 6px; margin-left: auto; min-width: 220px; padding: 0 12px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--muted); }
+.hl-search input { flex: 1; width: 100%; margin: 0; padding: 9px 0; border: 0; background: transparent; box-shadow: none; outline: none; }
+.hl-platchips { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.hl-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; font-size: 13px;
+  color: var(--text); background: var(--card); border: 1px solid var(--border); transition: background .15s, border-color .15s; }
+.hl-chip svg { width: 14px; height: 14px; color: var(--pc, var(--muted)); }
+.hl-chip small { opacity: .65; }
+.hl-chip:hover { border-color: var(--pc, var(--blue)); }
+.hl-chip.on { background: var(--pc, var(--blue)); border-color: var(--pc, var(--blue)); color: #fff; }
+.hl-chip.on svg { color: #fff; }
+
+/* ── popup เล่นวิดีโอ ── */
+.hl-modal { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 16px; background: rgba(2,6,23,.82); }
+.hl-modal-box { width: min(960px, 100%); overflow: hidden; border-radius: 16px; background: #0b0f16; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+/* วิดีโอแนวตั้ง (Reel / Shorts / TikTok) — กว้างตามความสูงจอ จะได้ไม่ล้นจอบนโน้ตบุ๊ก */
+.hl-modal-box.is-vertical { width: min(420px, 100%, calc((100vh - 100px) * .5625)); }
+.hl-modal-bar { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; color: #fff; }
+.hl-modal-title { flex: 1; min-width: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl-modal-src { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; white-space: nowrap; color: rgba(255,255,255,.85); }
+.hl-modal-src:hover { color: #fff; }
+.hl-modal-close { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border: 0; border-radius: 50%;
+  cursor: pointer; color: #fff; background: rgba(255,255,255,.12); }
+.hl-modal-close:hover { background: rgba(255,255,255,.24); }
+.hl-modal-close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.hl-frame { position: relative; aspect-ratio: 16 / 9; background: #000; }
+.is-vertical .hl-frame { aspect-ratio: 9 / 16; }
+.hl-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+@media (max-width: 860px) {
+  .hl-layout { grid-template-columns: minmax(0, 1fr); }
+  /* ใบเล็กเรียงเป็นแถบปัดซ้าย-ขวา ไม่ให้หน้าแรกบนมือถือยาวเกินไป */
+  .hl-side { flex-direction: row; overflow-x: auto; gap: 12px; padding-bottom: 6px; scroll-snap-type: x proximity; }
+  .hl-side .hl-card { flex: 0 0 78%; flex-direction: column; scroll-snap-align: start; }
+  .hl-side .hl-media { width: 100%; aspect-ratio: 16 / 9; min-height: 0; }
+  .hl-search { margin-left: 0; width: 100%; }
+}

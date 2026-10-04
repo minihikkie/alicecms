@@ -514,6 +514,35 @@ function run_migrations(PDO $pdo, ?callable $log = null): void {
     migr_add_col($pdo, 'personnel', 'photo_y',    "photo_y TINYINT NOT NULL DEFAULT 18 AFTER photo_x", $log);
     migr_add_col($pdo, 'personnel', 'photo_zoom', "photo_zoom SMALLINT NOT NULL DEFAULT 100 AFTER photo_y", $log);
 
+    /* v1.57.0 — ข่าวด่วน · ประชาสัมพันธ์จากโซเชียล (section: highlight)
+       วางไว้ถัดจากแบนเนอร์ เพราะเป็นเรื่องด่วน ไม่ควรไปต่อท้ายสุดของหน้าแรก
+       เลื่อนเฉพาะตอนเพิ่ม section ครั้งแรก (INSERT สำเร็จ) ไม่งั้นทุกการอัปเดตจะดันลำดับซ้ำ
+       ถ้าไม่มีเรื่องที่อยู่ในช่วงเวลา กล่องจะซ่อนตัวเอง จึงเปิดไว้ตั้งแต่ต้นได้โดยไม่เกะกะ */
+    $pdo->exec("CREATE TABLE IF NOT EXISTS highlights (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  summary VARCHAR(500) NOT NULL DEFAULT '',
+  url VARCHAR(600) NOT NULL DEFAULT '',
+  platform VARCHAR(20) NOT NULL DEFAULT 'web',
+  cover VARCHAR(300) NULL,
+  urgency VARCHAR(10) NOT NULL DEFAULT 'normal',
+  pinned TINYINT(1) NOT NULL DEFAULT 0,
+  starts_at DATETIME NULL,
+  ends_at DATETIME NULL,
+  status ENUM('draft','published') NOT NULL DEFAULT 'published',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_live (status, starts_at, ends_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    $log("= highlights (ตาราง)");
+    $slOrd = $pdo->query("SELECT sort_order FROM sections WHERE skey = 'slider'")->fetchColumn();
+    $hlOrd = $slOrd !== false ? (int)$slOrd + 1 : (int)$pdo->query('SELECT COALESCE(MAX(sort_order),0) + 1 FROM sections')->fetchColumn();
+    $hlIns = $pdo->prepare("INSERT IGNORE INTO sections (skey, enabled, in_menu, sort_order, custom_title) VALUES ('highlight', 1, 0, ?, '')");
+    $hlIns->execute([$hlOrd]);
+    if ($hlIns->rowCount() === 1 && $slOrd !== false) {
+        $pdo->prepare("UPDATE sections SET sort_order = sort_order + 1 WHERE sort_order >= ? AND skey <> 'highlight'")->execute([$hlOrd]);
+    }
+    $log("= sections.highlight");
+
     /* settings เริ่มต้นใหม่ (เพิ่มเฉพาะที่ยังไม่มี) */
     $ins = $pdo->prepare('INSERT IGNORE INTO settings (skey, sval) VALUES (?, ?)');
     $ins->execute(['a11y_bar', '1']);

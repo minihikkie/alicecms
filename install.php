@@ -24,7 +24,7 @@ $presets = [
 ];
 
 $all_sections = [
-    'slider' => 'แบนเนอร์สไลด์', 'hero' => 'ค้นหา + สถิติ', 'chief' => 'สารจากหัวหน้าหน่วยงาน',
+    'slider' => 'แบนเนอร์สไลด์', 'highlight' => 'ข่าวด่วน · ประชาสัมพันธ์', 'hero' => 'ค้นหา + สถิติ', 'chief' => 'สารจากหัวหน้าหน่วยงาน',
     'personnel' => 'โครงสร้างผู้บริหาร',
     'activity' => 'กิจกรรม', 'pr' => 'ประชาสัมพันธ์', 'announce' => 'ประกาศ', 'video' => 'วิดีโอความรู้',
     'documents' => 'เอกสารเผยแพร่', 'ita' => 'ITA / OIT', 'procurement' => 'จัดซื้อจัดจ้าง',
@@ -404,6 +404,22 @@ CREATE TABLE IF NOT EXISTS custom_sections (
   align VARCHAR(10) NOT NULL DEFAULT 'left',
   show_head TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS highlights (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  summary VARCHAR(500) NOT NULL DEFAULT '',
+  url VARCHAR(600) NOT NULL DEFAULT '',
+  platform VARCHAR(20) NOT NULL DEFAULT 'web',
+  cover VARCHAR(300) NULL,
+  urgency VARCHAR(10) NOT NULL DEFAULT 'normal',
+  pinned TINYINT(1) NOT NULL DEFAULT 0,
+  starts_at DATETIME NULL,
+  ends_at DATETIME NULL,
+  status ENUM('draft','published') NOT NULL DEFAULT 'published',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_live (status, starts_at, ends_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS videos (

@@ -453,3 +453,28 @@ textarea { resize: vertical; min-height: 90px; }
   overflow: hidden; vertical-align: middle; background: var(--border); }
 .pf-mini img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
 @media (max-width: 640px) { .pf-tune { grid-template-columns: 1fr; } .pf-previews { justify-content: center; } }
+
+/* ── ข่าวด่วน (admin/highlights.php) ── */
+.hl-admin { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); gap: 22px; align-items: start; }
+.hl-admin-preview { position: sticky; top: 84px; }
+.hl-admin-preview .hl-card:hover { transform: none; }
+.hl-detect { display: flex; align-items: center; gap: 6px; min-height: 20px; font-size: 13px; color: var(--muted); }
+.hl-detect.ok { color: var(--success); }
+.hl-detect.bad { color: var(--danger); }
+.hl-urg { display: flex; flex-wrap: wrap; gap: 8px; }
+.hl-urg-opt { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 6px 12px 6px 10px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--card); }
+.hl-urg-opt:has(input:checked) { border-color: var(--blue); box-shadow: var(--shadow-blue); }
+.hl-urg-opt input { margin: 0; }
+.hl-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+.hl-admin-list { display: flex; flex-direction: column; gap: 8px; }
+.hl-row { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--border); border-radius: 12px; }
+.hl-row-thumb { width: 76px; aspect-ratio: 16 / 9; flex: none; overflow: hidden; border-radius: 8px;
+  display: grid; place-items: center; color: var(--muted); background: color-mix(in srgb, var(--muted) 12%, var(--card)); }
+.hl-row-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.hl-row-thumb svg { width: 22px; height: 22px; }
+.hl-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.hl-row-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.hl-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+@media (max-width: 960px) { .hl-admin { grid-template-columns: minmax(0, 1fr); } .hl-admin-preview { position: static; } }
+@media (max-width: 640px) { .hl-row { flex-wrap: wrap; } .hl-row-actions { width: 100%; justify-content: flex-start; } }

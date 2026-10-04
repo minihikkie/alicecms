@@ -23,6 +23,7 @@ if (section_live('procurement')) $add('procurement.php', '', 'weekly', '0.6');
 if (section_live('complaint'))   $add('complaint.php', '', 'monthly', '0.4');
 if (section_live('faq'))         $add('faq.php', '', 'monthly', '0.5');
 if (section_live('video'))       $add('videos.php', '', 'weekly', '0.7');
+if (section_live('highlight'))   $add('highlights.php', '', 'daily', '0.7');
 $add('services.php', '', 'monthly', '0.7');
 $add('sitemap-page.php', '', 'monthly', '0.3');
 

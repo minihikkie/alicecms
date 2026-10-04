@@ -25,6 +25,7 @@ $menu_groups = [
         ['index.php',        'dashboard',        'แดชบอร์ด',           false],
     ]],
     ['เนื้อหาเว็บไซต์', [
+        ['highlights.php',   'bolt',             'ข่าวด่วน · ประชาสัมพันธ์', false],
         ['posts.php',        'newspaper',        'ข่าวสาร',            false],
         ['videos.php',       'smart_display',    'วิดีโอความรู้',      false],
         ['posters.php',      'gallery_thumbnail','นิทรรศการโปสเตอร์',  false],

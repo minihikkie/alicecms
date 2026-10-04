@@ -121,7 +121,7 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
 header("Content-Security-Policy: default-src 'self'; img-src 'self' data: https://*.ggpht.com https://*.ytimg.com; "
      . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
      . "font-src https://fonts.gstatic.com; script-src 'self' 'nonce-" . CSP_NONCE . "'; "
-     . "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://www.google.com https://maps.google.com; "
+     . "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://www.google.com https://maps.google.com https://www.facebook.com https://www.tiktok.com; "
      . "base-uri 'self'; frame-ancestors 'self'; form-action 'self'; object-src 'none'");
 
 /* ─── เชื่อมต่อฐานข้อมูล (PDO + prepared statements เท่านั้น) ─── */

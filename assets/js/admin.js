@@ -944,3 +944,117 @@
 
   paint();
 })();
+
+/* ════════════════════════════════════════════════════════════
+   ข่าวด่วน (admin/highlights.php) — บอกแหล่งของลิงก์ + ตัวอย่างการ์ดสด + ปุ่มลัดระยะเวลา
+   การตรวจลิงก์ตรงนี้มีไว้แสดงคำแนะนำเท่านั้น ตัวตัดสินจริงคือ hl_detect() ฝั่ง PHP ตอนบันทึก
+   (รูปแบบลิงก์ต้องให้ตรงกัน ถ้าแก้ที่หนึ่งต้องแก้อีกที่)
+   ════════════════════════════════════════════════════════════ */
+(function () {
+  var form = document.querySelector('[data-hl-form]');
+  if (!form) return;
+  var $ = function (s) { return form.querySelector(s); };
+  var card = form.querySelector('[data-hl-preview] .hl-card');
+  var PL = {
+    facebook: ['Facebook', '#1877F2'], youtube: ['YouTube', '#FF0000'], tiktok: ['TikTok', '#111111'],
+    x: ['X', '#111111'], instagram: ['Instagram', '#D62976'], line: ['LINE', '#06C755'], web: ['เว็บไซต์', '']
+  };
+
+  function detect(u) {
+    u = (u || '').trim();
+    var r = { p: 'web', kind: u ? 'link' : 'none' };
+    if (!/^https?:\/\//i.test(u)) return u ? { p: 'web', kind: 'bad' } : r;
+    var a; try { a = new URL(u); } catch (e) { return { p: 'web', kind: 'bad' }; }
+    var h = a.hostname.toLowerCase().replace(/^(www|m|mobile|web)\./, ''), p = a.pathname;
+    if (/^(youtube\.com|youtu\.be|music\.youtube\.com)$/.test(h)) {
+      return { p: 'youtube', kind: /(youtube\.com\/(watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)[\w-]{11}/.test(u) ? 'video' : 'link' };
+    }
+    if (/^(facebook\.com|fb\.com|fb\.watch)$/.test(h)) {
+      var vid = h === 'fb.watch' || /\/(reel|reels)\/|\/share\/r\//i.test(p) || /\/videos?\/|\/watch\/?$|\/share\/v\//i.test(p)
+             || (p.indexOf('/watch') > -1 && u.indexOf('v=') > -1);
+      return { p: 'facebook', kind: vid ? 'video' : 'post' };
+    }
+    if (/^(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com)$/.test(h)) return { p: 'tiktok', kind: /\/video\/\d{6,25}/.test(p) ? 'video' : 'link' };
+    if (/^(x\.com|twitter\.com)$/.test(h)) return { p: 'x', kind: 'post' };
+    if (h === 'instagram.com') return { p: 'instagram', kind: 'post' };
+    if (/^(line\.me|lin\.ee|liff\.line\.me)$/.test(h)) return { p: 'line', kind: 'post' };
+    return r;
+  }
+
+  var hint = $('[data-hl-detect]');
+  var MSG = {
+    video: ['play_circle', 'เล่นวิดีโอบนเว็บเราได้เลย (popup)', 'ok'],
+    post:  ['open_in_new', 'เปิดโพสต์ต้นฉบับในแท็บใหม่', ''],
+    link:  ['link', 'เปิดลิงก์ในแท็บใหม่', ''],
+    bad:   ['error', 'ลิงก์ต้องขึ้นต้นด้วย https://', 'bad'],
+    none:  ['image', 'ไม่มีลิงก์ — กดที่การ์ดจะเปิดภาพปกแบบเต็ม', '']
+  };
+  function showHint(d) {
+    var m = MSG[d.kind] || MSG.link;
+    hint.className = 'hl-detect mb-2 ' + m[2];
+    hint.innerHTML = '';
+    var s = document.createElement('span');
+    s.className = 'material-symbols-rounded icon-sm'; s.textContent = m[0];
+    hint.appendChild(s);
+    hint.appendChild(document.createTextNode((d.kind !== 'none' && d.kind !== 'bad' ? PL[d.p][0] + ' · ' : '') + m[1]));
+  }
+
+  function paint() {
+    var d = detect($('[data-hl-url]').value);
+    showHint(d);
+    if (!card) return;
+    card.querySelector('.hl-title').textContent = $('[data-hl-title]').value.trim() || 'หัวข้อเรื่องด่วน';
+    var sum = card.querySelector('.hl-summary'), sv = $('[data-hl-summary]').value.trim();
+    if (!sum && sv) { sum = document.createElement('p'); sum.className = 'hl-summary'; card.querySelector('.hl-title').after(sum); }
+    if (sum) { sum.textContent = sv; sum.hidden = !sv; }
+
+    var u = form.querySelector('[data-hl-urg]:checked');
+    var uk = u ? u.value : 'normal', lab = u ? u.parentNode.querySelector('.hl-badge').textContent : '';
+    card.classList.remove('u-critical', 'u-urgent', 'u-normal'); card.classList.add('u-' + uk);
+    var b = card.querySelector('.hl-tags .hl-badge');
+    if (b) { b.className = 'hl-badge u-' + uk; b.textContent = lab; }
+
+    var chip = card.querySelector('.hl-plat');
+    if (chip) {
+      chip.lastChild.textContent = PL[d.p][0];
+      chip.style.setProperty('--pc', PL[d.p][1] || 'var(--blue)');
+      chip.hidden = d.kind === 'none' || d.kind === 'bad';
+    }
+    var media = card.querySelector('.hl-media'), play = card.querySelector('.hl-play');
+    if (d.kind === 'video' && !play) {
+      play = document.createElement('span'); play.className = 'hl-play';
+      play.innerHTML = '<span class="material-symbols-rounded">play_arrow</span>';
+      media.appendChild(play);
+    }
+    if (play) play.hidden = d.kind !== 'video';
+  }
+  ['[data-hl-url]', '[data-hl-title]', '[data-hl-summary]'].forEach(function (s) { $(s).addEventListener('input', paint); });
+  form.querySelectorAll('[data-hl-urg]').forEach(function (r) { r.addEventListener('change', paint); });
+
+  /* เลือกภาพปก → เห็นในการ์ดตัวอย่างทันที */
+  var cov = $('[data-hl-cover]');
+  if (cov && card) cov.addEventListener('change', function () {
+    var f = cov.files && cov.files[0];
+    if (!f || !/^image\//.test(f.type)) return;
+    var media = card.querySelector('.hl-media');
+    var img = media.querySelector('img');
+    if (!img) { img = document.createElement('img'); img.alt = ''; media.insertBefore(img, media.firstChild); }
+    img.src = URL.createObjectURL(f);
+    var fb = media.querySelector('.hl-fallback'); if (fb) fb.remove();
+  });
+
+  /* ปุ่มลัด "แสดงนาน N วัน" — นับจากเวลาเริ่มแสดง */
+  form.querySelectorAll('[data-hl-days]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var n = +btn.getAttribute('data-hl-days'), end = $('[data-hl-end]');
+      if (!n) { end.value = ''; return; }
+      var s = $('[data-hl-start]').value, base = s ? new Date(s) : new Date();
+      if (isNaN(base)) base = new Date();
+      base.setDate(base.getDate() + n);
+      var p = function (x) { return String(x).padStart(2, '0'); };
+      end.value = base.getFullYear() + '-' + p(base.getMonth() + 1) + '-' + p(base.getDate()) + 'T' + p(base.getHours()) + ':' + p(base.getMinutes());
+    });
+  });
+
+  paint();
+})();
