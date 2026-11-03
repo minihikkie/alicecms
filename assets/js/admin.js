@@ -1058,3 +1058,24 @@
 
   paint();
 })();
+
+/* ══ สารบัญแบบหนังสือ (doc-book.php): เลือกชนิดหัวข้อ → กรองตัวเลือก "อยู่ใต้" ให้ตรงโครงสร้าง ══
+   ลักษณะ = บนสุด (ไม่มีพ่อ) · บท = ใต้ลักษณะ · ฉบับแก้ไข = ใต้ลักษณะหรือบท */
+(function () {
+  var kind = document.querySelector('[data-dbk-kind]');
+  if (!kind) return;
+  var wrap = document.querySelector('[data-dbk-parent-wrap]');
+  var sel = document.querySelector('[data-dbk-parent]');
+  function sync() {
+    var v = kind.value;
+    wrap.hidden = v === 'part';
+    Array.prototype.forEach.call(sel.options, function (o) {
+      if (!o.getAttribute('data-k')) return;
+      var ok = v === 'amend' || o.getAttribute('data-k') === 'part';
+      o.hidden = !ok; o.disabled = !ok;
+    });
+    if (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].disabled) sel.value = '0';
+  }
+  kind.addEventListener('change', sync);
+  sync();
+})();

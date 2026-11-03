@@ -31,13 +31,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cstyle_in = (string)($_POST['cat_style'] ?? '');
             $style = in_array($cstyle_in, ['', 'special', 'warning'], true) ? $cstyle_in : '';
             $sort = (int)($_POST['cat_sort'] ?? 0);
+            $layout = ($_POST['cat_layout'] ?? 'list') === 'book' ? 'book' : 'list';
             if ($name !== '') {
                 if ($act === 'edit' && $cid > 0) {
-                    db()->prepare('UPDATE doc_categories SET name=?, icon=?, style=?, sort_order=? WHERE id=?')
-                        ->execute([$name, $icon, $style, $sort, $cid]);
+                    db()->prepare('UPDATE doc_categories SET name=?, icon=?, style=?, layout=?, sort_order=? WHERE id=?')
+                        ->execute([$name, $icon, $style, $layout, $sort, $cid]);
                 } else {
-                    db()->prepare('INSERT INTO doc_categories (name, icon, style, sort_order) VALUES (?,?,?,?)')
-                        ->execute([$name, $icon, $style, $sort]);
+                    db()->prepare('INSERT INTO doc_categories (name, icon, style, layout, sort_order) VALUES (?,?,?,?,?)')
+                        ->execute([$name, $icon, $style, $layout, $sort]);
                 }
                 flash_set('success', 'บันทึกหมวดเอกสารเรียบร้อยแล้ว');
             }
@@ -207,7 +208,8 @@ require __DIR__ . '/_top.php';
   <div class="card">
     <div class="section-head" style="margin-bottom:8px;">
       <div><span class="tag">CATEGORIES</span><h3>หมวดเอกสาร</h3>
-      <p>คลิกช่องไอคอนเพื่อเลือกจากรายการ หรือพิมพ์ชื่อไอคอนจาก Material Symbols เองก็ได้</p></div>
+      <p>คลิกช่องไอคอนเพื่อเลือกจากรายการ หรือพิมพ์ชื่อไอคอนจาก Material Symbols เองก็ได้ ·
+         หมวดที่เป็น "เล่ม" (เช่น ประมวลระเบียบ) เลือก <b>สารบัญแบบหนังสือ</b> แล้วกด <b>จัดการสารบัญ</b> เพื่อจัดเป็น ลักษณะ → บท → ฉบับแก้ไข</p></div>
     </div>
     <?php foreach ($cats as $c): ?>
     <form method="post" action="" class="flex gap-1 items-center mb-1" style="flex-wrap:wrap;">
@@ -223,9 +225,16 @@ require __DIR__ . '/_top.php';
         <option value="special" <?= $c['style'] === 'special' ? 'selected' : '' ?>>ม่วง</option>
         <option value="warning" <?= $c['style'] === 'warning' ? 'selected' : '' ?>>ส้ม</option>
       </select>
+      <select name="cat_layout" style="width:150px;padding:8px;" title="รูปแบบการแสดงบนหน้าเว็บ">
+        <option value="list" <?= ($c['layout'] ?? 'list') !== 'book' ? 'selected' : '' ?>>แสดงเป็นรายการ</option>
+        <option value="book" <?= ($c['layout'] ?? '') === 'book' ? 'selected' : '' ?>>สารบัญแบบหนังสือ</option>
+      </select>
       <input type="number" name="cat_sort" value="<?= (int)$c['sort_order'] ?>" class="sort-input" title="ลำดับ">
       <button class="btn small" type="submit" name="cat_action" value="edit">บันทึก</button>
       <button class="btn small danger" type="submit" name="cat_action" value="delete" data-confirm="ลบหมวด «<?= e($c['name']) ?>»? เอกสาร <?= (int)$c['n'] ?> รายการจะถูกย้ายเป็นไม่ระบุหมวด">ลบ</button>
+      <?php if (($c['layout'] ?? '') === 'book'): ?>
+      <a class="btn small primary" href="<?= e(url('admin/doc-book.php?cat=' . (int)$c['id'])) ?>"><span class="material-symbols-rounded icon-sm">menu_book</span>จัดการสารบัญ</a>
+      <?php endif; ?>
     </form>
     <?php endforeach; ?>
     <form method="post" action="" class="flex gap-1 items-center mt-2" style="flex-wrap:wrap;border-top:1px solid var(--border);padding-top:12px;">
@@ -237,6 +246,9 @@ require __DIR__ . '/_top.php';
       </div>
       <select name="cat_style" style="width:100px;padding:8px;">
         <option value="">น้ำเงิน</option><option value="special">ม่วง</option><option value="warning">ส้ม</option>
+      </select>
+      <select name="cat_layout" style="width:150px;padding:8px;" title="รูปแบบการแสดงบนหน้าเว็บ">
+        <option value="list">แสดงเป็นรายการ</option><option value="book">สารบัญแบบหนังสือ</option>
       </select>
       <input type="number" name="cat_sort" value="<?= count($cats) + 1 ?>" class="sort-input">
       <button class="btn small primary" type="submit" name="cat_action" value="add"><span class="material-symbols-rounded icon-sm">add</span>เพิ่มหมวด</button>

@@ -54,7 +54,7 @@
 
 **เนื้อหาและการเผยแพร่**
 - ข่าว 3 ประเภท (กิจกรรม / ประชาสัมพันธ์ / ประกาศ) แนบรูปปกและไฟล์ได้หลายไฟล์
-- เอกสารเผยแพร่ พร้อมหมวดที่กำหนดเอง (ชื่อ ไอคอน สี ลำดับ)
+- เอกสารเผยแพร่ พร้อมหมวดที่กำหนดเอง (ชื่อ ไอคอน สี ลำดับ) — หมวดที่เป็น "เล่ม" แสดงเป็นสารบัญแบบหนังสือได้ (ลักษณะ → บท → ฉบับแก้ไขเพิ่มเติม) พร้อมค้นหาและนำเข้า JSON
 - ITA / OIT ครบ O1–O43
 - จัดซื้อจัดจ้าง — e-bidding, ราคากลาง, ผลการพิจารณา
 - วิดีโอ (ฝัง YouTube หรืออัปโหลดเอง) พร้อมหน้าเฉพาะของแต่ละคลิป
@@ -229,7 +229,7 @@ mysql -u root -p gov_website < backup-20260101.sql     # กู้คืน
 
 **ฐานข้อมูล** — ทุกตารางใช้ `utf8mb4_unicode_ci`
 
-`users` `settings` `sections` `posts` `post_attachments` `documents` `doc_categories`
+`users` `settings` `sections` `posts` `post_attachments` `documents` `doc_categories` `doc_toc`
 `ita_items` `procurements` `slides` `faqs` `links` `footer_links` `menu_items`
 `complaints` `forms` `form_responses` `videos` `media` `pages`
 `content_types` `content_items` `personnel` `org_chart_nodes`
@@ -241,6 +241,7 @@ mysql -u root -p gov_website < backup-20260101.sql     # กู้คืน
 
 - [INSTALL-DirectAdmin.md](docs/INSTALL-DirectAdmin.md) — ติดตั้งบนโฮสต์ DirectAdmin แบบละเอียด (ไม่ต้องใช้ SSH)
 - [MAINTENANCE.md](docs/MAINTENANCE.md) — คู่มือดูแลระบบระยะยาว
+- [doc-book-format.md](docs/doc-book-format.md) — รูปแบบไฟล์ JSON สำหรับนำเข้าสารบัญแบบหนังสือ
 
 ---
 

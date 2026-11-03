@@ -152,7 +152,26 @@ CREATE TABLE IF NOT EXISTS doc_categories (
   name VARCHAR(150) NOT NULL,
   icon VARCHAR(50) NOT NULL DEFAULT 'folder',
   style VARCHAR(20) NOT NULL DEFAULT '',
+  layout VARCHAR(10) NOT NULL DEFAULT 'list',
+  intro VARCHAR(600) NOT NULL DEFAULT '',
   sort_order INT NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS doc_toc (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  category_id INT NOT NULL,
+  parent_id INT NULL,
+  kind VARCHAR(10) NOT NULL DEFAULT 'chapter',
+  label VARCHAR(80) NOT NULL DEFAULT '',
+  title VARCHAR(500) NOT NULL DEFAULT '',
+  status VARCHAR(10) NOT NULL DEFAULT 'active',
+  note VARCHAR(500) NOT NULL DEFAULT '',
+  document_id INT NULL,
+  url VARCHAR(500) NOT NULL DEFAULT '',
+  sort_order INT NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_cat_sort (category_id, sort_order),
+  INDEX idx_parent (parent_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS posts (

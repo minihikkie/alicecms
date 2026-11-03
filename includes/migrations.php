@@ -543,6 +543,29 @@ function run_migrations(PDO $pdo, ?callable $log = null): void {
     }
     $log("= sections.highlight");
 
+    /* v1.58.0 — สารบัญแบบหนังสือของหมวดเอกสาร (ลักษณะ → บท → ฉบับแก้ไขเพิ่มเติม)
+       layout: list = รายการไฟล์แบบเดิม (ค่าเริ่มต้น หมวดเดิมทุกหมวดจึงไม่เปลี่ยน) / book = สารบัญ
+       doc_toc ผูกตัวเองด้วย parent_id — document_id ชี้เอกสารที่อัปโหลดไว้ในหมวด (ไม่บังคับ) */
+    migr_add_col($pdo, 'doc_categories', 'layout', "layout VARCHAR(10) NOT NULL DEFAULT 'list' AFTER style", $log);
+    migr_add_col($pdo, 'doc_categories', 'intro',  "intro VARCHAR(600) NOT NULL DEFAULT '' AFTER layout", $log);
+    $pdo->exec("CREATE TABLE IF NOT EXISTS doc_toc (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  category_id INT NOT NULL,
+  parent_id INT NULL,
+  kind VARCHAR(10) NOT NULL DEFAULT 'chapter',
+  label VARCHAR(80) NOT NULL DEFAULT '',
+  title VARCHAR(500) NOT NULL DEFAULT '',
+  status VARCHAR(10) NOT NULL DEFAULT 'active',
+  note VARCHAR(500) NOT NULL DEFAULT '',
+  document_id INT NULL,
+  url VARCHAR(500) NOT NULL DEFAULT '',
+  sort_order INT NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_cat_sort (category_id, sort_order),
+  INDEX idx_parent (parent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    $log("= doc_toc (ตาราง)");
+
     /* settings เริ่มต้นใหม่ (เพิ่มเฉพาะที่ยังไม่มี) */
     $ins = $pdo->prepare('INSERT IGNORE INTO settings (skey, sval) VALUES (?, ?)');
     $ins->execute(['a11y_bar', '1']);

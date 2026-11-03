@@ -21,6 +21,8 @@ const TRASH_KEEP_DAYS = 30;
  *   label     = คอลัมน์ที่ใช้เป็นชื่อรายการในถังขยะ
  *   files     = คอลัมน์ที่เก็บ path ไฟล์ (จะถูกย้ายเข้าถังขยะ ไม่ถูกลบ)
  *   children  = ตารางลูกที่ต้องเก็บ/กู้คืนไปด้วย [table, fk, files]
+ *   tree      = คอลัมน์ที่ผูกตัวเอง (เช่น parent_id) — เก็บลูกหลานทุกชั้นในตารางเดียวกันไปด้วย
+ *               ตอนกู้คืนจะออกเลขใหม่แล้วโยงพ่อ-ลูกกลับให้ถูกต้อง
  */
 function trash_types(): array {
     return [
@@ -48,6 +50,7 @@ function trash_types(): array {
         'complaints'    => ['kind' => 'เรื่องร้องเรียน', 'label' => 'subject', 'files' => ['file']],
         'menu_items'    => ['kind' => 'เมนูนำทาง',       'label' => 'label', 'files' => []],
         'org_chart_nodes' => ['kind' => 'ผังโครงสร้างหน่วยงาน', 'label' => 'label', 'files' => []],
+        'doc_toc'       => ['kind' => 'หัวข้อสารบัญเอกสาร', 'label' => 'title', 'files' => [], 'tree' => 'parent_id'],
         'media'         => ['kind' => 'ไฟล์ในคลังสื่อ',  'label' => 'orig',  'files' => ['path']],
     ];
 }
@@ -126,6 +129,24 @@ function trash_delete(string $table, int $id, ?string $by = null): bool {
         }
     }
 
+    /* ลูกหลานทุกชั้นในตารางเดียวกัน — ไล่ทีละชั้น พ่อมาก่อนลูกเสมอ (ตอนกู้คืนต้องใส่พ่อก่อน) */
+    $treeIds = [];
+    if (!empty($cfg['tree'])) {
+        $fk = $cfg['tree']; $rows = []; $level = [$id]; $seen = [$id => true];
+        while ($level) {
+            $ph = implode(',', array_fill(0, count($level), '?'));
+            $cs = db()->prepare("SELECT * FROM `$table` WHERE `$fk` IN ($ph) ORDER BY id");
+            $cs->execute($level);
+            $level = [];
+            foreach ($cs->fetchAll() as $cr) {
+                if (isset($seen[(int)$cr['id']])) continue;      /* กันวงวน ถ้าข้อมูลผูกกันเป็นวง */
+                $seen[(int)$cr['id']] = true;
+                $rows[] = $cr; $level[] = (int)$cr['id']; $treeIds[] = (int)$cr['id'];
+            }
+        }
+        if ($rows) $children[] = ['table' => $table, 'fk' => $fk, 'rows' => $rows, 'tree' => true];
+    }
+
     /* ย้ายไฟล์ของแถวหลัก */
     foreach (($cfg['files'] ?? []) as $fc) {
         if (!empty($row[$fc]) && trash_stash_file($uid, $row[$fc])) $files[] = $row[$fc];
@@ -154,6 +175,9 @@ function trash_delete(string $table, int $id, ?string $by = null): bool {
     /* ลบของจริง (ลูกก่อน แล้วค่อยแม่) */
     foreach (($cfg['children'] ?? []) as $ch) {
         db()->prepare("DELETE FROM `{$ch['table']}` WHERE `{$ch['fk']}` = ?")->execute([$id]);
+    }
+    foreach (array_chunk($treeIds, 500) as $chunk) {
+        db()->prepare("DELETE FROM `$table` WHERE id IN (" . implode(',', array_fill(0, count($chunk), '?')) . ')')->execute($chunk);
     }
     db()->prepare("DELETE FROM `$table` WHERE id = ?")->execute([$id]);
     return true;
@@ -190,8 +214,19 @@ function trash_restore(int $trashId): array {
         /* แถวลูก */
         $children = json_decode((string)($t['children'] ?? ''), true) ?: [];
         foreach ($children as $ch) {
+            $map = [(int)$t['row_id'] => $newId];       /* เลขเดิม → เลขใหม่ (ใช้กับแบบ tree) */
             foreach (($ch['rows'] ?? []) as $cr) {
+                $oldId = (int)($cr['id'] ?? 0);
                 unset($cr['id']);                       /* ให้ระบบออกเลขใหม่ */
+                if (!empty($ch['tree'])) {
+                    $cr[$ch['fk']] = $map[(int)$cr[$ch['fk']]] ?? $newId;
+                    $ccols = array_keys($cr);
+                    $cph   = implode(',', array_fill(0, count($ccols), '?'));
+                    db()->prepare("INSERT INTO `{$ch['table']}` (`" . implode('`,`', $ccols) . "`) VALUES ($cph)")
+                        ->execute(array_values($cr));
+                    $map[$oldId] = (int)db()->lastInsertId();
+                    continue;
+                }
                 $cr[$ch['fk']] = $newId;
                 $ccols = array_keys($cr);
                 $cph   = implode(',', array_fill(0, count($ccols), '?'));

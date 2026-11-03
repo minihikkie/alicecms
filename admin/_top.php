@@ -76,6 +76,8 @@ $menu_groups = [
     ]],
 ];
 $current = basename($_SERVER['SCRIPT_NAME'] ?? '');
+/* หน้าย่อยที่ไม่มีเมนูของตัวเอง → ให้เมนูแม่ติดสถานะ "กำลังอยู่" */
+$current = ['doc-book.php' => 'documents.php'][$current] ?? $current;
 $flash = flash_get();
 ?>
 <!DOCTYPE html>

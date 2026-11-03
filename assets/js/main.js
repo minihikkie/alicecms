@@ -699,3 +699,171 @@
     }
   }
 })();
+
+/* ══ สารบัญเอกสารแบบหนังสือ — ค้นหา · กรองสถานะ · ขยาย/ย่อ · สารบัญด้านข้าง · ลิงก์ตรงหัวข้อ (#t<id>) ══
+   เนื้อหาเป็น <details> ล้วน ปิด JS ก็ยังกางอ่านได้ ส่วนนี้แค่เพิ่มความสะดวก */
+(function () {
+  var root = document.querySelector('[data-bk]');
+  if (!root) return;
+  var parts = Array.prototype.slice.call(root.querySelectorAll('.bk-part'));
+  var tools = document.querySelector('[data-bk-tools]');
+  var input = document.querySelector('[data-bk-q]');
+  var countEl = document.querySelector('[data-bk-count]');
+  var noneEl = document.querySelector('[data-bk-none]');
+  var navBox = document.querySelector('[data-bk-navbox]');
+  var navOl = navBox ? navBox.querySelector('ol') : null;
+  var navLinks = {};
+  document.querySelectorAll('[data-bk-nav]').forEach(function (a) { navLinks[a.getAttribute('data-bk-nav')] = a; });
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var filter = 'all';
+
+  if (tools) tools.hidden = false;
+  var printBtn = document.querySelector('[data-bk-print]');
+  if (printBtn) { printBtn.hidden = false; printBtn.addEventListener('click', function () { window.print(); }); }
+
+  /* ความสูงหัวเว็บที่ติดบนจอ (ผู้ดูแลตั้งหัวเว็บแบบไม่ติดได้ → 0) */
+  function setTop() {
+    var hd = document.querySelector('.topbar'), h = 0;
+    if (hd) { var pos = getComputedStyle(hd).position; if (pos === 'sticky' || pos === 'fixed') h = Math.round(hd.getBoundingClientRect().height); }
+    document.querySelectorAll('.bk-cover, .bk-tools, .bk-layout').forEach(function (el) { el.style.setProperty('--bk-top', h + 'px'); });
+  }
+  setTop();
+  window.addEventListener('resize', setTop);
+  if (navBox && window.matchMedia('(min-width: 961px)').matches) navBox.open = true;
+
+  /* เทียบคำค้น: ตัวเล็ก + เลขไทยเป็นอารบิก (ความยาวเท่าเดิม ตำแหน่งตัวอักษรจึงตรงกับข้อความจริง) */
+  var TH = '๐๑๒๓๔๕๖๗๘๙';
+  function fold(s) { return String(s || '').toLowerCase().replace(/[๐-๙]/g, function (d) { return String(TH.indexOf(d)); }); }
+
+  parts.forEach(function (p) {
+    p._rows = Array.prototype.slice.call(p.querySelectorAll('.bk-chap, .bk-amend'));
+    p._all = [p.getAttribute('data-s')].concat(p._rows.map(function (r) { return r.getAttribute('data-s'); })).join(' ');
+    p._rep = !!p.querySelector('.bk-chap[data-status="repealed"]');
+  });
+
+  function clearMarks() {
+    root.querySelectorAll('mark.bk-mark').forEach(function (m) {
+      var par = m.parentNode; par.replaceChild(document.createTextNode(m.textContent), m); par.normalize();
+    });
+  }
+  function markIn(el, terms) {
+    var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null), nodes = [], n;
+    while ((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(function (node) {
+      var text = node.nodeValue, f = fold(text), hits = [];
+      terms.forEach(function (t) { var i = f.indexOf(t); while (i > -1) { hits.push([i, i + t.length]); i = f.indexOf(t, i + t.length); } });
+      if (!hits.length) return;
+      hits.sort(function (a, b) { return a[0] - b[0]; });
+      var frag = document.createDocumentFragment(), pos = 0;
+      hits.forEach(function (h) {
+        if (h[0] < pos) return;                                   /* คำค้นซ้อนกัน ข้ามช่วงที่ทับ */
+        if (h[0] > pos) frag.appendChild(document.createTextNode(text.slice(pos, h[0])));
+        var mk = document.createElement('mark'); mk.className = 'bk-mark'; mk.textContent = text.slice(h[0], h[1]);
+        frag.appendChild(mk); pos = h[1];
+      });
+      if (pos < text.length) frag.appendChild(document.createTextNode(text.slice(pos)));
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+
+  function apply() {
+    var terms = fold(input ? input.value : '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    clearMarks();
+    var shown = 0, rowHits = 0;
+    parts.forEach(function (p) {
+      var st = p.getAttribute('data-status');
+      var okStatus = filter === 'all' || (filter === 'active' ? st === 'active' : (st === 'repealed' || p._rep));
+      var okText = !terms.length || terms.every(function (t) { return p._all.indexOf(t) > -1; });
+      var vis = okStatus && okText;
+      p.hidden = !vis;
+      if (navLinks[p.id.slice(1)]) navLinks[p.id.slice(1)].parentNode.hidden = !vis;
+      /* บทที่ยกเลิก: ซ่อนตอนดู "มีผลใช้บังคับ" · ดู "ยกเลิกแล้ว" ในลักษณะที่ยังมีผล = โชว์เฉพาะบทที่ยกเลิก */
+      p._rows.forEach(function (r) {
+        if (!r.classList.contains('bk-chap')) return;
+        var rs = r.getAttribute('data-status');
+        r.hidden = (filter === 'active' && rs === 'repealed') || (filter === 'repealed' && st !== 'repealed' && rs !== 'repealed');
+      });
+      if (!vis) return;
+      shown++;
+      if (terms.length) {
+        p._rows.forEach(function (r) {
+          var s = r.getAttribute('data-s');
+          if (terms.every(function (t) { return s.indexOf(t) > -1; })) rowHits++;
+        });
+        if (!p.open) { p.open = true; p.setAttribute('data-bk-auto', ''); }
+        markIn(p, terms);
+      } else if (p.hasAttribute('data-bk-auto')) {
+        p.open = false; p.removeAttribute('data-bk-auto');
+      }
+    });
+    if (noneEl) noneEl.hidden = shown > 0;
+    if (countEl) {
+      countEl.textContent = (terms.length || filter !== 'all')
+        ? 'แสดง ' + shown + ' จาก ' + parts.length + ' ลักษณะ' + (terms.length && rowHits ? ' · พบในหัวข้อย่อย ' + rowHits + ' รายการ' : '')
+        : '';
+    }
+  }
+
+  var tm = null;
+  if (input) {
+    input.addEventListener('input', function () { clearTimeout(tm); tm = setTimeout(apply, 140); });
+    input.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && input.value) { input.value = ''; apply(); } });
+  }
+  document.querySelectorAll('[data-bk-f]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      filter = b.getAttribute('data-bk-f');
+      document.querySelectorAll('[data-bk-f]').forEach(function (x) { x.setAttribute('aria-checked', x === b ? 'true' : 'false'); });
+      apply();
+    });
+  });
+  document.querySelectorAll('[data-bk-all]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var open = b.getAttribute('data-bk-all') === '1';
+      parts.forEach(function (p) { if (!p.hidden) p.open = open; p.removeAttribute('data-bk-auto'); });
+    });
+  });
+
+  /* ไปที่หัวข้อ: กางลักษณะที่ครอบอยู่ก่อน แล้วค่อยเลื่อน (หัวข้อในลักษณะที่ปิดอยู่ไม่มีตำแหน่งบนจอ) */
+  function go(id, smooth) {
+    var el = document.getElementById(id);
+    if (!el || !root.contains(el)) return false;
+    var part = el.closest('.bk-part');
+    if (part) { part.hidden = false; part.open = true; }
+    el.scrollIntoView({ block: el === part ? 'start' : 'center', behavior: smooth && !reduce ? 'smooth' : 'instant' });
+    var flash = el.classList.contains('bk-part') ? el.querySelector('.bk-sum') : el;
+    flash.classList.remove('bk-flash'); void flash.offsetWidth; flash.classList.add('bk-flash');
+    return true;
+  }
+  Object.keys(navLinks).forEach(function (id) {
+    navLinks[id].addEventListener('click', function (ev) {
+      if (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button === 1) return;
+      ev.preventDefault();
+      if (go('t' + id, true)) history.replaceState(null, '', '#t' + id);
+      if (navBox && !window.matchMedia('(min-width: 961px)').matches) navBox.open = false;
+    });
+  });
+  if (/^#t\d+$/.test(location.hash)) setTimeout(function () { go(location.hash.slice(1), false); }, 120);
+  window.addEventListener('hashchange', function () { if (/^#t\d+$/.test(location.hash)) go(location.hash.slice(1), true); });
+
+  /* สารบัญด้านข้างไฮไลต์ลักษณะที่กำลังอ่าน — เลื่อนรายการในกรอบเอง ไม่ใช้ scrollIntoView (จะลากทั้งหน้าไปด้วย) */
+  if ('IntersectionObserver' in window && navOl) {
+    var current = null;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var a = navLinks[en.target.id.slice(1)];
+        if (!a || a === current) return;
+        if (current) current.classList.remove('on');
+        current = a; a.classList.add('on');
+        var top = a.offsetTop - navOl.offsetTop, h = navOl.clientHeight;
+        if (top < navOl.scrollTop || top > navOl.scrollTop + h - 40) navOl.scrollTop = Math.max(0, top - h / 3);
+      });
+    }, { rootMargin: '-35% 0px -60% 0px' });
+    parts.forEach(function (p) { io.observe(p); });
+  }
+
+  /* พิมพ์: กางทุกลักษณะ แล้วคืนสภาพเดิมหลังพิมพ์ */
+  var before = [];
+  window.addEventListener('beforeprint', function () { before = parts.map(function (p) { return p.open; }); parts.forEach(function (p) { p.open = true; }); });
+  window.addEventListener('afterprint', function () { parts.forEach(function (p, i) { p.open = !!before[i]; }); });
+})();
