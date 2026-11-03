@@ -716,6 +716,7 @@
   document.querySelectorAll('[data-bk-nav]').forEach(function (a) { navLinks[a.getAttribute('data-bk-nav')] = a; });
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var filter = 'all';
+  var unit = root.getAttribute('data-bk-unit') || 'หัวข้อ';   /* ชื่อเรียกชั้น 1 ของหมวด (ลักษณะ / ปี / กฎหมาย …) */
 
   if (tools) tools.hidden = false;
   var printBtn = document.querySelector('[data-bk-print]');
@@ -777,7 +778,7 @@
       var vis = okStatus && okText;
       p.hidden = !vis;
       if (navLinks[p.id.slice(1)]) navLinks[p.id.slice(1)].parentNode.hidden = !vis;
-      /* บทที่ยกเลิก: ซ่อนตอนดู "มีผลใช้บังคับ" · ดู "ยกเลิกแล้ว" ในลักษณะที่ยังมีผล = โชว์เฉพาะบทที่ยกเลิก */
+      /* ชั้น 2 ที่ยกเลิก: ซ่อนตอนดูสถานะปกติ · ดูสถานะยกเลิกในชั้น 1 ที่ยังมีผล = โชว์เฉพาะชั้น 2 ที่ยกเลิก */
       p._rows.forEach(function (r) {
         if (!r.classList.contains('bk-chap')) return;
         var rs = r.getAttribute('data-status');
@@ -799,7 +800,7 @@
     if (noneEl) noneEl.hidden = shown > 0;
     if (countEl) {
       countEl.textContent = (terms.length || filter !== 'all')
-        ? 'แสดง ' + shown + ' จาก ' + parts.length + ' ลักษณะ' + (terms.length && rowHits ? ' · พบในหัวข้อย่อย ' + rowHits + ' รายการ' : '')
+        ? 'แสดง ' + shown + ' จาก ' + parts.length + ' ' + unit + (terms.length && rowHits ? ' · พบในหัวข้อย่อย ' + rowHits + ' รายการ' : '')
         : '';
     }
   }

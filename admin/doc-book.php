@@ -1,6 +1,9 @@
 <?php
 /**
- * admin/doc-book.php — จัดการสารบัญแบบหนังสือของหมวดเอกสาร (ลักษณะ → บท → ฉบับแก้ไขเพิ่มเติม)
+ * admin/doc-book.php — จัดการสารบัญแบบหนังสือของหมวดเอกสาร
+ *
+ * โครงสร้าง 3 ชั้น (ชั้น 1 → ชั้น 2 → รายการประกอบ) ชื่อเรียกแต่ละชั้นตั้งได้ต่อหมวดที่ "รูปแบบเล่ม"
+ * เช่น ประมวล: ลักษณะ → บท → ฉบับแก้ไข · วารสาร: ปี → ฉบับ → บทความ · กฎหมาย: ชื่อ พ.ร.บ. → หมวด → กฎหมายลำดับรอง
  *
  * ใส่ข้อมูลได้ 2 ทาง
  *   1) ทีละหัวข้อด้วยฟอร์มในหน้านี้
@@ -15,7 +18,8 @@ $catId = (int)($_GET['cat'] ?? $_POST['cat'] ?? 0);
 $cat = docbook_category($catId);
 if (!$cat) { flash_set('danger', 'ไม่พบหมวดเอกสาร'); redirect('admin/documents.php'); }
 $self = 'admin/doc-book.php?cat=' . $catId;
-$kinds = docbook_kinds();
+$conf  = docbook_conf($cat);
+$kinds = docbook_kinds($conf);
 
 /* ── ส่งออก / ดาวน์โหลดไฟล์สำรอง (ก่อนพิมพ์หน้า) ── */
 if (isset($_GET['export'])) {
@@ -58,7 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($act === 'settings') {
         $layout = ($_POST['layout'] ?? 'book') === 'list' ? 'list' : 'book';
         $intro  = mb_substr(trim((string)($_POST['intro'] ?? '')), 0, 600);
-        db()->prepare('UPDATE doc_categories SET layout = ?, intro = ? WHERE id = ?')->execute([$layout, $intro, $catId]);
+        /* แม่แบบสำเร็จรูปเก็บแค่ชื่อแม่แบบ (คำเรียกตามแม่แบบล่าสุดเสมอ) · กำหนดเองเก็บทุกช่องที่กรอก */
+        $preset = (string)($_POST['preset'] ?? '');
+        if (!isset(docbook_presets()[$preset])) $preset = $conf['preset'];
+        $bk = is_array($_POST['bk'] ?? null) ? $_POST['bk'] : [];
+        $newConf = $preset === 'custom' ? docbook_conf_clean($bk, 'custom') : ['preset' => $preset];
+        db()->prepare('UPDATE doc_categories SET layout = ?, intro = ?, book_conf = ? WHERE id = ?')
+            ->execute([$layout, $intro, json_encode($newConf, JSON_UNESCAPED_UNICODE), $catId]);
         log_action('ตั้งค่าสารบัญเอกสาร', $cat['name']);
         flash_set('success', $layout === 'book' ? 'บันทึกแล้ว — หน้าเว็บแสดงหมวดนี้เป็นสารบัญแบบหนังสือ' : 'บันทึกแล้ว — หน้าเว็บกลับไปแสดงหมวดนี้เป็นรายการไฟล์');
         redirect($self);
@@ -118,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (!$importErrors) {
             $json = preg_replace('/^\xEF\xBB\xBF/', '', $json) ?? '';      /* BOM จาก Notepad */
-            [$flat, $importErrors, $importWarn] = docbook_validate($json, $catId);
+            [$flat, $importErrors, $importWarn] = docbook_validate($json, $catId, $conf);
         }
         if (!$importErrors) {
             $bak = $replace ? docbook_backup($cat) : '';
@@ -150,16 +160,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $urlIn  = trim((string)($_POST['url'] ?? ''));
         $link   = ext_link_clean($urlIn);
 
-        if ($label === '' && $title === '') $errors[] = 'กรอกป้าย (เช่น บทที่ 1) หรือชื่อเรื่องอย่างน้อยหนึ่งช่อง';
+        if ($label === '' && $title === '') $errors[] = 'กรอกป้ายเลขหรือชื่อเรื่องอย่างน้อยหนึ่งช่อง';
+        /* หมวดที่ไม่ใช้สถานะ: ฟอร์มไม่มีช่องสถานะ → คงค่าเดิมไว้ ไม่เผลอล้าง */
+        if (empty($conf['status'])) $status = $old['status'] ?? 'active';
         if ($urlIn !== '' && $link === '') $errors[] = 'ลิงก์ต้องขึ้นต้นด้วย https:// — คัดลอกจากช่องที่อยู่ของเบราว์เซอร์มาวางให้ครบ';
 
-        /* โครงสร้างที่อนุญาต: ลักษณะอยู่บนสุด · บทอยู่ใต้ลักษณะ · ฉบับแก้ไขอยู่ใต้ลักษณะหรือบท */
+        /* โครงสร้างที่อนุญาต: ชั้น 1 อยู่บนสุด · ชั้น 2 อยู่ใต้ชั้น 1 · รายการประกอบอยู่ใต้ชั้น 1 หรือชั้น 2 */
         if ($kind === 'part') {
             $parent = null;
         } else {
             $p = $parent ? $getRow($parent) : null;
             $okParent = $p && ($kind === 'chapter' ? $p['kind'] === 'part' : in_array($p['kind'], ['part', 'chapter'], true));
-            if (!$okParent) $errors[] = $kind === 'chapter' ? 'เลือกลักษณะที่บทนี้อยู่' : 'เลือกลักษณะหรือบทที่ฉบับแก้ไขนี้แก้';
+            if (!$okParent) $errors[] = $kind === 'chapter'
+                ? 'เลือก' . $conf['l1'] . 'ที่' . $conf['l2'] . 'นี้อยู่'
+                : 'เลือก' . $conf['l1'] . 'หรือ' . $conf['l2'] . 'ที่' . $conf['l3'] . 'นี้อยู่ใต้';
         }
         if ($old && $old['kind'] !== $kind) {
             $c = db()->prepare('SELECT COUNT(*) FROM doc_toc WHERE parent_id = ?');
@@ -204,7 +218,8 @@ $st = db()->prepare('SELECT id, title, ext, ext_url FROM documents WHERE categor
 $st->execute([$catId]);
 $docs = $st->fetchAll();
 $linkedDocs = [];
-foreach ($rows as $r) if (!empty($r['document_id'])) $linkedDocs[(int)$r['document_id']] = true;
+/* นับเฉพาะเอกสารที่ยังมีอยู่ (หัวข้อที่ชี้เอกสารซึ่งถูกลบไปแล้วไม่นับ) */
+foreach ($rows as $r) if (!empty($r['document_id']) && isset($r['doc_title'])) $linkedDocs[(int)$r['document_id']] = true;
 
 /* ฟอร์ม: แก้ไข (?edit=) หรือเพิ่ม (?add=kind&parent=) */
 $edit = isset($_GET['edit']) ? ($byId[(int)$_GET['edit']] ?? null) : null;
@@ -212,7 +227,7 @@ $addKind = isset($kinds[$_GET['add'] ?? '']) ? $_GET['add'] : '';
 $addParent = (int)($_GET['parent'] ?? 0) ?: null;
 if (!$edit && $addKind === '') $addKind = $tree ? 'chapter' : 'part';
 if (!$edit && $addKind !== 'part' && $addParent === null) {
-    /* ค่าเริ่มต้น: ใต้ลักษณะสุดท้าย */
+    /* ค่าเริ่มต้น: ใต้หัวข้อชั้น 1 ตัวสุดท้าย */
     $lastPart = end($tree);
     $addParent = $lastPart ? (int)$lastPart['id'] : null;
     if (!$lastPart) $addKind = 'part';
@@ -227,7 +242,7 @@ foreach ($rows as $r) {
 $f = [
     'kind'   => old('kind', $fKind),
     'parent' => (int)old('parent_id', (string)($fParent ?? 0)),
-    'label'  => old('label', $edit['label'] ?? docbook_next_label($prevLabel, $fKind)),
+    'label'  => old('label', $edit['label'] ?? docbook_next_label($prevLabel, $fKind, $conf)),
     'title'  => old('title', $edit['title'] ?? ''),
     'status' => old('status', $edit['status'] ?? 'active'),
     'note'   => old('note', $edit['note'] ?? ''),
@@ -240,7 +255,7 @@ if ($edit) foreach ($rows as $r) if ((int)($r['parent_id'] ?? 0) === (int)$edit[
 $backups = docbook_backups($catId);
 
 /** ปุ่มจัดการของแถวในต้นไม้ */
-$rowActions = function (array $n) use ($self): string {
+$rowActions = function (array $n) use ($self, $conf): string {
     $id = (int)$n['id'];
     $h = '<span class="dbk-acts">';
     foreach (['up' => 'arrow_upward', 'down' => 'arrow_downward'] as $dir => $ic) {
@@ -248,21 +263,34 @@ $rowActions = function (array $n) use ($self): string {
             . '<input type="hidden" name="dir" value="' . $dir . '"><button class="btn small ghost" type="submit" title="' . ($dir === 'up' ? 'เลื่อนขึ้น' : 'เลื่อนลง') . '"><span class="material-symbols-rounded icon-sm">' . $ic . '</span></button></form>';
     }
     $h .= '<a class="btn small" href="' . e(url($self . '&edit=' . $id . '#form')) . '">แก้ไข</a>';
-    if ($n['kind'] === 'part') $h .= '<a class="btn small" href="' . e(url($self . '&add=chapter&parent=' . $id . '#form')) . '" title="เพิ่มบทในลักษณะนี้">+ บท</a>';
-    if ($n['kind'] !== 'amend') $h .= '<a class="btn small" href="' . e(url($self . '&add=amend&parent=' . $id . '#form')) . '" title="เพิ่มฉบับแก้ไขเพิ่มเติม">+ ฉบับแก้ไข</a>';
+    if ($n['kind'] === 'part') $h .= '<a class="btn small" href="' . e(url($self . '&add=chapter&parent=' . $id . '#form')) . '" title="' . e('เพิ่ม' . $conf['l2'] . 'ใน' . $conf['l1'] . 'นี้') . '">+ ' . e($conf['l2']) . '</a>';
+    if ($n['kind'] !== 'amend') $h .= '<a class="btn small" href="' . e(url($self . '&add=amend&parent=' . $id . '#form')) . '" title="' . e('เพิ่ม' . $conf['l3']) . '">+ ' . e(docbook_short($conf['l3'])) . '</a>';
     $nKids = count($n['chapters']) + count($n['amends']);
     $h .= '<form method="post" action="">' . csrf_field() . '<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="' . $id . '">'
         . '<button class="btn small danger" type="submit" data-confirm="' . e('ลบ «' . trim($n['label'] . ' ' . $n['title']) . '»' . ($nKids ? ' พร้อมหัวข้อย่อยทั้งหมด' : '') . '? (กู้คืนได้จากถังขยะ)') . '">ลบ</button></form>';
     return $h . '</span>';
 };
 /** ป้ายสถานะ/ลิงก์ของแถว */
-$rowBadges = function (array $n): string {
+$rowBadges = function (array $n) use ($conf): string {
     $h = '';
-    if ($n['status'] === 'repealed') $h .= '<span class="badge danger" style="font-size:11px;">ยกเลิก</span>';
+    if (!empty($conf['status']) && $n['status'] === 'repealed') $h .= '<span class="badge danger" style="font-size:11px;">' . e($conf['s_off']) . '</span>';
     if (!empty($n['document_id']) && isset($n['doc_title'])) $h .= '<span class="badge" style="font-size:11px;" title="' . e($n['doc_title']) . '"><span class="material-symbols-rounded icon-sm">description</span>เอกสาร</span>';
     elseif ($n['url'] !== '') $h .= '<span class="badge" style="font-size:11px;"><span class="material-symbols-rounded icon-sm">link</span>ลิงก์</span>';
     return $h;
 };
+
+$presets = docbook_presets();
+/* ค่าของแม่แบบทั้งหมด ส่งให้ JS เติมช่องเมื่อเลือกแม่แบบ (กำหนดเอง = ค่าปัจจุบันของหมวด) */
+$presetJs = [];
+foreach (array_keys($presets) as $k) $presetJs[$k] = $k === 'custom' ? array_diff_key($conf, ['preset' => 1, 'cat_icon' => 1, 'guessed' => 1]) : docbook_conf_clean([], $k);
+$useStatus = !empty($conf['status']);
+$levelRows = [
+    ['l1', 'p1', 'ชั้นที่ 1', 'หัวข้อหลักของเล่ม'],
+    ['l2', 'p2', 'ชั้นที่ 2', 'หัวข้อย่อยใต้ชั้นที่ 1'],
+    ['l3', 'p3', 'รายการประกอบ', 'แนบใต้ชั้นที่ 1 หรือ 2 เช่น ฉบับแก้ไข บทความ เอกสารแนบ'],
+];
+/** ตัวอย่างป้ายของแต่ละชั้น ("ลักษณะที่ 1" หรือ "«ชื่อกฎหมาย»" ถ้าไม่มีเลข) */
+$sample = fn(string $l, string $p): string => $p !== '' ? $p . ' 1' : '«ชื่อ' . $l . '»';
 
 $admin_title = 'สารบัญ: ' . $cat['name'];
 require __DIR__ . '/_top.php';
@@ -285,32 +313,83 @@ require __DIR__ . '/_top.php';
 
 <?php if (($cat['layout'] ?? 'list') !== 'book'): ?>
 <div class="alert warning"><span class="material-symbols-rounded">visibility_off</span>
-  <div>หมวดนี้ยังแสดงบนหน้าเว็บเป็น <b>รายการไฟล์</b> — สารบัญที่จัดไว้จะยังไม่ปรากฏจนกว่าจะเลือก "สารบัญแบบหนังสือ" ในช่องตั้งค่าด้านล่าง</div>
+  <div>หมวดนี้ยังแสดงบนหน้าเว็บเป็น <b>รายการไฟล์</b> — สารบัญที่จัดไว้จะยังไม่ปรากฏจนกว่าจะเลือก "แสดงเป็นสารบัญแบบหนังสือ" ในการ์ดรูปแบบเล่มด้านล่าง</div>
 </div>
 <?php endif; ?>
 
+<!-- ภาพรวมเล่ม -->
+<div class="card mb-2">
+  <div class="section-head dbk-head">
+    <div class="dbk-head-t">
+      <span class="tag">TABLE OF CONTENTS</span>
+      <h3><?= e($cat['name']) ?></h3>
+      <p class="dbk-path"><span class="material-symbols-rounded icon-sm">account_tree</span>
+        <?= e($presets[$conf['preset']][0]) ?> · <b><?= e($conf['l1']) ?></b> › <b><?= e($conf['l2']) ?></b> › <b><?= e($conf['l3']) ?></b></p>
+    </div>
+    <a class="btn small" href="<?= e(url('documents.php?cat=' . $catId)) ?>" target="_blank" rel="noopener"><span class="material-symbols-rounded icon-sm">open_in_new</span>ดูหน้าเว็บ</a>
+  </div>
+  <div class="dbk-stats">
+    <div><b><?= number_format($stats['part']) ?></b><span><?= e($conf['l1']) ?></span></div>
+    <div><b><?= number_format($stats['chapter']) ?></b><span><?= e($conf['l2']) ?></span></div>
+    <div><b><?= number_format($stats['amend']) ?></b><span><?= e(docbook_short($conf['l3'])) ?></span></div>
+    <?php if ($useStatus): ?><div><b><?= number_format($stats['rep_any']) ?></b><span><?= e($conf['s_off']) ?></span></div><?php endif; ?>
+    <div><b><?= count($linkedDocs) ?><small>/<?= count($docs) ?></small></b><span>ไฟล์ในหมวดที่ผูกแล้ว</span></div>
+  </div>
+</div>
+
 <div class="dbk-top mb-2">
-  <!-- ภาพรวม -->
+  <!-- รูปแบบเล่ม -->
   <div class="card">
     <div class="section-head" style="margin-bottom:10px;">
-      <div><span class="tag">TABLE OF CONTENTS</span><h3><?= e($cat['name']) ?></h3></div>
-      <a class="btn small" href="<?= e(url('documents.php?cat=' . $catId)) ?>" target="_blank" rel="noopener"><span class="material-symbols-rounded icon-sm">open_in_new</span>ดูหน้าเว็บ</a>
+      <div><span class="tag">STRUCTURE</span><h3>รูปแบบเล่ม</h3>
+      <p>เลือกให้ตรงกับประเภทเอกสาร — ชื่อเรียกแต่ละชั้นจะใช้ทั้งบนหน้าเว็บ ตัวเลขสรุป ปุ่ม และช่องค้นหา</p></div>
     </div>
-    <div class="dbk-stats">
-      <div><b><?= $stats['part'] ?></b><span>ลักษณะ</span></div>
-      <div><b><?= $stats['chapter'] ?></b><span>บท</span></div>
-      <div><b><?= $stats['amend'] ?></b><span>ฉบับแก้ไข</span></div>
-      <div><b><?= $stats['repealed'] ?></b><span>ลักษณะที่ยกเลิก</span></div>
-      <div><b><?= count($linkedDocs) ?>/<?= count($docs) ?></b><span>เอกสารในหมวดที่ผูกแล้ว</span></div>
-    </div>
-    <form method="post" action="" class="mt-2">
+    <?php if (!empty($conf['guessed'])): ?>
+    <div class="alert info" style="font-size:13px;margin-top:0;"><span class="material-symbols-rounded">auto_awesome</span>
+      <div>ระบบเลือก "<?= e($presets[$conf['preset']][0]) ?>" ให้จากชื่อหมวด — ถ้าไม่ตรง เลือกแบบอื่นแล้วกดบันทึก</div></div>
+    <?php endif; ?>
+    <form method="post" action="" data-dbk-conf data-presets="<?= e(json_encode($presetJs, JSON_UNESCAPED_UNICODE)) ?>">
       <?= csrf_field() ?><input type="hidden" name="action" value="settings">
-      <label>คำอธิบายใต้ชื่อเล่ม <span class="text-muted">(ไม่บังคับ · ไม่เกิน 600 ตัวอักษร)</span></label>
-      <textarea name="intro" rows="2" maxlength="600" class="mb-2" placeholder="เช่น รวบรวมประมวลระเบียบการตำรวจไม่เกี่ยวกับคดีทุกลักษณะ พร้อมฉบับแก้ไขเพิ่มเติม จัดเรียงตามโครงสร้างของเล่ม"><?= e($cat['intro'] ?? '') ?></textarea>
+      <div class="dbk-presets" role="radiogroup" aria-label="แม่แบบ">
+        <?php foreach ($presets as $k => [$pt, $pe]): ?>
+        <label class="dbk-preset">
+          <input type="radio" name="preset" value="<?= e($k) ?>" <?= $conf['preset'] === $k ? 'checked' : '' ?>>
+          <span><b><?= e($pt) ?></b><small><?= e($pe) ?></small></span>
+        </label>
+        <?php endforeach; ?>
+      </div>
+
+      <details class="dbk-names" <?= $conf['preset'] === 'custom' ? 'open' : '' ?>>
+        <summary>ชื่อเรียกแต่ละชั้น <span class="text-muted">(แก้ช่องใดก็ได้ ระบบเปลี่ยนเป็น "กำหนดเอง" ให้)</span></summary>
+        <table class="dbk-ntable">
+          <tr><th></th><th>ชื่อเรียก</th><th>คำนำหน้าเลข <span class="text-muted">(ว่าง = ไม่มีเลข)</span></th></tr>
+          <?php foreach ($levelRows as [$lk, $pk, $lt, $ld]): ?>
+          <tr><td><b><?= e($lt) ?></b><small><?= e($ld) ?></small></td>
+            <td><input type="text" name="bk[<?= $lk ?>]" value="<?= e($conf[$lk]) ?>" maxlength="40" required data-bk-field></td>
+            <td><input type="text" name="bk[<?= $pk ?>]" value="<?= e($conf[$pk]) ?>" maxlength="30" data-bk-field placeholder="เช่น <?= e($lk === 'l1' ? 'ลักษณะที่' : ($lk === 'l2' ? 'บทที่' : 'ฉบับที่')) ?>"></td></tr>
+          <?php endforeach; ?>
+          <tr><td><b>ไอคอนรายการประกอบ</b></td>
+            <td colspan="2"><div class="icon-pick-wrap">
+              <span class="material-symbols-rounded icon-pick-preview" data-icon-preview><?= e($conf['icon3']) ?></span>
+              <input type="text" name="bk[icon3]" value="<?= e($conf['icon3']) ?>" data-icon-input data-icon-default="edit_document" data-bk-field style="width:170px;" autocomplete="off">
+            </div></td></tr>
+          <tr><td><b>สถานะ</b><small>สำหรับกฎหมาย/ระเบียบที่ถูกยกเลิกได้</small></td>
+            <td colspan="2"><input type="hidden" name="bk[status]" value="0">
+              <label class="dbk-radio"><input type="checkbox" name="bk[status]" value="1" <?= $useStatus ? 'checked' : '' ?> data-bk-field> ใช้สถานะ</label>
+              <span class="flex gap-1 mt-1" style="flex-wrap:wrap;">
+                <input type="text" name="bk[s_on]" value="<?= e($conf['s_on']) ?>" maxlength="30" style="width:150px;" data-bk-field title="คำเรียกสถานะปกติ">
+                <input type="text" name="bk[s_off]" value="<?= e($conf['s_off']) ?>" maxlength="30" style="width:150px;" data-bk-field title="คำเรียกสถานะยกเลิก">
+              </span></td></tr>
+        </table>
+        <p class="dbk-sample">ตัวอย่างลำดับชั้น: <b data-bk-sample><?= e($sample($conf['l1'], $conf['p1']) . ' › ' . $sample($conf['l2'], $conf['p2']) . ' › ' . $sample($conf['l3'], $conf['p3'])) ?></b></p>
+      </details>
+
+      <label class="mt-2">คำอธิบายใต้ชื่อเล่ม <span class="text-muted">(ไม่บังคับ · ไม่เกิน 600 ตัวอักษร)</span></label>
+      <textarea name="intro" rows="2" maxlength="600" class="mb-2" placeholder="อธิบายสั้นๆ ว่าเล่มนี้รวบรวมอะไร ให้ผู้อ่านเข้าใจก่อนเลือกหัวข้อ"><?= e($cat['intro'] ?? '') ?></textarea>
       <div class="flex gap-1 items-center" style="flex-wrap:wrap;">
         <label class="dbk-radio"><input type="radio" name="layout" value="book" <?= ($cat['layout'] ?? '') === 'book' ? 'checked' : '' ?>> แสดงเป็นสารบัญแบบหนังสือ</label>
         <label class="dbk-radio"><input type="radio" name="layout" value="list" <?= ($cat['layout'] ?? 'list') !== 'book' ? 'checked' : '' ?>> แสดงเป็นรายการไฟล์ (แบบเดิม)</label>
-        <button class="btn small primary" type="submit" style="margin-left:auto;"><span class="material-symbols-rounded icon-sm">save</span>บันทึก</button>
+        <button class="btn small primary" type="submit" style="margin-left:auto;"><span class="material-symbols-rounded icon-sm">save</span>บันทึกรูปแบบเล่ม</button>
       </div>
     </form>
   </div>
@@ -319,7 +398,8 @@ require __DIR__ . '/_top.php';
   <div class="card">
     <div class="section-head" style="margin-bottom:10px;">
       <div><span class="tag">IMPORT · EXPORT</span><h3>นำเข้าทีละมากๆ (JSON)</h3>
-      <p>ใช้เมื่อมีหัวข้อจำนวนมาก — ให้เครื่องมือสร้างไฟล์ตามรูปแบบใน <code>docs/doc-book-format.md</code> แล้วนำเข้าที่นี่ ระบบตรวจทั้งไฟล์ก่อน ถ้าผิดแม้จุดเดียวจะไม่นำเข้าเลย</p></div>
+      <p>ให้เครื่องมือสร้างไฟล์ตามรูปแบบใน <code>docs/doc-book-format.md</code> แล้วนำเข้าที่นี่ ระบบตรวจทั้งไฟล์ก่อน ถ้าผิดแม้จุดเดียวจะไม่นำเข้าเลย</p>
+      <p style="margin-top:4px;">ในไฟล์ <code>part</code> = <?= e($conf['l1']) ?> · <code>chapter</code> = <?= e($conf['l2']) ?> · <code>amend</code> = <?= e($conf['l3']) ?></p></div>
     </div>
     <form method="post" action="" enctype="multipart/form-data">
       <?= csrf_field() ?><input type="hidden" name="action" value="import">
@@ -356,14 +436,14 @@ require __DIR__ . '/_top.php';
   <!-- ต้นไม้สารบัญ -->
   <div class="card">
     <div class="section-head" style="margin-bottom:8px;">
-      <div><span class="tag">STRUCTURE</span><h3>โครงสร้างเล่ม</h3>
-      <p>ลักษณะ → บท → ฉบับแก้ไขเพิ่มเติม · ปุ่มลูกศรเลื่อนลำดับภายในกลุ่มเดียวกัน</p></div>
-      <a class="btn small primary" href="<?= e(url($self . '&add=part#form')) ?>"><span class="material-symbols-rounded icon-sm">add</span>เพิ่มลักษณะ</a>
+      <div><span class="tag">CONTENTS</span><h3>โครงสร้างเล่ม</h3>
+      <p><?= e($conf['l1'] . ' → ' . $conf['l2'] . ' → ' . $conf['l3']) ?> · ปุ่มลูกศรเลื่อนลำดับภายในกลุ่มเดียวกัน</p></div>
+      <a class="btn small primary" href="<?= e(url($self . '&add=part#form')) ?>"><span class="material-symbols-rounded icon-sm">add</span>เพิ่ม<?= e($conf['l1']) ?></a>
     </div>
     <?php if (!$tree): ?>
     <div class="text-center text-muted" style="padding:40px 16px;">
       <span class="material-symbols-rounded icon-xl" style="color:var(--border);">menu_book</span>
-      <p>ยังไม่มีสารบัญ — เริ่มจาก "เพิ่มลักษณะ" หรือนำเข้าไฟล์ JSON</p>
+      <p>ยังไม่มีสารบัญ — เริ่มจาก "เพิ่ม<?= e($conf['l1']) ?>" หรือนำเข้าไฟล์ JSON</p>
     </div>
     <?php else: ?>
     <div class="dbk-tree">
@@ -371,23 +451,23 @@ require __DIR__ . '/_top.php';
       <details class="dbk-part" id="t<?= (int)$p['id'] ?>" <?= ($edit && ((int)$edit['id'] === (int)$p['id'] || (int)($edit['parent_id'] ?? 0) === (int)$p['id'])) || (int)($addParent ?? 0) === (int)$p['id'] ? 'open' : '' ?>>
         <summary class="dbk-row is-part">
           <span class="material-symbols-rounded icon-sm dbk-chev">chevron_right</span>
-          <span class="dbk-lbl"><?= e($p['label']) ?></span>
-          <span class="dbk-ttl"><?= e($p['title']) ?> <span class="text-muted" style="font-size:12px;"><?= count($p['chapters']) ? count($p['chapters']) . ' บท' : '' ?></span></span>
+          <?php if ($p['label'] !== ''): ?><span class="dbk-lbl"><?= e($p['label']) ?></span><?php endif; ?>
+          <span class="dbk-ttl"><?= e($p['title']) ?> <span class="text-muted" style="font-size:12px;"><?= count($p['chapters']) ? count($p['chapters']) . ' ' . e($conf['l2']) : '' ?></span></span>
           <?= $rowBadges($p) ?><?= $rowActions($p) ?>
         </summary>
         <div class="dbk-kids">
           <?php foreach ($p['amends'] as $a): ?>
-          <div class="dbk-row is-amend" id="t<?= (int)$a['id'] ?>"><span class="material-symbols-rounded icon-sm">edit_document</span>
-            <span class="dbk-lbl"><?= e($a['label']) ?></span><span class="dbk-ttl"><?= e($a['title']) ?></span><?= $rowBadges($a) ?><?= $rowActions($a) ?></div>
+          <div class="dbk-row is-amend" id="t<?= (int)$a['id'] ?>"><span class="material-symbols-rounded icon-sm"><?= e($conf['icon3']) ?></span>
+            <?php if ($a['label'] !== ''): ?><span class="dbk-lbl"><?= e($a['label']) ?></span><?php endif; ?><span class="dbk-ttl"><?= e($a['title']) ?></span><?= $rowBadges($a) ?><?= $rowActions($a) ?></div>
           <?php endforeach; ?>
           <?php foreach ($p['chapters'] as $c): ?>
-          <div class="dbk-row is-chap" id="t<?= (int)$c['id'] ?>"><span class="dbk-lbl"><?= e($c['label']) ?></span><span class="dbk-ttl"><?= e($c['title']) ?></span><?= $rowBadges($c) ?><?= $rowActions($c) ?></div>
+          <div class="dbk-row is-chap" id="t<?= (int)$c['id'] ?>"><?php if ($c['label'] !== ''): ?><span class="dbk-lbl"><?= e($c['label']) ?></span><?php endif; ?><span class="dbk-ttl"><?= e($c['title']) ?></span><?= $rowBadges($c) ?><?= $rowActions($c) ?></div>
             <?php foreach ($c['amends'] as $a): ?>
-            <div class="dbk-row is-amend deep" id="t<?= (int)$a['id'] ?>"><span class="material-symbols-rounded icon-sm">edit_document</span>
-              <span class="dbk-lbl"><?= e($a['label']) ?></span><span class="dbk-ttl"><?= e($a['title']) ?></span><?= $rowBadges($a) ?><?= $rowActions($a) ?></div>
+            <div class="dbk-row is-amend deep" id="t<?= (int)$a['id'] ?>"><span class="material-symbols-rounded icon-sm"><?= e($conf['icon3']) ?></span>
+              <?php if ($a['label'] !== ''): ?><span class="dbk-lbl"><?= e($a['label']) ?></span><?php endif; ?><span class="dbk-ttl"><?= e($a['title']) ?></span><?= $rowBadges($a) ?><?= $rowActions($a) ?></div>
             <?php endforeach; ?>
           <?php endforeach; ?>
-          <?php if (!$p['amends'] && !$p['chapters']): ?><div class="text-muted" style="font-size:13px;padding:6px 10px;">ยังไม่มีบท — กด "+ บท" ที่แถวลักษณะ</div><?php endif; ?>
+          <?php if (!$p['amends'] && !$p['chapters']): ?><div class="text-muted" style="font-size:13px;padding:6px 10px;">ยังไม่มี<?= e($conf['l2']) ?> — กด "+ <?= e($conf['l2']) ?>" ที่แถวนี้</div><?php endif; ?>
         </div>
       </details>
       <?php endforeach; ?>
@@ -409,7 +489,7 @@ require __DIR__ . '/_top.php';
       <p class="mb-2" style="font-size:14px;"><b><?= e($kinds[$f['kind']][0]) ?></b> <span class="text-muted">(มีหัวข้อย่อย จึงเปลี่ยนชนิดไม่ได้)</span></p>
       <?php else: ?>
       <select name="kind" class="mb-2" data-dbk-kind>
-        <?php foreach ($kinds as $k => [$kn]): ?><option value="<?= $k ?>" <?= $f['kind'] === $k ? 'selected' : '' ?>><?= e($kn) ?></option><?php endforeach; ?>
+        <?php foreach ($kinds as $k => [$kn]): ?><option value="<?= $k ?>" <?= $f['kind'] === $k ? 'selected' : '' ?>><?= e($kn) ?> (<?= ['part' => 'ชั้นที่ 1', 'chapter' => 'ชั้นที่ 2', 'amend' => 'รายการประกอบ'][$k] ?>)</option><?php endforeach; ?>
       </select>
       <?php endif; ?>
 
@@ -426,20 +506,22 @@ require __DIR__ . '/_top.php';
         </select>
       </div>
 
-      <div class="grid" style="grid-template-columns:150px 1fr;gap:10px;">
-        <div><label>ป้าย</label><input type="text" name="label" value="<?= e($f['label']) ?>" maxlength="80" placeholder="บทที่ 1"></div>
-        <div><label>ชื่อเรื่อง</label><input type="text" name="title" value="<?= e($f['title']) ?>" maxlength="500" placeholder="เช่น การบรรจุ พ.ศ. 2556"></div>
+      <div class="grid" style="grid-template-columns:150px minmax(0,1fr);gap:10px;">
+        <div><label>ป้ายเลข</label><input type="text" name="label" value="<?= e($f['label']) ?>" maxlength="80" placeholder="<?= e($kinds[$f['kind']][1] !== '' ? $kinds[$f['kind']][1] . ' 1' : 'ไม่บังคับ') ?>"></div>
+        <div><label>ชื่อเรื่อง</label><input type="text" name="title" value="<?= e($f['title']) ?>" maxlength="500"></div>
       </div>
 
+      <?php if ($useStatus): ?>
       <label class="mt-2">สถานะ</label>
       <div class="flex gap-1 mb-1" style="flex-wrap:wrap;">
-        <label class="dbk-radio"><input type="radio" name="status" value="active" <?= $f['status'] !== 'repealed' ? 'checked' : '' ?>> มีผลใช้บังคับ</label>
-        <label class="dbk-radio"><input type="radio" name="status" value="repealed" <?= $f['status'] === 'repealed' ? 'checked' : '' ?>> ยกเลิกแล้ว</label>
+        <label class="dbk-radio"><input type="radio" name="status" value="active" <?= $f['status'] !== 'repealed' ? 'checked' : '' ?>> <?= e($conf['s_on']) ?></label>
+        <label class="dbk-radio"><input type="radio" name="status" value="repealed" <?= $f['status'] === 'repealed' ? 'checked' : '' ?>> <?= e($conf['s_off']) ?></label>
       </div>
-      <label>หมายเหตุ <span class="text-muted">(เช่น ยกเลิกโดยคำสั่ง ตร.ที่ 267/2556 ลง 26 เม.ย. 2556)</span></label>
+      <?php endif; ?>
+      <label class="<?= $useStatus ? '' : 'mt-2' ?>">หมายเหตุ / รายละเอียด <span class="text-muted">(เช่น เหตุที่ยกเลิก ชื่อผู้เขียน วันประกาศ)</span></label>
       <input type="text" name="note" value="<?= e($f['note']) ?>" maxlength="500" class="mb-2">
 
-      <label>เอกสารของหัวข้อนี้ <span class="text-muted">(เลือกจากเอกสารที่อัปโหลดไว้ในหมวดนี้)</span></label>
+      <label>เอกสารของหัวข้อนี้ <span class="text-muted">(เลือกจากไฟล์ที่อัปโหลดไว้ในหมวดนี้)</span></label>
       <select name="document_id" class="mb-1">
         <option value="0">— ไม่ผูกเอกสาร —</option>
         <?php foreach ($docs as $d): ?>

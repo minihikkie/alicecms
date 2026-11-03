@@ -1079,3 +1079,42 @@
   kind.addEventListener('change', sync);
   sync();
 })();
+
+/* ══ สารบัญแบบหนังสือ: รูปแบบเล่ม — เลือกแม่แบบแล้วเติมชื่อเรียกให้ · แก้ช่องเองแล้วเปลี่ยนเป็น "กำหนดเอง" ══
+   ฝั่ง PHP ถือค่าแม่แบบเป็นหลักอยู่แล้ว (แม่แบบสำเร็จรูปบันทึกแค่ชื่อแม่แบบ) ส่วนนี้แค่ให้เห็นผลทันที */
+(function () {
+  var form = document.querySelector('[data-dbk-conf]');
+  if (!form) return;
+  var presets = {};
+  try { presets = JSON.parse(form.getAttribute('data-presets') || '{}'); } catch (e) {}
+  var radios = form.querySelectorAll('input[name="preset"]');
+  var names = form.querySelector('.dbk-names');
+  var sample = form.querySelector('[data-bk-sample]');
+  function field(k) { return form.querySelector('[name="bk[' + k + ']"]:not([type=hidden])'); }
+  function lv(l, p) { var a = (field(l).value || '').trim(), b = (field(p).value || '').trim(); return b ? b + ' 1' : '«ชื่อ' + a + '»'; }
+  function paint() { if (sample) sample.textContent = lv('l1', 'p1') + ' › ' + lv('l2', 'p2') + ' › ' + lv('l3', 'p3'); }
+  function fill(c) {
+    ['l1', 'p1', 'l2', 'p2', 'l3', 'p3', 's_on', 's_off', 'icon3'].forEach(function (k) {
+      var el = field(k); if (el && c[k] !== undefined) { el.value = c[k]; el.dispatchEvent(new Event('input')); }
+    });
+    var st = field('status'); if (st && c.status !== undefined) st.checked = !!Number(c.status);
+    paint();
+  }
+  var filling = false;
+  radios.forEach(function (r) {
+    r.addEventListener('change', function () {
+      if (!r.checked) return;
+      if (r.value === 'custom') { if (names) names.open = true; return; }
+      filling = true; if (presets[r.value]) fill(presets[r.value]); filling = false;
+    });
+  });
+  form.querySelectorAll('[data-bk-field]').forEach(function (el) {
+    el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', function () {
+      paint();
+      if (filling) return;
+      var custom = form.querySelector('input[name="preset"][value="custom"]');
+      if (custom && !custom.checked) custom.checked = true;
+    });
+  });
+  paint();
+})();

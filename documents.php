@@ -34,7 +34,8 @@ $cat_name = '';
 $catRow = null;
 foreach ($cats as $c) if ((int)$c['id'] === $cat) { $cat_name = $c['name']; $catRow = $c; }
 
-/* หมวดที่ตั้งเป็น "สารบัญแบบหนังสือ" → แสดงเป็นเล่ม (ลักษณะ → บท → ฉบับแก้ไข)
+/* หมวดที่ตั้งเป็น "สารบัญแบบหนังสือ" → แสดงเป็นเล่ม 3 ชั้น ชื่อเรียกชั้นตามรูปแบบเล่มของหมวด
+   (ประมวล: ลักษณะ → บท → ฉบับแก้ไข · วารสาร: ปี → ฉบับ → บทความ ฯลฯ)
    ?view=list = ดูไฟล์ทั้งหมดของหมวดแบบเดิม · ค้นหาจากช่องค้นหาด้านบน = ผลค้นหาแบบรายการเหมือนเดิม
    ถ้ายังไม่ได้ใส่สารบัญเลย ใช้รายการแบบเดิมไปก่อน หน้าจะได้ไม่ว่าง */
 $isBookCat = $catRow && ($catRow['layout'] ?? 'list') === 'book';
@@ -43,6 +44,7 @@ if ($isBookCat && ($_GET['view'] ?? '') !== 'list' && $q === '') {
     require_once __DIR__ . '/includes/doc-book.php';
     $bookRows = docbook_rows($cat);
     $bookTree = docbook_tree($bookRows);
+    $bookConf = docbook_conf($catRow);
 }
 $showBook = (bool)$bookTree;
 
@@ -82,26 +84,28 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
   <?php if ($showBook):
     $bs = docbook_stats($bookTree);
     $bookUpdated = max(array_map(fn($r) => (string)$r['updated_at'], $bookRows));
+    $useStatus = !empty($bookConf['status']);
+    $hasRep = $useStatus && $bs['rep_any'] > 0;
   ?>
   <section class="bk-cover reveal" aria-labelledby="bk-title">
     <div class="bk-art" aria-hidden="true">
-      <span class="bk-art-ic material-symbols-rounded"><?= e($catRow['icon'] ?: 'menu_book') ?></span>
-      <span class="bk-art-n"><b><?= $bs['part'] ?></b>ลักษณะ</span>
+      <span class="bk-art-ic material-symbols-rounded"><?= e($bookConf['cat_icon']) ?></span>
+      <span class="bk-art-n"><b><?= $bs['part'] ?></b><?= e($bookConf['l1']) ?></span>
     </div>
     <div class="bk-cover-txt">
       <span class="bk-kicker"><span class="material-symbols-rounded icon-sm" aria-hidden="true">menu_book</span>สารบัญเอกสาร</span>
       <h1 id="bk-title"><?= e($cat_name) ?></h1>
       <?php if (trim((string)($catRow['intro'] ?? '')) !== ''): ?><p class="bk-intro"><?= e($catRow['intro']) ?></p><?php endif; ?>
       <dl class="bk-stats">
-        <div><dt>ลักษณะ</dt><dd><?= number_format($bs['part']) ?></dd></div>
-        <div><dt>บท</dt><dd><?= number_format($bs['chapter']) ?></dd></div>
-        <div><dt>ฉบับแก้ไขเพิ่มเติม</dt><dd><?= number_format($bs['amend']) ?></dd></div>
-        <div><dt>มีผลใช้บังคับ</dt><dd class="ok"><?= number_format($bs['active']) ?></dd></div>
-        <?php if ($bs['repealed']): ?><div><dt>ยกเลิกแล้ว</dt><dd class="rep"><?= number_format($bs['repealed']) ?></dd></div><?php endif; ?>
+        <div><dt><?= e($bookConf['l1']) ?></dt><dd><?= number_format($bs['part']) ?></dd></div>
+        <?php if ($bs['chapter']): ?><div><dt><?= e($bookConf['l2']) ?></dt><dd><?= number_format($bs['chapter']) ?></dd></div><?php endif; ?>
+        <?php if ($bs['amend']): ?><div><dt><?= e($bookConf['l3']) ?></dt><dd><?= number_format($bs['amend']) ?></dd></div><?php endif; ?>
+        <?php if ($useStatus): ?><div><dt><?= e($bookConf['s_on']) ?></dt><dd class="ok"><?= number_format($bs['active']) ?></dd></div><?php endif; ?>
+        <?php if ($useStatus && $bs['repealed']): ?><div><dt><?= e($bookConf['s_off']) ?></dt><dd class="rep"><?= number_format($bs['repealed']) ?></dd></div><?php endif; ?>
       </dl>
       <div class="bk-cover-foot">
         <span class="text-muted"><span class="material-symbols-rounded icon-sm" aria-hidden="true">update</span> ปรับปรุงสารบัญ <?= e(thai_date($bookUpdated)) ?></span>
-        <a class="btn small" href="<?= e(url('documents.php?cat=' . $cat . '&view=list')) ?>"><span class="material-symbols-rounded icon-sm">format_list_bulleted</span>ไฟล์ทั้งหมดในหมวด (<?= (int)$catRow['n'] ?>)</a>
+        <?php if ((int)$catRow['n'] > 0): ?><a class="btn small" href="<?= e(url('documents.php?cat=' . $cat . '&view=list')) ?>"><span class="material-symbols-rounded icon-sm">format_list_bulleted</span>ไฟล์ทั้งหมดในหมวด (<?= (int)$catRow['n'] ?>)</a><?php endif; ?>
         <button class="btn small" type="button" data-bk-print hidden><span class="material-symbols-rounded icon-sm">print</span>พิมพ์สารบัญ</button>
       </div>
     </div>
@@ -110,13 +114,15 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
   <div class="bk-tools" data-bk-tools hidden>
     <label class="bk-search">
       <span class="material-symbols-rounded" aria-hidden="true">search</span>
-      <input type="search" data-bk-q placeholder="ค้นหาเลขลักษณะ ชื่อบท หรือคำสำคัญ เช่น การลา, บทที่ 5" aria-label="ค้นหาในสารบัญ" autocomplete="off">
+      <input type="search" data-bk-q placeholder="ค้นหา<?= e($bookConf['l1'] . ' · ' . $bookConf['l2'] . ' · ' . $bookConf['l3']) ?> หรือคำสำคัญ" aria-label="ค้นหาในสารบัญ" autocomplete="off">
     </label>
+    <?php if ($hasRep): ?>
     <div class="bk-seg" role="radiogroup" aria-label="แสดง">
       <button type="button" role="radio" aria-checked="true" data-bk-f="all">ทั้งหมด</button>
-      <button type="button" role="radio" aria-checked="false" data-bk-f="active">มีผลใช้บังคับ</button>
-      <?php if ($bs['repealed']): ?><button type="button" role="radio" aria-checked="false" data-bk-f="repealed">ยกเลิกแล้ว</button><?php endif; ?>
+      <button type="button" role="radio" aria-checked="false" data-bk-f="active"><?= e($bookConf['s_on']) ?></button>
+      <button type="button" role="radio" aria-checked="false" data-bk-f="repealed"><?= e($bookConf['s_off']) ?></button>
     </div>
+    <?php endif; ?>
     <div class="bk-tool-btns">
       <button class="btn small ghost" type="button" data-bk-all="1"><span class="material-symbols-rounded icon-sm">unfold_more</span>ขยายทั้งหมด</button>
       <button class="btn small ghost" type="button" data-bk-all="0"><span class="material-symbols-rounded icon-sm">unfold_less</span>ย่อทั้งหมด</button>
@@ -126,17 +132,16 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
 
   <div class="bk-layout mb-4">
     <details class="bk-nav" data-bk-navbox>
-      <summary><span class="material-symbols-rounded icon-sm" aria-hidden="true">toc</span>สารบัญ <small>(<?= count($bookTree) ?>)</small></summary>
+      <summary><span class="material-symbols-rounded icon-sm" aria-hidden="true">toc</span>สารบัญ <small>(<?= count($bookTree) ?> <?= e($bookConf['l1']) ?>)</small></summary>
       <ol>
-        <?php foreach ($bookTree as $p):
-          $num = preg_match('/([0-9๐-๙]+)\s*$/u', $p['label'], $m) ? $m[1] : ''; ?>
-        <li><a href="#t<?= (int)$p['id'] ?>" data-bk-nav="<?= (int)$p['id'] ?>"<?= $p['status'] === 'repealed' ? ' class="is-repealed"' : '' ?>>
-          <span class="n"><?= e($num !== '' ? $num : '•') ?></span><span class="t"><?= e($p['title'] !== '' ? $p['title'] : $p['label']) ?></span></a></li>
+        <?php foreach ($bookTree as $p): [, $num] = docbook_label_parts($p['label']); ?>
+        <li><a href="#t<?= (int)$p['id'] ?>" data-bk-nav="<?= (int)$p['id'] ?>"<?= $useStatus && $p['status'] === 'repealed' ? ' class="is-repealed"' : '' ?>>
+          <span class="n<?= mb_strlen($num) > 2 ? ' long' : '' ?>"><?= e($num !== '' ? $num : '•') ?></span><span class="t"><?= e($p['title'] !== '' ? $p['title'] : $p['label']) ?></span></a></li>
         <?php endforeach; ?>
       </ol>
     </details>
-    <div class="bk-main" data-bk>
-      <?= docbook_render($bookTree) ?>
+    <div class="bk-main" data-bk data-bk-unit="<?= e($bookConf['l1']) ?>">
+      <?= docbook_render($bookTree, $bookConf) ?>
       <div class="bk-none" data-bk-none hidden>
         <span class="material-symbols-rounded" aria-hidden="true">search_off</span>
         <p>ไม่พบหัวข้อที่ตรงกับคำค้น</p>

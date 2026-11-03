@@ -548,6 +548,9 @@ function run_migrations(PDO $pdo, ?callable $log = null): void {
        doc_toc ผูกตัวเองด้วย parent_id — document_id ชี้เอกสารที่อัปโหลดไว้ในหมวด (ไม่บังคับ) */
     migr_add_col($pdo, 'doc_categories', 'layout', "layout VARCHAR(10) NOT NULL DEFAULT 'list' AFTER style", $log);
     migr_add_col($pdo, 'doc_categories', 'intro',  "intro VARCHAR(600) NOT NULL DEFAULT '' AFTER layout", $log);
+    /* v1.59.0 — รูปแบบเล่มต่อหมวด (ชื่อเรียกแต่ละชั้น · คำนำหน้าเลข · ใช้สถานะยกเลิกไหม) เก็บเป็น JSON
+       NULL = ยังไม่เคยตั้ง → ระบบเดาแม่แบบจากชื่อหมวด (วารสาร → ปีที่/ฉบับที่/บทความ ฯลฯ) */
+    migr_add_col($pdo, 'doc_categories', 'book_conf', "book_conf TEXT NULL AFTER intro", $log);
     $pdo->exec("CREATE TABLE IF NOT EXISTS doc_toc (
   id INT AUTO_INCREMENT PRIMARY KEY,
   category_id INT NOT NULL,

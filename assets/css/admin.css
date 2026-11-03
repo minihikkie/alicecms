@@ -516,3 +516,38 @@ textarea { resize: vertical; min-height: 90px; }
 @media (max-width: 1100px) { .dbk-main, .dbk-top { grid-template-columns: minmax(0, 1fr); } .dbk-form { position: static; } }
 @media (max-width: 640px) { .dbk-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dbk-row { flex-wrap: wrap; } .dbk-acts { width: 100%; opacity: 1; } }
 @media (hover: none) { .dbk-acts { opacity: 1; } }
+
+/* ── สารบัญแบบหนังสือ: หัวการ์ด + รูปแบบเล่ม (v1.59.0) ── */
+.section-head.dbk-head { align-items: flex-start; flex-wrap: nowrap; gap: 12px; margin-bottom: 12px; }
+.dbk-head-t { flex: 1; min-width: 0; }
+.dbk-head-t h3 { margin: 2px 0 4px; }
+.dbk-head > .btn { flex: none; }
+.section-head .dbk-path { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; font-size: 13px; color: var(--muted); }
+.dbk-path b { color: var(--ink); font-weight: 600; }
+.dbk-stats { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+.dbk-stats b small { font-size: 13px; color: var(--muted); font-weight: 500; }
+.dbk-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.dbk-preset { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--card); cursor: pointer; transition: border-color .15s, background .15s; }
+.dbk-preset:hover { border-color: color-mix(in srgb, var(--blue) 40%, var(--border)); }
+.dbk-preset:has(input:checked) { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 7%, var(--card));
+  box-shadow: 0 0 0 1px var(--blue) inset; }
+.dbk-preset input { width: auto; margin: 3px 0 0; accent-color: var(--blue); }
+.dbk-preset b { display: block; font-size: 13.5px; color: var(--ink); line-height: 1.4; }
+.dbk-preset small { display: block; font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 2px; }
+.dbk-names { border: 1px solid var(--border); border-radius: 12px; padding: 4px 12px; background: var(--card-soft); }
+.dbk-names > summary { cursor: pointer; padding: 8px 0; font-size: 13.5px; font-weight: 600; }
+.dbk-ntable { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 8px; }
+.dbk-ntable th { text-align: left; font-weight: 600; color: var(--muted); padding: 4px 6px; font-size: 12px; }
+.dbk-ntable td { padding: 6px; vertical-align: top; border-top: 1px solid var(--border); }
+.dbk-ntable td:first-child { width: 34%; }
+.dbk-ntable td small { display: block; color: var(--muted); font-size: 11.5px; line-height: 1.45; }
+.dbk-ntable input[type=text] { padding: 7px 10px; }
+.dbk-sample { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+.dbk-sample b { color: var(--blue-ink); }
+@media (max-width: 640px) {
+  .dbk-head { flex-direction: column; }
+  .dbk-ntable, .dbk-ntable tbody, .dbk-ntable tr, .dbk-ntable td { display: block; width: 100% !important; }
+  .dbk-ntable tr:first-child { display: none; }
+  .dbk-ntable td { border-top: 0; padding: 4px 0; } .dbk-ntable tr { border-top: 1px solid var(--border); padding: 6px 0; }
+}
