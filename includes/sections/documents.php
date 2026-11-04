@@ -34,7 +34,11 @@ $style_css = [
     <div class="tool-grid" data-reveal-group>
       <?php foreach ($cats as $c): ?>
       <a class="tool <?= e($c['style']) ?> reveal" href="<?= e(url('documents.php?cat=' . $c['id'])) ?>" style="padding:22px 18px;">
+        <?php if (!empty($c['cover'])): /* หมวดที่มีภาพปกเล่ม (ตั้งที่หน้าจัดการสารบัญ) แสดงปกย่อแทนไอคอน */ ?>
+        <div class="ti ti-cover"><img src="<?= e(url($c['cover'])) ?>" alt="" width="900" height="1200" loading="lazy" decoding="async"></div>
+        <?php else: ?>
         <div class="ti" style="width:54px;height:54px;"><span class="material-symbols-rounded icon-lg"><?= e($c['icon'] ?: 'folder') ?></span></div>
+        <?php endif; ?>
         <div><div class="tt"><?= e($c['name']) ?></div><div class="ts"><?= number_format((int)$c['n']) ?> รายการ</div></div>
       </a>
       <?php endforeach; ?>
