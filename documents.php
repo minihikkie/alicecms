@@ -49,6 +49,8 @@ if ($isBookCat && ($_GET['view'] ?? '') !== 'list' && $q === '') {
 $showBook = (bool)$bookTree;
 /* หมวดแบบรายการที่มีภาพปก (และไม่ได้กำลังค้นหา) → หัวหน้าแบบปกเล่มเข้าชุดกับหน้าสารบัญ */
 $listCover = !$showBook && $catRow && !empty($catRow['cover']) && $q === '';
+/* หน้า "ทั้งหมด" (ไม่ได้เลือกหมวด ไม่ได้ค้นหา) → ชั้นหนังสือ: เลือกหมวดจากปก แทนแถบปุ่มหมวด */
+$isShelf = $cat === 0 && $q === '' && $cats;
 
 $page_title = $cat_name !== '' ? $cat_name : section_title('documents');
 if ($showBook && trim((string)($catRow['intro'] ?? '')) !== '') $meta_description = mb_substr(trim($catRow['intro']), 0, 160);
@@ -63,20 +65,50 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
     <div class="crumb"><a href="<?= e(url('index.php')) ?>">หน้าแรก</a> <span class="material-symbols-rounded icon-sm">chevron_right</span>
       <?php if ($cat_name !== ''): ?><a href="<?= e(url('documents.php')) ?>">เอกสารเผยแพร่</a> <span class="material-symbols-rounded icon-sm">chevron_right</span> <?= e($cat_name) ?><?php else: ?>เอกสารเผยแพร่<?php endif; ?></div>
     <?php if (!$showBook && !$listCover): ?><h1><?= e($page_title) ?></h1><?php endif; ?>
+    <?php if ($isShelf): ?><p class="text-muted dshelf-lead">คู่มือ ระเบียบ วารสาร และเอกสารเผยแพร่ของหน่วยงาน — <?= number_format($total) ?> รายการ ใน <?= count($cats) ?> หมวด</p><?php endif; ?>
     <?php if ($isBookCat && !$showBook && !$listCover && ($_GET['view'] ?? '') === 'list'): ?>
     <a class="btn small mt-1" href="<?= e(url('documents.php?cat=' . $cat)) ?>"><span class="material-symbols-rounded icon-sm">menu_book</span>กลับไปดูแบบสารบัญ</a>
     <?php endif; ?>
   </div>
 
-  <div class="flex items-center gap-2 mb-3 reveal" style="flex-wrap:wrap;">
-    <div class="cats">
-      <a class="cat<?= $cat === 0 ? ' active' : '' ?>" href="<?= e(url('documents.php')) ?>">ทั้งหมด</a>
-      <?php foreach ($cats as $c): ?>
-      <a class="cat<?= $cat === (int)$c['id'] ? ' active' : '' ?>" href="<?= e(url('documents.php?cat=' . $c['id'])) ?>">
-        <span class="material-symbols-rounded icon-sm"><?= e($c['icon'] ?: 'folder') ?></span><?= e($c['name']) ?> (<?= (int)$c['n'] ?>)
+  <?php if ($isShelf): ?>
+  <section class="dshelf reveal" aria-labelledby="dshelf-h">
+    <div class="dshelf-head">
+      <h2 id="dshelf-h">เลือกหมวดเอกสาร</h2>
+      <form class="searchbar" style="max-width:340px;margin:0;box-shadow:var(--shadow-soft);" action="<?= e(url('documents.php')) ?>" method="get" role="search">
+        <span class="material-symbols-rounded" style="color:var(--muted)">search</span>
+        <input type="search" name="q" placeholder="ค้นหาเอกสารทุกหมวด..." aria-label="ค้นหาเอกสาร">
+      </form>
+    </div>
+    <div class="dshelf-grid" data-reveal-group>
+      <?php foreach ($cats as $c): $isB = ($c['layout'] ?? '') === 'book'; ?>
+      <a class="dshelf-card reveal" href="<?= e(url('documents.php?cat=' . $c['id'])) ?>">
+        <?php if (!empty($c['cover'])): ?>
+        <span class="dshelf-cv has-img"><img src="<?= e(url($c['cover'])) ?>" alt="" width="900" height="1200" loading="lazy" decoding="async"></span>
+        <?php else: /* ยังไม่มีภาพปก → ปกสีตามสีหมวด พร้อมไอคอนและชื่อ */ ?>
+        <span class="dshelf-cv s-<?= e($c['style'] ?: 'blue') ?>" aria-hidden="true">
+          <span class="material-symbols-rounded"><?= e($c['icon'] ?: 'folder') ?></span><small><?= e($c['name']) ?></small>
+        </span>
+        <?php endif; ?>
+        <span class="dshelf-t"><?= e($c['name']) ?></span>
+        <span class="dshelf-m"><?= number_format((int)$c['n']) ?> รายการ<?php if ($isB): ?> <span class="dshelf-badge"><span class="material-symbols-rounded" aria-hidden="true">menu_book</span>สารบัญ</span><?php endif; ?></span>
       </a>
       <?php endforeach; ?>
     </div>
+  </section>
+  <div class="dshelf-sub reveal"><h2>เอกสารทั้งหมด</h2><span class="text-muted"><?= number_format($total) ?> รายการ</span></div>
+  <?php else: ?>
+  <div class="flex items-center gap-2 mb-3 reveal" style="flex-wrap:wrap;">
+    <nav class="cats dcats" aria-label="หมวดเอกสาร">
+      <a class="cat<?= $cat === 0 ? ' active' : '' ?>" href="<?= e(url('documents.php')) ?>"><span class="material-symbols-rounded icon-sm" aria-hidden="true">grid_view</span>ทั้งหมด</a>
+      <?php foreach ($cats as $c): ?>
+      <a class="cat<?= $cat === (int)$c['id'] ? ' active' : '' ?>" href="<?= e(url('documents.php?cat=' . $c['id'])) ?>"<?= $cat === (int)$c['id'] ? ' aria-current="page"' : '' ?>>
+        <?php if (!empty($c['cover'])): ?><span class="cat-cv" aria-hidden="true"><img src="<?= e(url($c['cover'])) ?>" alt="" loading="lazy" decoding="async"></span>
+        <?php else: ?><span class="material-symbols-rounded icon-sm" aria-hidden="true"><?= e($c['icon'] ?: 'folder') ?></span><?php endif; ?>
+        <?= e($c['name']) ?> <span class="cat-n"><?= (int)$c['n'] ?></span>
+      </a>
+      <?php endforeach; ?>
+    </nav>
     <?php if (!$showBook): ?>
     <form class="searchbar" style="max-width:320px;margin:0;margin-left:auto;box-shadow:var(--shadow-soft);" action="<?= e(url('documents.php')) ?>" method="get" role="search">
       <?php if ($cat): ?><input type="hidden" name="cat" value="<?= $cat ?>"><?php endif; ?>
@@ -85,6 +117,7 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
     </form>
     <?php endif; ?>
   </div>
+  <?php endif; /* $isShelf */ ?>
 
   <?php if ($showBook):
     $bs = docbook_stats($bookTree);

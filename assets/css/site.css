@@ -1479,3 +1479,57 @@ mark.bk-mark { background: color-mix(in srgb, var(--gold) 38%, transparent); col
               linear-gradient(125deg, rgba(255,255,255,.2), transparent 40%); }
 .tool:hover .ti.ti-cover { transform: rotate(-3deg) translateY(-2px); }
 @media (prefers-reduced-motion: reduce) { .tool:hover .ti.ti-cover { transform: none; } }
+
+/* ══ เอกสารเผยแพร่: ชั้นหนังสือ (หน้า "ทั้งหมด") + แถบหมวดพร้อมปกย่อ (v1.62.0) ══ */
+.dshelf-lead { margin: 4px 0 0; font-size: 15px; }
+.dshelf { margin: 8px 0 26px; padding: 22px 24px 26px; border-radius: var(--r24); border: 1px solid var(--border); box-shadow: var(--shadow-soft);
+  background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--blue) 8%, var(--card)) 0%, var(--card) 60%); }
+.dshelf-head { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; margin-bottom: 20px; }
+.dshelf-head h2 { margin: 0; font-size: 20px; color: var(--ink); }
+.dshelf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 26px 22px; }
+.dshelf-card { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: var(--text); min-width: 0; max-width: 230px; }
+.dshelf-cv { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  aspect-ratio: 3 / 4; border-radius: 4px 12px 12px 4px; overflow: hidden; margin-bottom: 6px;
+  color: #fff; background: linear-gradient(150deg, var(--blue), var(--blue-700));
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--blue) 22%, transparent), 0 2px 5px rgba(0,0,0,.12);
+  transition: transform .25s, box-shadow .25s; }
+.dshelf-cv.s-special { background: linear-gradient(150deg, #8E24AA, #4A148C); }
+.dshelf-cv.s-warning { background: linear-gradient(150deg, #F2A516, #C25E00); }
+.dshelf-cv::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 14px; z-index: 1;
+  background: linear-gradient(90deg, rgba(0,0,0,.28), rgba(0,0,0,.06) 70%, rgba(255,255,255,.2)); }
+.dshelf-cv::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(125deg, rgba(255,255,255,.22), rgba(255,255,255,0) 38%); }
+.dshelf-cv > .material-symbols-rounded { font-size: 44px; }
+.dshelf-cv > small { font-size: 13px; font-weight: 600; line-height: 1.45; text-align: center; padding: 0 16px 0 22px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.dshelf-cv.has-img { background: var(--card-soft); }
+.dshelf-cv img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.dshelf-card:hover .dshelf-cv { transform: translateY(-5px) rotate(-1deg);
+  box-shadow: 0 22px 40px color-mix(in srgb, var(--blue) 28%, transparent), 0 2px 6px rgba(0,0,0,.14); }
+.dshelf-card:focus-visible { outline: none; }
+.dshelf-card:focus-visible .dshelf-cv { outline: 3px solid color-mix(in srgb, var(--blue) 55%, transparent); outline-offset: 4px; }
+.dshelf-t { font-weight: 700; font-size: 15px; line-height: 1.4; color: var(--ink); overflow-wrap: break-word; transition: color .15s; }
+.dshelf-card:hover .dshelf-t { color: var(--blue-ink); }
+.dshelf-m { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.dshelf-badge { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600;
+  color: var(--blue-ink); background: color-mix(in srgb, var(--blue) 10%, var(--card)); }
+.dshelf-badge .material-symbols-rounded { font-size: 14px; }
+.dshelf-sub { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
+.dshelf-sub h2 { margin: 0; font-size: 20px; color: var(--ink); }
+
+/* แถบหมวดในหน้าหมวด: ปกย่อแทนไอคอน + ตัวเลขเป็นป้ายเล็ก */
+.dcats .cat { gap: 8px; }
+.dcats .cat-cv { flex: none; width: 22px; height: 29px; margin: -4px 0 -4px -6px; border-radius: 2px 5px 5px 2px; overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,.18); }
+.dcats .cat-cv img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.dcats .cat-n { font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--muted); }
+.dcats .cat.active .cat-n { background: rgba(255,255,255,.22); color: var(--on-blue); }
+
+@media (max-width: 640px) {
+  .dshelf { padding: 18px 16px 20px; }
+  .dshelf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; }
+  .dshelf-card { max-width: none; }
+  .dshelf-head .searchbar { max-width: none !important; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .dshelf-card:hover .dshelf-cv { transform: none; } }
