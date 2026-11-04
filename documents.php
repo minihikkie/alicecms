@@ -47,11 +47,14 @@ if ($isBookCat && ($_GET['view'] ?? '') !== 'list' && $q === '') {
     $bookConf = docbook_conf($catRow);
 }
 $showBook = (bool)$bookTree;
+/* หมวดแบบรายการที่มีภาพปก (และไม่ได้กำลังค้นหา) → หัวหน้าแบบปกเล่มเข้าชุดกับหน้าสารบัญ */
+$listCover = !$showBook && $catRow && !empty($catRow['cover']) && $q === '';
 
 $page_title = $cat_name !== '' ? $cat_name : section_title('documents');
 if ($showBook && trim((string)($catRow['intro'] ?? '')) !== '') $meta_description = mb_substr(trim($catRow['intro']), 0, 160);
 /* แชร์ลิงก์หมวดที่เป็นเล่มไปโซเชียล ใช้ภาพปกเป็นภาพตัวอย่าง */
-if ($showBook && !empty($catRow['cover'])) $og_image = $catRow['cover'];
+if (($showBook || $listCover) && !empty($catRow['cover'])) $og_image = $catRow['cover'];
+if ($listCover && trim((string)($catRow['intro'] ?? '')) !== '') $meta_description = mb_substr(trim($catRow['intro']), 0, 160);
 require __DIR__ . '/includes/header.php';
 $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: null, 'q' => $q, 'view' => $isBookCat && !$showBook && ($_GET['view'] ?? '') === 'list' ? 'list' : null]));
 ?>
@@ -59,8 +62,8 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
   <div class="page-head reveal">
     <div class="crumb"><a href="<?= e(url('index.php')) ?>">หน้าแรก</a> <span class="material-symbols-rounded icon-sm">chevron_right</span>
       <?php if ($cat_name !== ''): ?><a href="<?= e(url('documents.php')) ?>">เอกสารเผยแพร่</a> <span class="material-symbols-rounded icon-sm">chevron_right</span> <?= e($cat_name) ?><?php else: ?>เอกสารเผยแพร่<?php endif; ?></div>
-    <?php if (!$showBook): ?><h1><?= e($page_title) ?></h1><?php endif; ?>
-    <?php if ($isBookCat && !$showBook && ($_GET['view'] ?? '') === 'list'): ?>
+    <?php if (!$showBook && !$listCover): ?><h1><?= e($page_title) ?></h1><?php endif; ?>
+    <?php if ($isBookCat && !$showBook && !$listCover && ($_GET['view'] ?? '') === 'list'): ?>
     <a class="btn small mt-1" href="<?= e(url('documents.php?cat=' . $cat)) ?>"><span class="material-symbols-rounded icon-sm">menu_book</span>กลับไปดูแบบสารบัญ</a>
     <?php endif; ?>
   </div>
@@ -157,6 +160,32 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
     </div>
   </div>
   <?php else: ?>
+
+  <?php if ($listCover):
+    $st = db()->prepare('SELECT MAX(created_at) FROM documents WHERE category_id = ?');
+    $st->execute([$cat]);
+    $lastDoc = (string)$st->fetchColumn();
+  ?>
+  <section class="bk-cover reveal has-img mb-3" aria-labelledby="cat-title">
+    <a class="bk-art has-img" href="<?= e(url($catRow['cover'])) ?>" data-lightbox="<?= e(url($catRow['cover'])) ?>" aria-label="ดูภาพปก <?= e($cat_name) ?> ขนาดเต็ม">
+      <img src="<?= e(url($catRow['cover'])) ?>" alt="ปก<?= e($cat_name) ?>" width="900" height="1200" fetchpriority="high" decoding="async">
+    </a>
+    <div class="bk-cover-txt">
+      <span class="bk-kicker"><span class="material-symbols-rounded icon-sm" aria-hidden="true"><?= e($catRow['icon'] ?: 'folder') ?></span>เอกสารเผยแพร่</span>
+      <h1 id="cat-title"><?= e($cat_name) ?></h1>
+      <?php if (trim((string)($catRow['intro'] ?? '')) !== ''): ?><p class="bk-intro"><?= e($catRow['intro']) ?></p><?php endif; ?>
+      <dl class="bk-stats">
+        <div><dt>เอกสาร</dt><dd><?= number_format((int)$catRow['n']) ?></dd></div>
+      </dl>
+      <div class="bk-cover-foot">
+        <?php if ($lastDoc !== ''): ?><span class="text-muted"><span class="material-symbols-rounded icon-sm" aria-hidden="true">update</span> เพิ่มเอกสารล่าสุด <?= e(thai_date($lastDoc)) ?></span><?php endif; ?>
+        <?php if ($isBookCat && ($_GET['view'] ?? '') === 'list'): ?>
+        <a class="btn small" href="<?= e(url('documents.php?cat=' . $cat)) ?>"><span class="material-symbols-rounded icon-sm">menu_book</span>กลับไปดูแบบสารบัญ</a>
+        <?php endif; ?>
+      </div>
+    </div>
+  </section>
+  <?php endif; ?>
 
   <?php if ($q !== ''): ?>
   <p class="text-muted mb-2">ผลการค้นหา "<?= e($q) ?>" — พบ <?= number_format($total) ?> รายการ</p>

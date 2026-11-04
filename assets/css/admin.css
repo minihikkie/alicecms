@@ -564,3 +564,17 @@ textarea { resize: vertical; min-height: 90px; }
 .dbk-spec { margin: 6px 0 10px; padding-left: 18px; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
 .dbk-spec b { color: var(--ink); }
 @media (max-width: 640px) { .dbk-cover { flex-direction: column; } }
+
+/* ── หมวดเอกสาร: ปกย่อ + แผงภาพปก/คำอธิบายในแถว (v1.61.0) ── */
+.dcat-row { padding-bottom: 8px; border-bottom: 1px dashed var(--border); }
+.dcat-thumb { flex: none; width: 30px; height: 40px; border-radius: 2px 6px 6px 2px; overflow: hidden; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--blue) 10%, var(--card)); color: var(--blue); }
+.dcat-thumb.has-img { box-shadow: 0 3px 8px rgba(0,0,0,.15); }
+.dcat-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dcat-more { flex-basis: 100%; }
+.dcat-more > summary { cursor: pointer; font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; padding: 2px 0; }
+.dcat-more > summary:hover { color: var(--blue-ink); }
+.dcat-more-in { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 10px 12px; margin-top: 6px;
+  border-radius: 12px; background: var(--card-soft); border: 1px solid var(--border); }
+.dcat-more-in > p { grid-column: 1 / -1; }
+.dcat-more-in label { font-size: 13px; }

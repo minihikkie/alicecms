@@ -88,6 +88,41 @@ function docbook_conf(array $cat): array {
     return $c;
 }
 
+/* ─────────────────────────────────────────────
+   ภาพปกของหมวด (แนวตั้ง 3:4) — ใช้ได้ทุกหมวด ทั้งแบบรายการและแบบสารบัญ
+   แสดงที่หัวหน้าหมวด และการ์ดหมวดบนหน้าแรก · จัดการได้ทั้งหน้าเอกสารเผยแพร่และหน้าจัดการสารบัญ
+   ───────────────────────────────────────────── */
+
+/** คำเตือนเรื่องสัดส่วน/ความคมของภาพปก (ว่าง = ใช้ได้ดี) */
+function docbook_cover_tips(string $path): array {
+    $info = @getimagesize(APP_ROOT . '/' . $path);
+    if (!$info || $info[0] <= 0 || $info[1] <= 0) return [];
+    [$w, $h] = $info;
+    $tips = [];
+    if (abs($w / $h - 0.75) > 0.06) $tips[] = "ภาพเป็น {$w}×{$h} px ไม่ใช่แนวตั้ง 3:4 ระบบจะครอปตรงกลางให้ — ถ้าต้องการให้เห็นครบ ทำภาพขนาด 900×1200 px";
+    if ($w < 600) $tips[] = "ภาพกว้างแค่ {$w} px อาจไม่คมบนจอความละเอียดสูง (แนะนำกว้าง 900 px ขึ้นไป)";
+    return $tips;
+}
+
+/**
+ * เก็บภาพปกจากช่องอัปโหลด $field แทนภาพเดิม (ลบไฟล์เก่าให้)
+ * ไม่ได้เลือกไฟล์ → null · ไฟล์ไม่ใช่ภาพจริง/ใหญ่เกิน → RuntimeException (ภาพเดิมไม่ถูกแตะ)
+ * สำเร็จ → array ของคำเตือนเรื่องสัดส่วน/ความคม
+ */
+function docbook_cover_save(int $catId, ?string $old, string $field = 'cover'): ?array {
+    $up = handle_upload($field, 'docbook', upload_image_exts(), 5);
+    if (!$up) return null;
+    db()->prepare('UPDATE doc_categories SET cover = ? WHERE id = ?')->execute([$up['path'], $catId]);
+    if ($old) delete_upload($old);
+    return docbook_cover_tips($up['path']);
+}
+
+/** ลบภาพปกของหมวด (ไฟล์ด้วย) */
+function docbook_cover_remove(int $catId, ?string $old): void {
+    db()->prepare('UPDATE doc_categories SET cover = NULL WHERE id = ?')->execute([$catId]);
+    if ($old) delete_upload($old);
+}
+
 /** ชื่อเรียกแบบสั้นสำหรับปุ่ม/ตัวเลข: "ฉบับแก้ไข / กฎหมายลำดับรอง" → "ฉบับแก้ไข" · "ฉบับแก้ไขเพิ่มเติม" → "ฉบับแก้ไข" */
 function docbook_short(string $name): string {
     $s = trim(explode('/', $name)[0]);

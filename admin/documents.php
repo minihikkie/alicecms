@@ -2,6 +2,7 @@
 /** admin/documents.php — เอกสารเผยแพร่ + จัดการหมวดเอกสาร */
 require dirname(__DIR__) . '/includes/init.php';
 require __DIR__ . '/_auth.php';
+require_once APP_ROOT . '/includes/doc-book.php';
 
 $errors = [];
 $edit = null;
@@ -33,14 +34,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sort = (int)($_POST['cat_sort'] ?? 0);
             $layout = ($_POST['cat_layout'] ?? 'list') === 'book' ? 'book' : 'list';
             if ($name !== '') {
+                $oldCover = null;
                 if ($act === 'edit' && $cid > 0) {
+                    $st = db()->prepare('SELECT cover FROM doc_categories WHERE id = ?');
+                    $st->execute([$cid]);
+                    $oldCover = $st->fetchColumn() ?: null;
                     db()->prepare('UPDATE doc_categories SET name=?, icon=?, style=?, layout=?, sort_order=? WHERE id=?')
                         ->execute([$name, $icon, $style, $layout, $sort, $cid]);
                 } else {
                     db()->prepare('INSERT INTO doc_categories (name, icon, style, layout, sort_order) VALUES (?,?,?,?,?)')
                         ->execute([$name, $icon, $style, $layout, $sort]);
+                    $cid = (int)db()->lastInsertId();
                 }
-                flash_set('success', 'บันทึกหมวดเอกสารเรียบร้อยแล้ว');
+                /* คำอธิบายหมวด — แสดงใต้ชื่อหมวดบนหน้าเว็บ (ฟอร์มแถวเดิมที่ไม่มีช่องนี้ ไม่ทับค่าเดิม) */
+                if (isset($_POST['cat_intro'])) {
+                    db()->prepare('UPDATE doc_categories SET intro = ? WHERE id = ?')
+                        ->execute([mb_substr(trim((string)$_POST['cat_intro']), 0, 600), $cid]);
+                }
+                /* ภาพปกของหมวด — ใช้ได้ทั้งแบบรายการและแบบสารบัญ */
+                $msg = 'บันทึกหมวดเอกสารเรียบร้อยแล้ว';
+                $type = 'success';
+                if (!empty($_POST['remove_cover'])) {
+                    docbook_cover_remove($cid, $oldCover);
+                    $msg .= ' · ลบภาพปกแล้ว';
+                } else {
+                    try {
+                        $tips = docbook_cover_save($cid, $oldCover, 'cat_cover');
+                        if ($tips !== null) $msg .= ' · บันทึกภาพปกแล้ว' . ($tips ? ' — ' . implode(' · ', $tips) : '');
+                    } catch (RuntimeException $ex) {
+                        $msg .= ' · แต่ภาพปกไม่ถูกบันทึก: ' . $ex->getMessage();
+                        $type = 'danger';
+                    }
+                }
+                flash_set($type, $msg);
             }
         } elseif ($act === 'delete') {
             $cid = (int)($_POST['cat_id'] ?? 0);
@@ -212,9 +238,10 @@ require __DIR__ . '/_top.php';
          หมวดที่เป็น "เล่ม" (เช่น ประมวลระเบียบ) เลือก <b>สารบัญแบบหนังสือ</b> แล้วกด <b>จัดการสารบัญ</b> เพื่อจัดเป็น ลักษณะ → บท → ฉบับแก้ไข</p></div>
     </div>
     <?php foreach ($cats as $c): ?>
-    <form method="post" action="" class="flex gap-1 items-center mb-1" style="flex-wrap:wrap;">
+    <form method="post" action="" enctype="multipart/form-data" class="flex gap-1 items-center mb-1 dcat-row" style="flex-wrap:wrap;">
       <?= csrf_field() ?>
       <input type="hidden" name="cat_id" value="<?= (int)$c['id'] ?>">
+      <span class="dcat-thumb<?= !empty($c['cover']) ? ' has-img' : '' ?>" title="<?= !empty($c['cover']) ? 'มีภาพปก' : 'ยังไม่มีภาพปก' ?>"><?php if (!empty($c['cover'])): ?><img src="<?= e(url($c['cover'])) ?>" alt="" loading="lazy"><?php else: ?><span class="material-symbols-rounded icon-sm"><?= e($c['icon'] ?: 'folder') ?></span><?php endif; ?></span>
       <input type="text" name="cat_name" value="<?= e($c['name']) ?>" style="flex:1;min-width:120px;padding:8px 12px;">
       <div class="icon-pick-wrap">
         <span class="material-symbols-rounded icon-pick-preview" data-icon-preview><?= e($c['icon'] ?: 'folder') ?></span>
@@ -235,6 +262,21 @@ require __DIR__ . '/_top.php';
       <?php if (($c['layout'] ?? '') === 'book'): ?>
       <a class="btn small primary" href="<?= e(url('admin/doc-book.php?cat=' . (int)$c['id'])) ?>"><span class="material-symbols-rounded icon-sm">menu_book</span>จัดการสารบัญ</a>
       <?php endif; ?>
+      <details class="dcat-more">
+        <summary><span class="material-symbols-rounded icon-sm">image</span>ภาพปก · คำอธิบายหมวด<?= !empty($c['cover']) ? ' <span class="badge success" style="font-size:11px;">มีภาพปก</span>' : '' ?></summary>
+        <div class="dcat-more-in">
+          <div>
+            <label>ภาพปก <span class="text-muted">(แนวตั้ง 3:4 · แนะนำ 900 × 1200 px · JPG/WebP)</span></label>
+            <input type="file" name="cat_cover" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+            <?php if (!empty($c['cover'])): ?><label class="dbk-radio mt-1"><input type="checkbox" name="remove_cover" value="1"> ลบภาพปก</label><?php endif; ?>
+          </div>
+          <div>
+            <label>คำอธิบายใต้ชื่อหมวด <span class="text-muted">(ไม่บังคับ · ไม่เกิน 600 ตัวอักษร)</span></label>
+            <textarea name="cat_intro" rows="2" maxlength="600" placeholder="อธิบายสั้นๆ ว่าหมวดนี้รวบรวมเอกสารอะไร"><?= e($c['intro'] ?? '') ?></textarea>
+          </div>
+          <p class="text-muted" style="font-size:12px;margin:0;">กด "บันทึก" ของแถวนี้เพื่อบันทึก · ภาพปกแสดงที่หัวหน้าหมวดและการ์ดหมวดบนหน้าแรก ทั้งแบบรายการและแบบสารบัญ</p>
+        </div>
+      </details>
     </form>
     <?php endforeach; ?>
     <form method="post" action="" class="flex gap-1 items-center mt-2" style="flex-wrap:wrap;border-top:1px solid var(--border);padding-top:12px;">

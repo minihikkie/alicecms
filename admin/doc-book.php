@@ -78,32 +78,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
        แสดงเป็นกรอบแนวตั้ง 3:4 แบบปกหนังสือ ภาพสัดส่วนอื่นจะถูกครอปตรงกลาง จึงเตือนให้รู้ตั้งแต่ตอนอัปโหลด */
     if ($act === 'cover') {
         if (!empty($_POST['remove_cover'])) {
-            if (!empty($cat['cover'])) delete_upload($cat['cover']);
-            db()->prepare('UPDATE doc_categories SET cover = NULL WHERE id = ?')->execute([$catId]);
+            docbook_cover_remove($catId, $cat['cover'] ?? null);
             log_action('ลบภาพปกเล่ม', $cat['name']);
             flash_set('success', 'ลบภาพปกแล้ว — หน้าเว็บกลับไปใช้ปกสีที่ระบบวาดให้');
             redirect($self);
         }
         try {
-            $up = handle_upload('cover', 'docbook', upload_image_exts(), 5);
+            $tips = docbook_cover_save($catId, $cat['cover'] ?? null, 'cover');
         } catch (RuntimeException $ex) {
             flash_set('danger', $ex->getMessage());
             redirect($self);
         }
-        if (!$up) { flash_set('danger', 'เลือกไฟล์ภาพก่อน (JPG / PNG / WebP)'); redirect($self); }
-        if (!empty($cat['cover'])) delete_upload($cat['cover']);
-        db()->prepare('UPDATE doc_categories SET cover = ? WHERE id = ?')->execute([$up['path'], $catId]);
+        if ($tips === null) { flash_set('danger', 'เลือกไฟล์ภาพก่อน (JPG / PNG / WebP)'); redirect($self); }
         log_action('เปลี่ยนภาพปกเล่ม', $cat['name']);
-        $msg = 'บันทึกภาพปกแล้ว';
-        $info = @getimagesize(APP_ROOT . '/' . $up['path']);
-        if ($info && $info[0] > 0 && $info[1] > 0) {
-            [$w, $h] = $info;
-            $tips = [];
-            if (abs($w / $h - 0.75) > 0.06) $tips[] = "ภาพเป็น {$w}×{$h} px ไม่ใช่แนวตั้ง 3:4 ระบบจะครอปตรงกลางให้ — ถ้าต้องการให้เห็นครบ ทำภาพขนาด 900×1200 px";
-            if ($w < 600) $tips[] = "ภาพกว้างแค่ {$w} px อาจไม่คมบนจอความละเอียดสูง (แนะนำกว้าง 900 px ขึ้นไป)";
-            if ($tips) $msg .= ' · ' . implode(' · ', $tips);
-        }
-        flash_set('success', $msg);
+        flash_set('success', 'บันทึกภาพปกแล้ว' . ($tips ? ' · ' . implode(' · ', $tips) : ''));
         redirect($self);
     }
 
