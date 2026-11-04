@@ -1447,3 +1447,22 @@ mark.bk-mark { background: color-mix(in srgb, var(--gold) 38%, transparent); col
 .bk-note, .bk-chap-note { display: block; font-size: 12.5px; color: var(--muted); }
 .bk-chap-row.nolabel { grid-template-columns: minmax(0, 1fr) auto; }
 @media (max-width: 640px) { .bk-no.long b { font-size: 15px; } }
+
+/* ── สารบัญแบบหนังสือ: ภาพปกเล่มที่อัปโหลดเอง (v1.60.0) ──
+   กรอบ 3:4 เท่าปกที่ระบบวาด แต่กว้างขึ้น (190px) ให้เห็นรายละเอียดภาพ · เงาสันปกซ้าย + ประกายแสงจางๆ ให้ดูเป็นเล่มจริง */
+.bk-cover.has-img { grid-template-columns: 190px minmax(0, 1fr); }
+.bk-art.has-img { display: block; background: var(--card-soft); color: inherit; text-decoration: none;
+  box-shadow: 0 18px 36px color-mix(in srgb, var(--blue) 22%, transparent), 0 2px 6px rgba(0,0,0,.12);
+  transition: transform .25s, box-shadow .25s; }
+.bk-art.has-img::before { left: 0; right: auto; top: 0; bottom: 0; width: 16px; height: auto; opacity: 1; z-index: 1;
+  background: linear-gradient(90deg, rgba(0,0,0,.28), rgba(0,0,0,.06) 70%, rgba(255,255,255,.2)); }
+.bk-art.has-img::after { left: 0; right: 0; top: 0; bottom: 0; height: auto; opacity: 1; z-index: 1; pointer-events: none;
+  background: linear-gradient(125deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 38%); }
+.bk-art.has-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.bk-art.has-img:hover { transform: translateY(-3px) rotate(-.6deg); box-shadow: 0 24px 44px color-mix(in srgb, var(--blue) 28%, transparent), 0 2px 6px rgba(0,0,0,.14); }
+.bk-art.has-img:focus-visible { outline: 3px solid color-mix(in srgb, var(--blue) 50%, transparent); outline-offset: 4px; }
+@media (max-width: 640px) {
+  .bk-cover.has-img { grid-template-columns: minmax(0, 1fr); }
+  .bk-cover.has-img .bk-art.has-img { display: block; width: 132px; margin: 0 auto 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .bk-art.has-img:hover { transform: none; } }

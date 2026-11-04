@@ -551,3 +551,16 @@ textarea { resize: vertical; min-height: 90px; }
   .dbk-ntable tr:first-child { display: none; }
   .dbk-ntable td { border-top: 0; padding: 4px 0; } .dbk-ntable tr { border-top: 1px solid var(--border); padding: 6px 0; }
 }
+
+/* ── สารบัญแบบหนังสือ: ภาพปกเล่ม (v1.60.0) ── */
+.dbk-cover { display: flex; gap: 16px; align-items: flex-start; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.dbk-cover-pv { flex: none; width: 96px; aspect-ratio: 3 / 4; border-radius: 4px 10px 10px 4px; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center;
+  background: linear-gradient(150deg, var(--blue), var(--blue-700)); color: var(--on-blue); box-shadow: inset 7px 0 0 rgba(0,0,0,.15); }
+.dbk-cover-pv small { font-size: 10px; line-height: 1.3; padding: 0 6px; opacity: .9; }
+.dbk-cover-pv.has-img { background: var(--card-soft); box-shadow: 0 6px 14px rgba(0,0,0,.12); }
+.dbk-cover-pv img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dbk-cover-t { flex: 1; min-width: 0; font-size: 13.5px; }
+.dbk-spec { margin: 6px 0 10px; padding-left: 18px; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+.dbk-spec b { color: var(--ink); }
+@media (max-width: 640px) { .dbk-cover { flex-direction: column; } }

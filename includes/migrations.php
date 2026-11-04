@@ -551,6 +551,8 @@ function run_migrations(PDO $pdo, ?callable $log = null): void {
     /* v1.59.0 — รูปแบบเล่มต่อหมวด (ชื่อเรียกแต่ละชั้น · คำนำหน้าเลข · ใช้สถานะยกเลิกไหม) เก็บเป็น JSON
        NULL = ยังไม่เคยตั้ง → ระบบเดาแม่แบบจากชื่อหมวด (วารสาร → ปีที่/ฉบับที่/บทความ ฯลฯ) */
     migr_add_col($pdo, 'doc_categories', 'book_conf', "book_conf TEXT NULL AFTER intro", $log);
+    /* v1.60.0 — ภาพปกเล่ม (แนวตั้ง 3:4) แสดงแทนปกสีที่ระบบวาดให้บนหน้าสารบัญ */
+    migr_add_col($pdo, 'doc_categories', 'cover', "cover VARCHAR(300) NULL AFTER book_conf", $log);
     $pdo->exec("CREATE TABLE IF NOT EXISTS doc_toc (
   id INT AUTO_INCREMENT PRIMARY KEY,
   category_id INT NOT NULL,

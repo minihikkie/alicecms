@@ -50,6 +50,8 @@ $showBook = (bool)$bookTree;
 
 $page_title = $cat_name !== '' ? $cat_name : section_title('documents');
 if ($showBook && trim((string)($catRow['intro'] ?? '')) !== '') $meta_description = mb_substr(trim($catRow['intro']), 0, 160);
+/* แชร์ลิงก์หมวดที่เป็นเล่มไปโซเชียล ใช้ภาพปกเป็นภาพตัวอย่าง */
+if ($showBook && !empty($catRow['cover'])) $og_image = $catRow['cover'];
 require __DIR__ . '/includes/header.php';
 $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: null, 'q' => $q, 'view' => $isBookCat && !$showBook && ($_GET['view'] ?? '') === 'list' ? 'list' : null]));
 ?>
@@ -87,11 +89,17 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
     $useStatus = !empty($bookConf['status']);
     $hasRep = $useStatus && $bs['rep_any'] > 0;
   ?>
-  <section class="bk-cover reveal" aria-labelledby="bk-title">
+  <section class="bk-cover reveal<?= !empty($catRow['cover']) ? ' has-img' : '' ?>" aria-labelledby="bk-title">
+    <?php if (!empty($catRow['cover'])): /* ภาพปกที่ผู้ดูแลอัปโหลด (3:4) — กดดูขนาดเต็มได้ */ ?>
+    <a class="bk-art has-img" href="<?= e(url($catRow['cover'])) ?>" data-lightbox="<?= e(url($catRow['cover'])) ?>" aria-label="ดูภาพปก <?= e($cat_name) ?> ขนาดเต็ม">
+      <img src="<?= e(url($catRow['cover'])) ?>" alt="ปก<?= e($cat_name) ?>" width="900" height="1200" fetchpriority="high" decoding="async">
+    </a>
+    <?php else: ?>
     <div class="bk-art" aria-hidden="true">
       <span class="bk-art-ic material-symbols-rounded"><?= e($bookConf['cat_icon']) ?></span>
       <span class="bk-art-n"><b><?= $bs['part'] ?></b><?= e($bookConf['l1']) ?></span>
     </div>
+    <?php endif; ?>
     <div class="bk-cover-txt">
       <span class="bk-kicker"><span class="material-symbols-rounded icon-sm" aria-hidden="true">menu_book</span>สารบัญเอกสาร</span>
       <h1 id="bk-title"><?= e($cat_name) ?></h1>

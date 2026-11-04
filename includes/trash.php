@@ -29,7 +29,7 @@ function trash_types(): array {
         'posts'         => ['kind' => 'ข่าว/ประกาศ',    'label' => 'title', 'files' => ['image', 'attachment'],
                             'children' => [['table' => 'post_attachments', 'fk' => 'post_id', 'files' => ['file']]]],
         'documents'     => ['kind' => 'เอกสารเผยแพร่',   'label' => 'title', 'files' => ['file']],
-        'doc_categories'=> ['kind' => 'หมวดเอกสาร',      'label' => 'name',  'files' => []],
+        'doc_categories'=> ['kind' => 'หมวดเอกสาร',      'label' => 'name',  'files' => ['cover']],
         'procurements'  => ['kind' => 'จัดซื้อจัดจ้าง',  'label' => 'title', 'files' => ['file']],
         'ita_items'     => ['kind' => 'รายการ ITA',      'label' => 'title', 'files' => ['file']],
         'personnel'     => ['kind' => 'บุคลากร',         'label' => 'name',  'files' => ['photo']],

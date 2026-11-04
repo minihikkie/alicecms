@@ -155,6 +155,7 @@ CREATE TABLE IF NOT EXISTS doc_categories (
   layout VARCHAR(10) NOT NULL DEFAULT 'list',
   intro VARCHAR(600) NOT NULL DEFAULT '',
   book_conf TEXT NULL,
+  cover VARCHAR(300) NULL,
   sort_order INT NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -74,6 +74,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect($self);
     }
 
+    /* ── ภาพปกเล่ม (แทนปกสีที่ระบบวาดให้บนหน้าเว็บ) ──
+       แสดงเป็นกรอบแนวตั้ง 3:4 แบบปกหนังสือ ภาพสัดส่วนอื่นจะถูกครอปตรงกลาง จึงเตือนให้รู้ตั้งแต่ตอนอัปโหลด */
+    if ($act === 'cover') {
+        if (!empty($_POST['remove_cover'])) {
+            if (!empty($cat['cover'])) delete_upload($cat['cover']);
+            db()->prepare('UPDATE doc_categories SET cover = NULL WHERE id = ?')->execute([$catId]);
+            log_action('ลบภาพปกเล่ม', $cat['name']);
+            flash_set('success', 'ลบภาพปกแล้ว — หน้าเว็บกลับไปใช้ปกสีที่ระบบวาดให้');
+            redirect($self);
+        }
+        try {
+            $up = handle_upload('cover', 'docbook', upload_image_exts(), 5);
+        } catch (RuntimeException $ex) {
+            flash_set('danger', $ex->getMessage());
+            redirect($self);
+        }
+        if (!$up) { flash_set('danger', 'เลือกไฟล์ภาพก่อน (JPG / PNG / WebP)'); redirect($self); }
+        if (!empty($cat['cover'])) delete_upload($cat['cover']);
+        db()->prepare('UPDATE doc_categories SET cover = ? WHERE id = ?')->execute([$up['path'], $catId]);
+        log_action('เปลี่ยนภาพปกเล่ม', $cat['name']);
+        $msg = 'บันทึกภาพปกแล้ว';
+        $info = @getimagesize(APP_ROOT . '/' . $up['path']);
+        if ($info && $info[0] > 0 && $info[1] > 0) {
+            [$w, $h] = $info;
+            $tips = [];
+            if (abs($w / $h - 0.75) > 0.06) $tips[] = "ภาพเป็น {$w}×{$h} px ไม่ใช่แนวตั้ง 3:4 ระบบจะครอปตรงกลางให้ — ถ้าต้องการให้เห็นครบ ทำภาพขนาด 900×1200 px";
+            if ($w < 600) $tips[] = "ภาพกว้างแค่ {$w} px อาจไม่คมบนจอความละเอียดสูง (แนะนำกว้าง 900 px ขึ้นไป)";
+            if ($tips) $msg .= ' · ' . implode(' · ', $tips);
+        }
+        flash_set('success', $msg);
+        redirect($self);
+    }
+
     /* ── ลบ (ลงถังขยะ พร้อมหัวข้อย่อยทั้งหมด) ── */
     if ($act === 'delete') {
         $row = $getRow((int)($_POST['id'] ?? 0));
@@ -334,6 +367,32 @@ require __DIR__ . '/_top.php';
     <div><b><?= number_format($stats['amend']) ?></b><span><?= e(docbook_short($conf['l3'])) ?></span></div>
     <?php if ($useStatus): ?><div><b><?= number_format($stats['rep_any']) ?></b><span><?= e($conf['s_off']) ?></span></div><?php endif; ?>
     <div><b><?= count($linkedDocs) ?><small>/<?= count($docs) ?></small></b><span>ไฟล์ในหมวดที่ผูกแล้ว</span></div>
+  </div>
+
+  <!-- ภาพปกเล่ม -->
+  <div class="dbk-cover">
+    <div class="dbk-cover-pv<?= !empty($cat['cover']) ? ' has-img' : '' ?>">
+      <?php if (!empty($cat['cover'])): ?><img src="<?= e(url($cat['cover'])) ?>" alt="ภาพปกปัจจุบัน">
+      <?php else: ?><span class="material-symbols-rounded"><?= e($conf['cat_icon']) ?></span><small>ปกสีที่ระบบวาดให้</small><?php endif; ?>
+    </div>
+    <div class="dbk-cover-t">
+      <b>ภาพปกเล่ม</b> <span class="text-muted">(ไม่บังคับ — แสดงแทนปกสีทางซ้ายของหัวข้อบนหน้าเว็บ)</span>
+      <ul class="dbk-spec">
+        <li>แนวตั้ง <b>3 : 4</b> แบบปกหนังสือ · แนะนำ <b>900 × 1200 px</b> (อย่างน้อย 600 × 800)</li>
+        <li>JPG หรือ WebP ไม่เกิน ~500 KB (ระบบรับสูงสุด 5 MB) · PNG ใช้เมื่อเป็นกราฟิกสีเรียบ</li>
+        <li>เว้นขอบทุกด้านราว 6% และด้านซ้าย 8% (มีเงาสันปก) — ตัวหนังสือสำคัญไม่ควรชิดขอบ</li>
+        <li>บนจอแสดงกว้างราว 190 px กดที่ภาพเพื่อดูขนาดเต็มได้ · ภาพสัดส่วนอื่นจะถูกครอปตรงกลาง</li>
+      </ul>
+      <form method="post" action="" enctype="multipart/form-data" class="flex gap-1 items-center" style="flex-wrap:wrap;">
+        <?= csrf_field() ?><input type="hidden" name="action" value="cover">
+        <input type="file" name="cover" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required style="max-width:280px;">
+        <button class="btn small primary" type="submit"><span class="material-symbols-rounded icon-sm">upload</span><?= !empty($cat['cover']) ? 'เปลี่ยนภาพปก' : 'อัปโหลดภาพปก' ?></button>
+      </form>
+      <?php if (!empty($cat['cover'])): ?>
+      <form method="post" action="" class="mt-1"><?= csrf_field() ?><input type="hidden" name="action" value="cover"><input type="hidden" name="remove_cover" value="1">
+        <button class="btn small ghost" type="submit" data-confirm="ลบภาพปก แล้วกลับไปใช้ปกสีที่ระบบวาดให้?"><span class="material-symbols-rounded icon-sm">delete</span>ลบภาพปก</button></form>
+      <?php endif; ?>
+    </div>
   </div>
 </div>
 
