@@ -849,6 +849,18 @@ function old_checked(string $key, $value, bool $fallback = false): bool {
     return (string)$v === (string)$value;
 }
 
+/**
+ * ปุ่มแชร์เอกสาร — เปิดหน้าต่างแชร์ (คัดลอกลิงก์ · LINE · Facebook · แชร์ของเครื่อง · QR Code)
+ * $path = ลิงก์ภายในเว็บ (ผ่าน url() แล้ว) — JS ต่อ origin ของหน้าที่เปิดอยู่ให้เอง จึงได้ https ถูกต้องแม้อยู่หลัง CDN
+ * $qr   = query ของ share-qr.php เช่น d=12 หรือ t=345 (รับแค่ id ไม่รับ URL)
+ */
+function share_btn(string $title, string $path, string $qr, string $cls = ''): string {
+    return '<button type="button" class="share-btn' . ($cls !== '' ? ' ' . $cls : '') . '" data-share'
+         . ' data-share-title="' . e($title) . '" data-share-url="' . e($path) . '" data-share-qr="' . e(url('share-qr.php?' . $qr)) . '"'
+         . ' title="แชร์ / QR Code" aria-label="' . e('แชร์ ' . $title) . '">'
+         . '<span class="material-symbols-rounded icon-sm" aria-hidden="true">share</span></button>';
+}
+
 /** ตรวจลิงก์ภายนอก (Google Drive ฯลฯ) — คืน URL ถ้าเป็น http/https เท่านั้น ไม่งั้น '' */
 function ext_link_clean(string $u): string {
     $u = trim($u);

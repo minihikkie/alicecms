@@ -24,7 +24,7 @@ $st = db()->prepare("SELECT COUNT(*) FROM documents d WHERE $wsql");
 $st->execute($params);
 $total = (int)$st->fetchColumn();
 
-$st = db()->prepare("SELECT d.*, c.name AS cat_name, c.icon AS cat_icon FROM documents d
+$st = db()->prepare("SELECT d.*, c.name AS cat_name, c.icon AS cat_icon, c.cover AS cat_cover FROM documents d
                      LEFT JOIN doc_categories c ON c.id = d.category_id
                      WHERE $wsql ORDER BY d.sort_order ASC, d.created_at DESC LIMIT $per OFFSET " . (($page - 1) * $per));
 $st->execute($params);
@@ -51,6 +51,28 @@ $showBook = (bool)$bookTree;
 $listCover = !$showBook && $catRow && !empty($catRow['cover']) && $q === '';
 /* หน้า "ทั้งหมด" (ไม่ได้เลือกหมวด ไม่ได้ค้นหา) → ชั้นหนังสือ: เลือกหมวดจากปก แทนแถบปุ่มหมวด */
 $isShelf = $cat === 0 && $q === '' && $cats;
+/* หน้าชั้นหนังสือมีชั้น "มาใหม่" และ "ยอดนิยม" (จากยอดเปิดที่ download.php นับอยู่แล้ว)
+   ยอดนิยมแสดงเมื่อมีเอกสารที่ถูกเปิดอย่างน้อย 3 รายการ ไม่งั้นจะดูโหรงเหรง */
+$newDocs = $popDocs = [];
+if ($isShelf) {
+    $sel = 'SELECT d.id, d.title, d.ext, d.ext_url, d.created_at, d.downloads, c.name AS cat_name, c.icon AS cat_icon, c.cover AS cat_cover
+            FROM documents d LEFT JOIN doc_categories c ON c.id = d.category_id';
+    $newDocs = db()->query("$sel ORDER BY d.created_at DESC, d.id DESC LIMIT 6")->fetchAll();
+    $popDocs = db()->query("$sel WHERE d.downloads > 0 ORDER BY d.downloads DESC, d.created_at DESC LIMIT 6")->fetchAll();
+    if (count($popDocs) < 3) $popDocs = [];
+}
+/** แถวเอกสารแบบย่อในชั้นมาใหม่/ยอดนิยม */
+$miniRow = function (array $d, string $meta, string $lead = ''): string {
+    $isExt = !empty($d['ext_url']);
+    $href = url('download.php?id=' . (int)$d['id']);
+    $thumb = !empty($d['cat_cover'])
+        ? '<span class="dmini-cv"><img src="' . e(url($d['cat_cover'])) . '" alt="" loading="lazy" decoding="async"></span>'
+        : '<span class="dmini-ic"><span class="material-symbols-rounded" aria-hidden="true">' . e($d['cat_icon'] ?: 'description') . '</span></span>';
+    return '<li class="dmini">' . $lead
+         . '<a class="dmini-a" href="' . e($href) . '"' . ($isExt ? ' target="_blank" rel="noopener"' : '') . '>' . $thumb
+         . '<span class="dmini-t"><span class="dmini-title">' . e($d['title']) . '</span><span class="dmini-m">' . $meta . '</span></span></a>'
+         . share_btn($d['title'], $href, 'd=' . (int)$d['id'], 'sm') . '</li>';
+};
 
 $page_title = $cat_name !== '' ? $cat_name : section_title('documents');
 if ($showBook && trim((string)($catRow['intro'] ?? '')) !== '') $meta_description = mb_substr(trim($catRow['intro']), 0, 160);
@@ -96,6 +118,28 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
       <?php endforeach; ?>
     </div>
   </section>
+  <?php if ($newDocs): ?>
+  <div class="dhot<?= $popDocs ? '' : ' one' ?>">
+    <section class="dhot-box reveal" aria-labelledby="dhot-new">
+      <h2 id="dhot-new"><span class="material-symbols-rounded" aria-hidden="true">new_releases</span>มาใหม่</h2>
+      <ol class="dmini-list">
+        <?php foreach ($newDocs as $d): ?>
+        <?= $miniRow($d, e(($d['cat_name'] ?: 'ทั่วไป') . ' · ' . thai_date($d['created_at'])) . (is_new($d['created_at']) ? ' <span class="badge gold" style="font-size:10.5px;padding:1px 7px;">ใหม่</span>' : '')) ?>
+        <?php endforeach; ?>
+      </ol>
+    </section>
+    <?php if ($popDocs): ?>
+    <section class="dhot-box reveal" aria-labelledby="dhot-pop">
+      <h2 id="dhot-pop"><span class="material-symbols-rounded" aria-hidden="true">trending_up</span>ยอดนิยม</h2>
+      <ol class="dmini-list is-rank">
+        <?php foreach ($popDocs as $i => $d): ?>
+        <?= $miniRow($d, e(($d['cat_name'] ?: 'ทั่วไป')) . ' · เปิด ' . number_format((int)$d['downloads']) . ' ครั้ง', '<span class="dmini-rank" aria-hidden="true">' . ($i + 1) . '</span>') ?>
+        <?php endforeach; ?>
+      </ol>
+    </section>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
   <div class="dshelf-sub reveal"><h2>เอกสารทั้งหมด</h2><span class="text-muted"><?= number_format($total) ?> รายการ</span></div>
   <?php else: ?>
   <div class="flex items-center gap-2 mb-3 reveal" style="flex-wrap:wrap;">
@@ -228,16 +272,23 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
   <div class="card reveal">
     <div class="grid grid-2" style="gap:8px 24px;">
       <?php foreach ($docs as $d): $isExt = !empty($d['ext_url']); ?>
-      <a class="list-row" href="<?= e(url('download.php?id=' . $d['id'])) ?>"<?= $isExt ? ' target="_blank" rel="noopener"' : '' ?>>
-        <div class="lr-icon" style="background:rgba(234,67,53,.08);color:var(--danger);"><span class="material-symbols-rounded"><?= e($d['cat_icon'] ?: ($isExt ? 'cloud' : 'picture_as_pdf')) ?></span></div>
-        <div style="flex:1;">
+      <?php $dHref = url('download.php?id=' . $d['id']); $dTarget = $isExt ? ' target="_blank" rel="noopener"' : ''; ?>
+      <div class="list-row doc-row">
+      <a class="doc-row-a" href="<?= e($dHref) ?>"<?= $dTarget ?>>
+        <?php if (!empty($d['cat_cover'])): ?><span class="dmini-cv"><img src="<?= e(url($d['cat_cover'])) ?>" alt="" loading="lazy" decoding="async"></span>
+        <?php else: ?><div class="lr-icon" style="background:rgba(234,67,53,.08);color:var(--danger);"><span class="material-symbols-rounded"><?= e($d['cat_icon'] ?: ($isExt ? 'cloud' : 'picture_as_pdf')) ?></span></div><?php endif; ?>
+        <div style="flex:1;min-width:0;">
           <div class="lr-title"><?= e($d['title']) ?>
             <?php if (is_new($d['created_at'])): ?><span class="badge gold" style="font-size:11px;padding:2px 8px;">ใหม่</span><?php endif; ?>
           </div>
           <div class="lr-date"><?= e($d['cat_name'] ?: 'ทั่วไป') ?> · <?php if ($isExt): ?><span class="material-symbols-rounded icon-sm" style="vertical-align:-3px;">link</span> ลิงก์ภายนอก<?php else: ?><?= e(strtoupper((string)$d['ext'])) ?> · <?= e(format_bytes((int)$d['file_size'])) ?><?php endif; ?> · <?= e(thai_date($d['created_at'])) ?><?php if ((int)$d['downloads'] > 0): ?> · เปิด <?= number_format((int)$d['downloads']) ?> ครั้ง<?php endif; ?></div>
         </div>
-        <span class="btn small" style="flex-shrink:0;"><span class="material-symbols-rounded icon-sm"><?= $isExt ? 'open_in_new' : 'download' ?></span></span>
       </a>
+      <span class="doc-row-acts">
+        <?= share_btn($d['title'], $dHref, 'd=' . (int)$d['id']) ?>
+        <a class="btn small" href="<?= e($dHref) ?>"<?= $dTarget ?> title="<?= $isExt ? 'เปิดเอกสาร' : 'ดาวน์โหลด' ?>" aria-label="<?= e(($isExt ? 'เปิด ' : 'ดาวน์โหลด ') . $d['title']) ?>" tabindex="-1"><span class="material-symbols-rounded icon-sm" aria-hidden="true"><?= $isExt ? 'open_in_new' : 'download' ?></span></a>
+      </span>
+      </div>
       <?php endforeach; ?>
     </div>
   </div>

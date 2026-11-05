@@ -85,6 +85,7 @@ function docbook_conf(array $cat): array {
         $c['guessed'] = true;
     }
     $c['cat_icon'] = preg_match('/^[a-z0-9_]{1,50}$/', (string)($cat['icon'] ?? '')) ? $cat['icon'] : 'menu_book';
+    $c['cat_id'] = (int)($cat['id'] ?? 0);
     return $c;
 }
 
@@ -446,6 +447,8 @@ function docbook_render(array $tree, array $conf): string {
             . ($meta ? '<span>' . e(implode(' · ', $meta)) . '</span>' : '')
             . '</span></span>'
             . docbook_link_btn($p)
+            /* แชร์ลิงก์ตรงถึงหัวข้อนี้ (+ QR) — ปุ่มอยู่ใน <summary> JS กันไม่ให้กดแล้วพับ/กางการ์ด */
+            . (!empty($conf['cat_id']) ? share_btn(trim($p['label'] . ' ' . $p['title']), url('documents.php?cat=' . (int)$conf['cat_id']) . '#t' . $pid, 't=' . $pid, 'in-sum') : '')
             . '<span class="material-symbols-rounded bk-chev" aria-hidden="true">expand_more</span>'
             . '</summary><div class="bk-body">';
 

@@ -868,3 +868,141 @@
   window.addEventListener('beforeprint', function () { before = parts.map(function (p) { return p.open; }); parts.forEach(function (p) { p.open = true; }); });
   window.addEventListener('afterprint', function () { parts.forEach(function (p, i) { p.open = !!before[i]; }); });
 })();
+
+/* ══ แชร์เอกสาร: คัดลอกลิงก์ · LINE · Facebook · แชร์ของเครื่อง · QR Code (ดาวน์โหลด PNG/SVG) ══
+   ปุ่มสร้างด้วย share_btn() ใน PHP — ลิงก์เป็นแบบภายในเว็บ ต่อ origin ของหน้าที่เปิดอยู่ตรงนี้
+   (ได้ https/โดเมนจริงเสมอ แม้เซิร์ฟเวอร์อยู่หลัง CDN) · QR สร้างที่ share-qr.php ในเว็บเราเอง */
+(function () {
+  var modal = null, lastFocus = null;
+
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; }
+  function close() {
+    if (!modal) return;
+    modal.remove(); modal = null;
+    document.removeEventListener('keydown', onKey);
+    document.body.style.overflow = '';
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  function onKey(ev) { if (ev.key === 'Escape') close(); }
+
+  function copy(text, btn) {
+    var done = function () { var t = btn.textContent; btn.textContent = 'คัดลอกแล้ว ✓'; btn.classList.add('ok'); setTimeout(function () { btn.textContent = t; btn.classList.remove('ok'); }, 1800); };
+    if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(done, fallback); } else { fallback(); }
+    function fallback() {
+      var inp = modal && modal.querySelector('.sh-link input');
+      if (!inp) return;
+      inp.focus(); inp.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      if (ok) { done(); return; }
+      /* เบราว์เซอร์/นโยบายองค์กรบางแห่งปิดคลิปบอร์ด — เลือกลิงก์ค้างไว้ให้ แล้วบอกวิธีคัดลอกเอง ไม่ปล่อยให้กดแล้วเงียบ */
+      var hint = modal.querySelector('.sh-hint');
+      if (!hint) { hint = el('p', 'sh-hint'); modal.querySelector('.sh-link').after(hint); }
+      hint.textContent = 'เลือกลิงก์ไว้ให้แล้ว — กด Ctrl+C (Mac: ⌘+C) เพื่อคัดลอก';
+    }
+  }
+
+  /* QR เป็น PNG สำหรับวางในเอกสาร Word/หนังสือเวียน: QR ใหญ่ + ชื่อเอกสารใต้ภาพ บนพื้นขาว */
+  function savePng(src, title, name) {
+    var img = new Image();
+    img.onload = function () {
+      var W = 1000, Q = 880, pad = 60, lineH = 46;
+      var c = document.createElement('canvas'), x = c.getContext('2d');
+      x.font = '600 34px Prompt, Tahoma, sans-serif';
+      var words = String(title).split(/(\s+)/), lines = [], cur = '';
+      words.forEach(function (w) {
+        var t = cur + w;
+        if (x.measureText(t).width > W - pad * 2 && cur.trim()) { lines.push(cur.trim()); cur = w; } else { cur = t; }
+      });
+      if (cur.trim()) lines.push(cur.trim());
+      if (lines.length > 2) { lines = lines.slice(0, 2); lines[1] = lines[1].replace(/.{0,2}$/, '…'); }
+      c.width = W; c.height = pad + Q + 24 + lines.length * lineH + pad;
+      x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+      x.imageSmoothingEnabled = false;
+      x.drawImage(img, (W - Q) / 2, pad, Q, Q);
+      x.fillStyle = '#111827'; x.font = '600 34px Prompt, Tahoma, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'top';
+      lines.forEach(function (l, i) { x.fillText(l, W / 2, pad + Q + 24 + i * lineH); });
+      c.toBlob(function (b) {
+        if (!b) return;
+        var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name + '.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+      }, 'image/png');
+    };
+    img.src = src;
+  }
+
+  function open(btn) {
+    close();
+    lastFocus = btn;
+    var title = btn.getAttribute('data-share-title') || document.title;
+    var url = new URL(btn.getAttribute('data-share-url') || location.href, location.href).href;
+    var qr = btn.getAttribute('data-share-qr') || '';
+    var enc = encodeURIComponent(url);
+    var fileName = 'qr-' + (qr.split('?')[1] || 'link').replace(/[^a-z0-9]+/gi, '-');
+
+    modal = el('div', 'sh-modal');
+    modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-labelledby', 'sh-h');
+    var box = el('div', 'sh-box');
+    var head = el('div', 'sh-head');
+    var h = el('b', '', 'แชร์เอกสาร'); h.id = 'sh-h';
+    var x = el('button', 'sh-x'); x.type = 'button'; x.setAttribute('aria-label', 'ปิด');
+    x.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">close</span>';
+    head.appendChild(h); head.appendChild(x);
+    var doc = el('p', 'sh-doc', title);
+
+    var link = el('div', 'sh-link');
+    var inp = el('input'); inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.setAttribute('aria-label', 'ลิงก์เอกสาร');
+    var cp = el('button', 'btn small primary', 'คัดลอกลิงก์'); cp.type = 'button';
+    link.appendChild(inp); link.appendChild(cp);
+
+    var apps = el('div', 'sh-apps');
+    if (navigator.share) {
+      var ns = el('button', 'sh-app'); ns.type = 'button';
+      ns.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">ios_share</span>แชร์ผ่านเครื่อง';
+      ns.addEventListener('click', function () { navigator.share({ title: title, url: url }).catch(function () {}); });
+      apps.appendChild(ns);
+    }
+    [['LINE', 'https://social-plugins.line.me/lineit/share?url=' + enc, 'line'],
+     ['Facebook', 'https://www.facebook.com/sharer/sharer.php?u=' + enc, 'fb']].forEach(function (a) {
+      var l = el('a', 'sh-app ' + a[2]); l.href = a[1]; l.target = '_blank'; l.rel = 'noopener';
+      l.innerHTML = '<span class="sh-dot" aria-hidden="true"></span>' + a[0];
+      apps.appendChild(l);
+    });
+
+    box.appendChild(head); box.appendChild(doc); box.appendChild(link); box.appendChild(apps);
+
+    if (qr) {
+      var q = el('div', 'sh-qr');
+      var im = el('img'); im.src = qr; im.alt = 'QR Code ลิงก์ ' + title; im.width = 168; im.height = 168;
+      var side = el('div', 'sh-qr-t');
+      side.appendChild(el('b', '', 'QR Code'));
+      side.appendChild(el('p', '', 'สแกนเพื่อเปิดเอกสาร — ดาวน์โหลดไปแปะหนังสือเวียน บอร์ดประกาศ หรือสไลด์นำเสนอได้'));
+      var png = el('button', 'btn small', 'ดาวน์โหลด PNG'); png.type = 'button';
+      png.addEventListener('click', function () { savePng(qr, title, fileName); });
+      var svg = el('a', 'btn small ghost', 'SVG (พิมพ์ขนาดใหญ่)'); svg.href = qr + (qr.indexOf('?') > -1 ? '&' : '?') + 'dl=1';
+      var row = el('div', 'sh-qr-btns'); row.appendChild(png); row.appendChild(svg);
+      side.appendChild(row);
+      q.appendChild(im); q.appendChild(side);
+      box.appendChild(q);
+    }
+
+    modal.appendChild(box);
+    modal.addEventListener('click', function (ev) { if (ev.target === modal) close(); });
+    x.addEventListener('click', close);
+    cp.addEventListener('click', function () { copy(url, cp); });
+    inp.addEventListener('focus', function () { inp.select(); });
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKey);
+    cp.focus();
+  }
+
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest && ev.target.closest('[data-share]');
+    if (!b) return;
+    /* ปุ่มอยู่ใน <summary> ของการ์ดสารบัญด้วย — กันไม่ให้การ์ดพับ/กางตอนกดแชร์ */
+    ev.preventDefault(); ev.stopPropagation();
+    open(b);
+  });
+})();
