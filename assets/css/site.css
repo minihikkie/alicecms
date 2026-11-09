@@ -1720,3 +1720,9 @@ mark.bk-mark { background: color-mix(in srgb, var(--gold) 38%, transparent); col
   .ddoc-nav { grid-template-columns: minmax(0, 1fr); } .ddoc-nav a.next { grid-column: 1; }
 }
 @media (prefers-reduced-motion: reduce) { .dsh-card:hover .dcv, .dsh-feat-cv:hover { transform: none; } }
+
+/* ── ชั้นวาง: หัวหมวดเป็นกล่องปกใหญ่แบบเดียวกับหน้าสารบัญ (v1.64.1) ── */
+.dsh-cover { margin-bottom: 18px; }
+.dsh-cover .bk-art { background: linear-gradient(150deg, var(--blue) 0%, var(--blue-700) 100%); }
+.dsh-cover .bk-art.has-img { background: var(--card-soft); }
+.dsh-cover + .dsh-feat { margin-top: 0; }

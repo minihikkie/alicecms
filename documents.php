@@ -258,15 +258,38 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
     foreach ($shelfDocs as $d) { if (!$latest || docshelf_date($d) . sprintf('%010d', $d['id']) > docshelf_date($latest) . sprintf('%010d', $latest['id'])) $latest = $d; }
     $showFeat = $shelfConf['featured'] && $latest && count($shelfDocs) > 1;
   ?>
-  <section class="dsh-head reveal" aria-labelledby="dsh-title">
+  <?php
+    /* ตัวเลขบนปก: ฉบับทั้งหมด · จำนวนกลุ่ม (เรียก "ปี" ถ้าทุกกลุ่มขึ้นต้นด้วยปี) · ฉบับล่าสุด · ยอดเปิดรวม */
+    $gLabels = array_filter(array_column($shGroups, 0), fn($g) => $g !== '');
+    $gWord = $gLabels && count(array_filter($gLabels, fn($g) => mb_strpos($g, 'ปี') === 0)) === count($gLabels) ? 'ปี' : 'กลุ่ม';
+    [, $latestNo] = $latest ? docshelf_issue((string)$latest['title']) : ['', ''];
+    $sumOpen = array_sum(array_map(fn($d) => (int)$d['downloads'], $shelfDocs));
+  ?>
+  <section class="bk-cover dsh-cover reveal<?= !empty($catRow['cover']) ? ' has-img' : '' ?>" aria-labelledby="dsh-title">
     <?php if (!empty($catRow['cover'])): ?>
-    <a class="dsh-head-cv" href="<?= e(url($catRow['cover'])) ?>" data-lightbox="<?= e(url($catRow['cover'])) ?>" aria-label="ดูภาพปก <?= e($cat_name) ?> ขนาดเต็ม"><img src="<?= e(url($catRow['cover'])) ?>" alt="" width="900" height="1200"></a>
+    <a class="bk-art has-img" href="<?= e(url($catRow['cover'])) ?>" data-lightbox="<?= e(url($catRow['cover'])) ?>" aria-label="ดูภาพปก <?= e($cat_name) ?> ขนาดเต็ม">
+      <img src="<?= e(url($catRow['cover'])) ?>" alt="ปก<?= e($cat_name) ?>" width="900" height="1200" fetchpriority="high" decoding="async">
+    </a>
+    <?php else: ?>
+    <div class="bk-art" aria-hidden="true">
+      <span class="bk-art-ic material-symbols-rounded"><?= e($catRow['icon'] ?: 'auto_stories') ?></span>
+      <span class="bk-art-n"><b><?= number_format(count($shelfDocs)) ?></b>ฉบับ</span>
+    </div>
     <?php endif; ?>
-    <div class="dsh-head-t">
-      <span class="bk-kicker"><span class="material-symbols-rounded icon-sm" aria-hidden="true"><?= e($catRow['icon'] ?: 'auto_stories') ?></span>เอกสารเผยแพร่</span>
+    <div class="bk-cover-txt">
+      <span class="bk-kicker"><span class="material-symbols-rounded icon-sm" aria-hidden="true">auto_stories</span>ชั้นหนังสือ</span>
       <h1 id="dsh-title"><?= e($cat_name) ?></h1>
       <?php if (trim((string)($catRow['intro'] ?? '')) !== ''): ?><p class="bk-intro"><?= e($catRow['intro']) ?></p><?php endif; ?>
-      <p class="dsh-head-m"><b><?= number_format(count($shelfDocs)) ?></b> ฉบับ<?php if (count($shGroups) > 1): ?> · <?= count($shGroups) ?> กลุ่ม<?php endif; ?><?php if ($latest): ?> · ล่าสุด <?= e(thai_date(docshelf_date($latest))) ?><?php endif; ?></p>
+      <dl class="bk-stats">
+        <div><dt>ฉบับทั้งหมด</dt><dd><?= number_format(count($shelfDocs)) ?></dd></div>
+        <?php if (count($gLabels) > 1): ?><div><dt><?= e($gWord) ?></dt><dd><?= number_format(count($gLabels)) ?></dd></div><?php endif; ?>
+        <?php if ($latestNo !== ''): ?><div><dt>ฉบับล่าสุด</dt><dd><?= e($latestNo) ?></dd></div><?php endif; ?>
+        <?php if ($sumOpen > 0): ?><div><dt>เปิดอ่านรวม</dt><dd class="ok"><?= number_format($sumOpen) ?></dd></div><?php endif; ?>
+      </dl>
+      <div class="bk-cover-foot">
+        <?php if ($latest): ?><span class="text-muted"><span class="material-symbols-rounded icon-sm" aria-hidden="true">update</span> ฉบับล่าสุด <?= e(thai_date(docshelf_date($latest))) ?></span><?php endif; ?>
+        <a class="btn small" href="<?= e(url('documents.php?cat=' . $cat . '&view=list')) ?>"><span class="material-symbols-rounded icon-sm" aria-hidden="true">format_list_bulleted</span>ไฟล์ทั้งหมดแบบรายการ</a>
+      </div>
     </div>
   </section>
 
@@ -322,7 +345,7 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
     <?php endforeach; ?>
     <div class="bk-none" data-dsh-none hidden><span class="material-symbols-rounded" aria-hidden="true">search_off</span><p>ไม่พบฉบับที่ค้นหา</p></div>
   </div>
-  <p class="text-center mb-4"><a class="btn small ghost" href="<?= e(url('documents.php?cat=' . $cat . '&view=list')) ?>"><span class="material-symbols-rounded icon-sm" aria-hidden="true">format_list_bulleted</span>ดูแบบรายการไฟล์</a></p>
+  <div class="mb-4"></div>
   <?php else: ?>
 
   <?php if ($listCover):
