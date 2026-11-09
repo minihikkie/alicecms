@@ -1517,15 +1517,6 @@ mark.bk-mark { background: color-mix(in srgb, var(--gold) 38%, transparent); col
 .dshelf-sub { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
 .dshelf-sub h2 { margin: 0; font-size: 20px; color: var(--ink); }
 
-/* แถบหมวดในหน้าหมวด: ปกย่อแทนไอคอน + ตัวเลขเป็นป้ายเล็ก */
-.dcats .cat { gap: 8px; }
-.dcats .cat-cv { flex: none; width: 22px; height: 29px; margin: -4px 0 -4px -6px; border-radius: 2px 5px 5px 2px; overflow: hidden;
-  box-shadow: 0 2px 5px rgba(0,0,0,.18); }
-.dcats .cat-cv img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.dcats .cat-n { font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 999px;
-  background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--muted); }
-.dcats .cat.active .cat-n { background: rgba(255,255,255,.22); color: var(--on-blue); }
-
 @media (max-width: 640px) {
   .dshelf { padding: 18px 16px 20px; }
   .dshelf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; }

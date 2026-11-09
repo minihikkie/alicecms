@@ -177,27 +177,16 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
   </div>
   <?php endif; ?>
   <div class="dshelf-sub reveal"><h2>เอกสารทั้งหมด</h2><span class="text-muted"><?= number_format($total) ?> รายการ</span></div>
-  <?php else: ?>
-  <div class="flex items-center gap-2 mb-3 reveal" style="flex-wrap:wrap;">
-    <nav class="cats dcats" aria-label="หมวดเอกสาร">
-      <a class="cat<?= $cat === 0 ? ' active' : '' ?>" href="<?= e(url('documents.php')) ?>"><span class="material-symbols-rounded icon-sm" aria-hidden="true">grid_view</span>ทั้งหมด</a>
-      <?php foreach ($cats as $c): ?>
-      <a class="cat<?= $cat === (int)$c['id'] ? ' active' : '' ?>" href="<?= e(url('documents.php?cat=' . $c['id'])) ?>"<?= $cat === (int)$c['id'] ? ' aria-current="page"' : '' ?>>
-        <?php if (!empty($c['cover'])): ?><span class="cat-cv" aria-hidden="true"><img src="<?= e(url($c['cover'])) ?>" alt="" loading="lazy" decoding="async"></span>
-        <?php else: ?><span class="material-symbols-rounded icon-sm" aria-hidden="true"><?= e($c['icon'] ?: 'folder') ?></span><?php endif; ?>
-        <?= e($c['name']) ?> <span class="cat-n"><?= (int)$c['n'] ?></span>
-      </a>
-      <?php endforeach; ?>
-    </nav>
-    <?php if (!$showBook && !$showShelf): ?>
-    <form class="searchbar" style="max-width:320px;margin:0;margin-left:auto;box-shadow:var(--shadow-soft);" action="<?= e(url('documents.php')) ?>" method="get" role="search">
-      <?php if ($cat): ?><input type="hidden" name="cat" value="<?= $cat ?>"><?php endif; ?>
-      <span class="material-symbols-rounded" style="color:var(--muted)">search</span>
-      <input type="search" name="q" value="<?= e($q) ?>" placeholder="ค้นหาเอกสาร..." aria-label="ค้นหาเอกสาร">
-    </form>
-    <?php endif; ?>
-  </div>
-  <?php endif; /* $isShelf */ ?>
+  <?php endif; /* $isShelf */
+  /* แถบชิปหมวดเอาออกแล้ว (v1.65.1) — กลับไปเลือกหมวดผ่าน breadcrumb "เอกสารเผยแพร่"
+     ช่องค้นหาของหน้ารายการ: อยู่บนสุด หรือใต้กล่องหัวหมวดถ้าหมวดมีภาพปก */
+  $listSearch = $isShelf || $showBook || $showShelf ? '' :
+    '<div class="mb-3 reveal"><form class="searchbar" style="max-width:420px;margin:0;box-shadow:var(--shadow-soft);" action="' . e(url('documents.php')) . '" method="get" role="search">'
+    . ($cat ? '<input type="hidden" name="cat" value="' . $cat . '">' : '')
+    . '<span class="material-symbols-rounded" style="color:var(--muted)">search</span>'
+    . '<input type="search" name="q" value="' . e($q) . '" placeholder="' . ($cat ? 'ค้นหาในหมวดนี้...' : 'ค้นหาเอกสารทุกหมวด...') . '" aria-label="ค้นหาเอกสาร"></form></div>';
+  if (!$listCover) echo $listSearch;
+  ?>
 
   <?php if ($showBook):
     $bs = docbook_stats($bookTree);
@@ -377,6 +366,7 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
       </div>
     </div>
   </section>
+  <?= $listSearch ?>
   <?php endif; ?>
 
   <?php if ($q !== ''): ?>
