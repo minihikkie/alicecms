@@ -63,6 +63,27 @@ if ($catRow && ($catRow['layout'] ?? 'list') === 'shelf' && ($_GET['view'] ?? ''
 $listCover = !$showBook && !$showShelf && $catRow && !empty($catRow['cover']) && $q === '';
 /* หน้า "ทั้งหมด" (ไม่ได้เลือกหมวด ไม่ได้ค้นหา) → ชั้นหนังสือ: เลือกหมวดจากปก แทนแถบปุ่มหมวด */
 $isShelf = $cat === 0 && $q === '' && $cats;
+/* กล่องตัวเลขบนหัวหมวด — ผู้ดูแลเลือกเองที่ "การแสดงผล" ของหมวด (includes/doc-shelf.php) */
+require_once __DIR__ . '/includes/doc-shelf.php';
+$vcAll = $catRow ? docshelf_conf($catRow) : null;
+$catOpens = $catViews = 0;
+if ($catRow) {
+    /* นับผู้เข้าชมแยกรายหมวด (หน้าเดียวกันแต่คนละหมวด) — init.php นับรวมเป็น "documents" อยู่แล้ว */
+    track_page_view('doccat-' . $cat);
+    $st = db()->prepare('SELECT COALESCE(SUM(downloads), 0) FROM documents WHERE category_id = ?');
+    $st->execute([$cat]);
+    $catOpens = (int)$st->fetchColumn();
+    $catViews = docshelf_cat_views($cat);
+}
+/** ค่าที่ใช้ได้ทุกรูปแบบ */
+$commonStats = function (string $filesLabel, int $files, string $updated) use ($catOpens, $catViews): array {
+    return [
+        'files'   => [$filesLabel, number_format($files), ''],
+        'opens'   => $catOpens > 0 ? ['เปิดอ่านรวม', number_format($catOpens), 'ok'] : null,
+        'views'   => $catViews > 0 ? ['ผู้เข้าชม', number_format($catViews), 'blue'] : null,
+        'updated' => $updated !== '' ? ['ปรับปรุงล่าสุด', thai_date($updated), 'date'] : null,
+    ];
+};
 /* หน้าชั้นหนังสือมีชั้น "มาใหม่" และ "ยอดนิยม" (จากยอดเปิดที่ download.php นับอยู่แล้ว)
    ยอดนิยมแสดงเมื่อมีเอกสารที่ถูกเปิดอย่างน้อย 3 รายการ ไม่งั้นจะดูโหรงเหรง */
 $newDocs = $popDocs = [];
@@ -199,13 +220,13 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
       <span class="bk-kicker"><span class="material-symbols-rounded icon-sm" aria-hidden="true">menu_book</span>สารบัญเอกสาร</span>
       <h1 id="bk-title"><?= e($cat_name) ?></h1>
       <?php if (trim((string)($catRow['intro'] ?? '')) !== ''): ?><p class="bk-intro"><?= e($catRow['intro']) ?></p><?php endif; ?>
-      <dl class="bk-stats">
-        <div><dt><?= e($bookConf['l1']) ?></dt><dd><?= number_format($bs['part']) ?></dd></div>
-        <?php if ($bs['chapter']): ?><div><dt><?= e($bookConf['l2']) ?></dt><dd><?= number_format($bs['chapter']) ?></dd></div><?php endif; ?>
-        <?php if ($bs['amend']): ?><div><dt><?= e($bookConf['l3']) ?></dt><dd><?= number_format($bs['amend']) ?></dd></div><?php endif; ?>
-        <?php if ($useStatus): ?><div><dt><?= e($bookConf['s_on']) ?></dt><dd class="ok"><?= number_format($bs['active']) ?></dd></div><?php endif; ?>
-        <?php if ($useStatus && $bs['repealed']): ?><div><dt><?= e($bookConf['s_off']) ?></dt><dd class="rep"><?= number_format($bs['repealed']) ?></dd></div><?php endif; ?>
-      </dl>
+      <?= docshelf_stat_boxes(docshelf_stat_items($vcAll, 'book', $commonStats('เอกสาร', (int)$catRow['n'], $bookUpdated) + [
+        'l1'       => [$bookConf['l1'], number_format($bs['part']), ''],
+        'l2'       => $bs['chapter'] ? [$bookConf['l2'], number_format($bs['chapter']), ''] : null,
+        'l3'       => $bs['amend'] ? [$bookConf['l3'], number_format($bs['amend']), ''] : null,
+        'active'   => $useStatus ? [$bookConf['s_on'], number_format($bs['active']), 'ok'] : null,
+        'repealed' => $useStatus && $bs['repealed'] ? [$bookConf['s_off'], number_format($bs['repealed']), 'rep'] : null,
+      ])) ?>
       <div class="bk-cover-foot">
         <span class="text-muted"><span class="material-symbols-rounded icon-sm" aria-hidden="true">update</span> ปรับปรุงสารบัญ <?= e(thai_date($bookUpdated)) ?></span>
         <?php if ((int)$catRow['n'] > 0): ?><a class="btn small" href="<?= e(url('documents.php?cat=' . $cat . '&view=list')) ?>"><span class="material-symbols-rounded icon-sm">format_list_bulleted</span>ไฟล์ทั้งหมดในหมวด (<?= (int)$catRow['n'] ?>)</a><?php endif; ?>
@@ -260,11 +281,10 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
     $latestId = $shelfConf['featured'] && $latest && count($shelfDocs) > 1 ? (int)$latest['id'] : 0;
   ?>
   <?php
-    /* ตัวเลขบนปก: ฉบับทั้งหมด · จำนวนกลุ่ม (เรียก "ปี" ถ้าทุกกลุ่มขึ้นต้นด้วยปี) · ฉบับล่าสุด · ยอดเปิดรวม */
+    /* ค่าเฉพาะชั้นวางสำหรับกล่องตัวเลข: จำนวนกลุ่ม (เรียก "ปี" ถ้าทุกกลุ่มขึ้นต้นด้วยปี) · เลขฉบับล่าสุด */
     $gLabels = array_filter(array_column($shGroups, 0), fn($g) => $g !== '');
     $gWord = $gLabels && count(array_filter($gLabels, fn($g) => mb_strpos($g, 'ปี') === 0)) === count($gLabels) ? 'ปี' : 'กลุ่ม';
     [, $latestNo] = $latest ? docshelf_issue((string)$latest['title']) : ['', ''];
-    $sumOpen = array_sum(array_map(fn($d) => (int)$d['downloads'], $shelfDocs));
   ?>
   <section class="bk-cover dsh-cover reveal<?= !empty($catRow['cover']) ? ' has-img' : '' ?>" aria-labelledby="dsh-title">
     <?php if (!empty($catRow['cover'])): ?>
@@ -281,12 +301,10 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
       <span class="bk-kicker"><span class="material-symbols-rounded icon-sm" aria-hidden="true">auto_stories</span>ชั้นหนังสือ</span>
       <h1 id="dsh-title"><?= e($cat_name) ?></h1>
       <?php if (trim((string)($catRow['intro'] ?? '')) !== ''): ?><p class="bk-intro"><?= e($catRow['intro']) ?></p><?php endif; ?>
-      <dl class="bk-stats">
-        <div><dt>ฉบับทั้งหมด</dt><dd><?= number_format(count($shelfDocs)) ?></dd></div>
-        <?php if (count($gLabels) > 1): ?><div><dt><?= e($gWord) ?></dt><dd><?= number_format(count($gLabels)) ?></dd></div><?php endif; ?>
-        <?php if ($latestNo !== ''): ?><div><dt>ฉบับล่าสุด</dt><dd><?= e($latestNo) ?></dd></div><?php endif; ?>
-        <?php if ($sumOpen > 0): ?><div><dt>เปิดอ่านรวม</dt><dd class="ok"><?= number_format($sumOpen) ?></dd></div><?php endif; ?>
-      </dl>
+      <?= docshelf_stat_boxes(docshelf_stat_items($shelfConf, 'shelf', [
+        'groups'    => count($gLabels) > 1 ? [$gWord, number_format(count($gLabels)), ''] : null,
+        'latest_no' => $latestNo !== '' ? ['ฉบับล่าสุด', $latestNo, ''] : null,
+      ] + $commonStats('ฉบับทั้งหมด', count($shelfDocs), $latest ? docshelf_date($latest) : ''))) ?>
       <div class="bk-cover-foot">
         <?php if ($latest): ?><span class="text-muted"><span class="material-symbols-rounded icon-sm" aria-hidden="true">update</span> ฉบับล่าสุด <?= e(thai_date(docshelf_date($latest))) ?></span><?php endif; ?>
         <a class="btn small" href="<?= e(url('documents.php?cat=' . $cat . '&view=list')) ?>"><span class="material-symbols-rounded icon-sm" aria-hidden="true">format_list_bulleted</span>ไฟล์ทั้งหมดแบบรายการ</a>
@@ -350,9 +368,7 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
       <span class="bk-kicker"><span class="material-symbols-rounded icon-sm" aria-hidden="true"><?= e($catRow['icon'] ?: 'folder') ?></span>เอกสารเผยแพร่</span>
       <h1 id="cat-title"><?= e($cat_name) ?></h1>
       <?php if (trim((string)($catRow['intro'] ?? '')) !== ''): ?><p class="bk-intro"><?= e($catRow['intro']) ?></p><?php endif; ?>
-      <dl class="bk-stats">
-        <div><dt>เอกสาร</dt><dd><?= number_format((int)$catRow['n']) ?></dd></div>
-      </dl>
+      <?= docshelf_stat_boxes(docshelf_stat_items($vcAll, 'list', $commonStats('เอกสาร', (int)$catRow['n'], $lastDoc))) ?>
       <div class="bk-cover-foot">
         <?php if ($lastDoc !== ''): ?><span class="text-muted"><span class="material-symbols-rounded icon-sm" aria-hidden="true">update</span> เพิ่มเอกสารล่าสุด <?= e(thai_date($lastDoc)) ?></span><?php endif; ?>
         <?php if ($isBookCat && ($_GET['view'] ?? '') === 'list'): ?>

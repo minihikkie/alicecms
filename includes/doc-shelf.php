@@ -28,14 +28,123 @@ function docshelf_conf(array $cat): array {
         'size'     => $pick('size', ['sm', 'md', 'lg'], 'md'),
         'sort'     => $pick('sort', ['new', 'old'], 'new'),
         'featured' => isset($raw['featured']) ? (int)!empty($raw['featured']) : 1,
+        'stats'    => docshelf_stats_clean($raw['stats'] ?? null),
+        'custom'   => docshelf_custom_clean($raw['custom'] ?? null),
     ];
+}
+
+/* ─────────────────────────────────────────────
+   กล่องตัวเลขบนหัวหมวด — ผู้ดูแลเลือกเองว่าจะแสดงอะไร เรียงอย่างไร และเพิ่มกล่องกำหนดเองได้
+   ───────────────────────────────────────────── */
+
+/** ตัวเลขที่ระบบคำนวณได้: key => [ชื่อในหน้าจัดการ, รูปแบบหมวดที่มีค่านี้] */
+function docshelf_stat_catalog(): array {
+    $all = ['list', 'book', 'shelf'];
+    return [
+        'l1'        => ['จำนวนหัวข้อชั้นที่ 1 (เช่น ลักษณะ)', ['book']],
+        'l2'        => ['จำนวนหัวข้อชั้นที่ 2 (เช่น บท)', ['book']],
+        'l3'        => ['จำนวนรายการประกอบ (เช่น ฉบับแก้ไข)', ['book']],
+        'active'    => ['จำนวนที่มีผลใช้บังคับ', ['book']],
+        'repealed'  => ['จำนวนที่ยกเลิกแล้ว', ['book']],
+        'files'     => ['จำนวนไฟล์ / ฉบับในหมวด', $all],
+        'groups'    => ['จำนวนปี / กลุ่ม', ['shelf']],
+        'latest_no' => ['เลขฉบับล่าสุด', ['shelf']],
+        'opens'     => ['ยอดเปิดอ่านรวม (ทุกไฟล์ในหมวด)', $all],
+        'views'     => ['ผู้เข้าชมหน้าหมวดนี้', $all],
+        'updated'   => ['ปรับปรุงล่าสุด (วันที่)', $all],
+    ];
+}
+
+/** ค่าเริ่มต้นของแต่ละรูปแบบ (ใช้เมื่อผู้ดูแลยังไม่เคยเลือก) — ตรงกับที่แสดงก่อนมีตัวเลือกนี้ */
+function docshelf_stat_defaults(string $layout): array {
+    return match ($layout) {
+        'book'  => ['l1', 'l2', 'l3', 'active', 'repealed'],
+        'shelf' => ['files', 'groups', 'latest_no', 'opens'],
+        default => ['files'],
+    };
+}
+
+/** stats ที่เก็บ = {key: ลำดับ} ของกล่องที่เปิด · null = ยังไม่เคยตั้ง (ใช้ค่าเริ่มต้น) */
+function docshelf_stats_clean($raw): ?array {
+    if (!is_array($raw)) return null;
+    $cat = docshelf_stat_catalog();
+    $out = [];
+    foreach ($raw as $k => $o) if (isset($cat[$k])) $out[$k] = max(1, min(99, (int)$o));
+    asort($out);
+    return $out;
+}
+
+/** กล่องกำหนดเอง สูงสุด 3 กล่อง: [label, value, tone] · tone = '' | ok | rep | blue */
+function docshelf_custom_clean($raw): array {
+    if (!is_array($raw)) return [];
+    $out = [];
+    foreach (array_slice(array_values($raw), 0, 3) as $c) {
+        if (!is_array($c)) continue;
+        $label = mb_substr(trim((string)($c['label'] ?? '')), 0, 30);
+        $value = mb_substr(trim((string)($c['value'] ?? '')), 0, 20);
+        if ($label === '' || $value === '') continue;
+        $tone = in_array($c['tone'] ?? '', ['ok', 'rep', 'blue'], true) ? $c['tone'] : '';
+        $out[] = ['label' => $label, 'value' => $value, 'tone' => $tone, 'order' => max(1, min(99, (int)($c['order'] ?? 50)))];
+    }
+    return $out;
+}
+
+/**
+ * รวมกล่องที่จะแสดง: ตัวเลขของระบบที่มีค่า (ตามที่เลือก/ค่าเริ่มต้น) + กล่องกำหนดเอง เรียงตามลำดับ
+ * $values = [key => [label, value, tone]] — key ที่ไม่มีค่า (null) จะไม่แสดง เช่น ยอดเปิด 0 ในหมวดใหม่
+ */
+function docshelf_stat_items(array $conf, string $layout, array $values): array {
+    $pick = $conf['stats'] ?? null;
+    if ($pick === null) {
+        $pick = [];
+        foreach (docshelf_stat_defaults($layout) as $i => $k) $pick[$k] = $i + 1;
+    }
+    $items = [];
+    foreach ($pick as $k => $o) {
+        if (!isset($values[$k]) || $values[$k] === null) continue;
+        $items[] = $values[$k] + [3 => $o];
+    }
+    foreach ($conf['custom'] ?? [] as $c) $items[] = [$c['label'], $c['value'], $c['tone'], $c['order']];
+    usort($items, fn($a, $b) => $a[3] <=> $b[3]);
+    return array_slice($items, 0, 8);
+}
+
+/** วาดกล่องตัวเลข (ใช้ class bk-stats เดียวกับหน้าสารบัญ) */
+function docshelf_stat_boxes(array $items): string {
+    if (!$items) return '';
+    $h = '<dl class="bk-stats">';
+    foreach ($items as [$label, $value, $tone]) {
+        $h .= '<div><dt>' . e($label) . '</dt><dd' . ($tone !== '' ? ' class="' . e($tone) . '"' : '') . '>' . e($value) . '</dd></div>';
+    }
+    return $h . '</dl>';
+}
+
+/** ยอดผู้เข้าชมหน้าหมวด (นับตั้งแต่เวอร์ชันที่เริ่มเก็บ แยกต่อหมวดด้วยชื่อหน้า doccat-<id>) */
+function docshelf_cat_views(int $catId): int {
+    try {
+        $st = db()->prepare('SELECT COALESCE(SUM(views), 0) FROM page_views WHERE page = ?');
+        $st->execute(['doccat-' . $catId]);
+        return (int)$st->fetchColumn();
+    } catch (Throwable $e) { return 0; }
 }
 
 /** ค่าตั้งจากฟอร์ม admin → JSON ที่เก็บ */
 function docshelf_conf_from_post(array $in): string {
+    /* กล่องตัวเลข: เก็บเฉพาะที่ติ๊ก พร้อมลำดับที่กรอก · ไม่มีส่วนนี้ในฟอร์ม = คงค่าเดิมไม่ได้ จึงเก็บ null = ค่าเริ่มต้น */
+    $stats = null;
+    if (isset($in['stat_on']) || isset($in['stat_order'])) {
+        $stats = [];
+        foreach ((array)($in['stat_on'] ?? []) as $k => $on) if ($on) $stats[$k] = (int)(($in['stat_order'][$k] ?? 0) ?: 50);
+        /* ยังเป็นค่าเริ่มต้นของรูปแบบที่แสดงในฟอร์ม (ผู้ดูแลไม่ได้แตะ) → เก็บ null
+           เพื่อให้เปลี่ยนรูปแบบหมวดภายหลังแล้วได้กล่องเริ่มต้นของรูปแบบใหม่ ไม่ติดค่าของรูปแบบเก่า */
+        $def = [];
+        foreach (docshelf_stat_defaults((string)($in['stat_layout'] ?? '')) as $i => $k) $def[$k] = $i + 1;
+        if (isset($in['stat_layout']) && $stats == $def) $stats = null;
+    }
     $c = docshelf_conf(['view_conf' => json_encode([
         'open' => $in['open'] ?? null, 'group' => $in['group'] ?? null, 'size' => $in['size'] ?? null,
         'sort' => $in['sort'] ?? null, 'featured' => !empty($in['featured']) ? 1 : 0,
+        'stats' => $stats, 'custom' => $in['custom'] ?? [],
     ]), 'layout' => 'shelf']);
     return json_encode($c, JSON_UNESCAPED_UNICODE);
 }

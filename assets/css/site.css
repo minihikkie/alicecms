@@ -1726,3 +1726,7 @@ mark.bk-mark { background: color-mix(in srgb, var(--gold) 38%, transparent); col
 .dsh-card.is-latest .dsh-m { color: #9a6700; font-weight: 600; }
 .dsh.size-sm .dsh-flag { font-size: 11px; padding: 3px 8px 3px 7px; top: -10px; right: 6px; }
 @media (prefers-reduced-motion: reduce) { .dsh-card:hover .dsh-cvw { transform: none; } }
+
+/* ── กล่องตัวเลขที่ผู้ดูแลเลือกเอง (v1.65.0): สีฟ้า = ผู้เข้าชม · วันที่ใช้ตัวเล็กลงให้พอดีกล่อง ── */
+.bk-stats dd.blue { color: var(--blue-ink, var(--blue)); }
+.bk-stats dd.date { font-size: 16px; line-height: 1.9; }

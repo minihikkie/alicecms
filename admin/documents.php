@@ -353,7 +353,39 @@ require __DIR__ . '/_top.php';
             <label>เรียง
               <select name="vc[sort]"><option value="new" <?= $vc['sort'] === 'new' ? 'selected' : '' ?>>ใหม่ → เก่า</option><option value="old" <?= $vc['sort'] === 'old' ? 'selected' : '' ?>>เก่า → ใหม่</option></select></label>
             <label class="dbk-radio"><input type="checkbox" name="vc[featured]" value="1" <?= $vc['featured'] ? 'checked' : '' ?>> ติดป้าย "ฉบับล่าสุด" บนชั้นวาง</label>
-            <p class="text-muted" style="font-size:12px;margin:0;">จัดกลุ่ม/ขนาดปก/ฉบับเด่น ใช้กับรูปแบบ "ชั้นวางแบบมีปก" · "เมื่อกดเอกสาร" ใช้กับทุกรูปแบบ</p>
+            <p class="text-muted" style="font-size:12px;margin:0;">จัดกลุ่ม/ขนาดปก/ป้ายฉบับล่าสุด ใช้กับรูปแบบ "ชั้นวางแบบมีปก" · "เมื่อกดเอกสาร" ใช้กับทุกรูปแบบ</p>
+          </div>
+          <?php
+            /* กล่องตัวเลขบนหัวหมวด: ติ๊กเลือก + ลำดับ (ยังไม่เคยตั้ง = ค่าเริ่มต้นของรูปแบบปัจจุบัน) */
+            $lay = $c['layout'] ?? 'list';
+            $pick = $vc['stats'] ?? null;
+            if ($pick === null) { $pick = []; foreach (docshelf_stat_defaults($lay) as $i => $k) $pick[$k] = $i + 1; }
+            $layTh = ['list' => 'รายการ', 'book' => 'สารบัญ', 'shelf' => 'ชั้นวาง'];
+          ?>
+          <div class="dcat-stats">
+            <b>กล่องตัวเลขบนหัวหมวด</b>
+            <input type="hidden" name="vc[stat_layout]" value="<?= e($lay) ?>">
+            <p class="text-muted" style="font-size:12px;margin:0;">ติ๊กกล่องที่ต้องการ แล้วใส่ลำดับ (1 = ซ้ายสุด) · กล่องที่ไม่มีค่าจะซ่อนเอง เช่น ยอดเปิด 0 · แสดงได้สูงสุด 8 กล่อง</p>
+            <div class="dcat-stat-list">
+              <?php foreach (docshelf_stat_catalog() as $sk => [$sl, $slays]): $on = isset($pick[$sk]); ?>
+              <label class="dcat-stat<?= in_array($lay, $slays, true) ? '' : ' off' ?>">
+                <input type="checkbox" name="vc[stat_on][<?= e($sk) ?>]" value="1" <?= $on ? 'checked' : '' ?>>
+                <span><?= e($sl) ?><?php if (!in_array($lay, $slays, true)): ?> <small>(ใช้กับแบบ<?= e(implode('/', array_map(fn($x) => $layTh[$x], $slays))) ?>)</small><?php endif; ?></span>
+                <input type="number" name="vc[stat_order][<?= e($sk) ?>]" value="<?= (int)($pick[$sk] ?? 50) ?>" min="1" max="99" class="sort-input" title="ลำดับ" aria-label="ลำดับของ <?= e($sl) ?>">
+              </label>
+              <?php endforeach; ?>
+            </div>
+            <b style="font-size:13px;margin-top:4px;">กล่องกำหนดเอง <span class="text-muted" style="font-weight:400;">(ไม่บังคับ · เช่น "กฎหมายที่เกี่ยวข้อง" = "12")</span></b>
+            <?php $cus = $vc['custom'] ?? []; for ($ci = 0; $ci < 3; $ci++): $cc = $cus[$ci] ?? ['label' => '', 'value' => '', 'tone' => '', 'order' => 50 + $ci]; ?>
+            <div class="dcat-custom">
+              <input type="text" name="vc[custom][<?= $ci ?>][label]" value="<?= e($cc['label']) ?>" maxlength="30" placeholder="ชื่อกล่อง">
+              <input type="text" name="vc[custom][<?= $ci ?>][value]" value="<?= e($cc['value']) ?>" maxlength="20" placeholder="ค่า">
+              <select name="vc[custom][<?= $ci ?>][tone]" title="สี">
+                <?php foreach (['' => 'สีปกติ', 'ok' => 'เขียว', 'rep' => 'แดง', 'blue' => 'สีธีม'] as $tk => $tl): ?><option value="<?= $tk ?>" <?= $cc['tone'] === $tk ? 'selected' : '' ?>><?= $tl ?></option><?php endforeach; ?>
+              </select>
+              <input type="number" name="vc[custom][<?= $ci ?>][order]" value="<?= (int)$cc['order'] ?>" min="1" max="99" class="sort-input" title="ลำดับ">
+            </div>
+            <?php endfor; ?>
           </div>
           <div>
             <label>ภาพปก <span class="text-muted">(แนวตั้ง 3:4 · แนะนำ 900 × 1200 px · JPG/WebP)</span></label>
