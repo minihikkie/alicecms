@@ -256,7 +256,8 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
     /* ฉบับล่าสุด = วันที่ใหม่สุดเสมอ (ไม่ขึ้นกับการเรียงที่ผู้ดูแลเลือก) */
     $latest = null;
     foreach ($shelfDocs as $d) { if (!$latest || docshelf_date($d) . sprintf('%010d', $d['id']) > docshelf_date($latest) . sprintf('%010d', $latest['id'])) $latest = $d; }
-    $showFeat = $shelfConf['featured'] && $latest && count($shelfDocs) > 1;
+    /* ติดป้าย "ฉบับล่าสุด" บนการ์ดในชั้น (แทนกล่องเด่นด้านบน — ผู้ใช้เห็นว่าสวยกว่า ไม่ซ้ำเนื้อหา) */
+    $latestId = $shelfConf['featured'] && $latest && count($shelfDocs) > 1 ? (int)$latest['id'] : 0;
   ?>
   <?php
     /* ตัวเลขบนปก: ฉบับทั้งหมด · จำนวนกลุ่ม (เรียก "ปี" ถ้าทุกกลุ่มขึ้นต้นด้วยปี) · ฉบับล่าสุด · ยอดเปิดรวม */
@@ -293,22 +294,6 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
     </div>
   </section>
 
-  <?php if ($showFeat): $fHref = docshelf_href($latest, $shelfConf); ?>
-  <section class="dsh-feat reveal" aria-labelledby="dsh-feat-t">
-    <a class="dsh-feat-cv" href="<?= e($fHref) ?>"<?= $shelfConf['open'] === 'file' && !empty($latest['ext_url']) ? ' target="_blank" rel="noopener"' : '' ?> tabindex="-1" aria-hidden="true"><?= docshelf_cover($latest, $catRow, 'lg') ?></a>
-    <div class="dsh-feat-t">
-      <span class="dsh-kick"><span class="material-symbols-rounded icon-sm" aria-hidden="true">auto_awesome</span>ฉบับล่าสุด</span>
-      <h2 id="dsh-feat-t"><a href="<?= e($fHref) ?>"<?= $shelfConf['open'] === 'file' && !empty($latest['ext_url']) ? ' target="_blank" rel="noopener"' : '' ?>><?= e($latest['title']) ?></a></h2>
-      <p class="dsh-feat-m"><?= e(implode(' · ', array_filter([docshelf_group($latest, $shelfConf), thai_date(docshelf_date($latest), false), docshelf_filemeta($latest)]))) ?></p>
-      <?php if (trim((string)$latest['summary']) !== ''): ?><p class="dsh-feat-s"><?= e($latest['summary']) ?></p><?php endif; ?>
-      <div class="dsh-feat-a">
-        <a class="btn primary" href="<?= e(url('download.php?id=' . (int)$latest['id'])) ?>"<?= !empty($latest['ext_url']) ? ' target="_blank" rel="noopener"' : '' ?>><span class="material-symbols-rounded icon-sm" aria-hidden="true"><?= !empty($latest['ext_url']) ? 'menu_book' : 'download' ?></span><?= !empty($latest['ext_url']) ? 'อ่านฉบับนี้' : 'ดาวน์โหลด' ?></a>
-        <?php if ($shelfConf['open'] === 'page'): ?><a class="btn" href="<?= e(url('doc.php?id=' . (int)$latest['id'])) ?>">รายละเอียด</a><?php endif; ?>
-        <?= share_btn($latest['title'], url('download.php?id=' . (int)$latest['id']), 'd=' . (int)$latest['id']) ?>
-      </div>
-    </div>
-  </section>
-  <?php endif; ?>
 
   <div class="dsh-tools reveal" data-dsh-tools hidden>
     <label class="bk-search"><span class="material-symbols-rounded" aria-hidden="true">search</span>
@@ -332,12 +317,16 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
       <div class="dsh-gh"><h2><?= e($g !== '' ? $g : 'อื่นๆ') ?></h2><span><?= count($list) ?> ฉบับ</span></div>
       <?php endif; ?>
       <div class="dsh-grid">
-        <?php foreach ($list as $d): $h = docshelf_href($d, $shelfConf); ?>
-        <a class="dsh-card" href="<?= e($h) ?>"<?= $shelfConf['open'] === 'file' && !empty($d['ext_url']) ? ' target="_blank" rel="noopener"' : '' ?>
+        <?php foreach ($list as $d): $h = docshelf_href($d, $shelfConf); $isLatest = (int)$d['id'] === $latestId; $isNew = !$isLatest && is_new($d['created_at']); ?>
+        <a class="dsh-card<?= $isLatest ? ' is-latest' : '' ?>" href="<?= e($h) ?>"<?= $shelfConf['open'] === 'file' && !empty($d['ext_url']) ? ' target="_blank" rel="noopener"' : '' ?>
            data-s="<?= e(mb_strtolower(docshelf_digits($d['title'] . ' ' . $g . ' ' . $d['summary']))) ?>">
-          <?= docshelf_cover($d, $catRow) ?>
+          <span class="dsh-cvw">
+            <?= docshelf_cover($d, $catRow) ?>
+            <?php if ($isLatest): ?><span class="dsh-flag"><span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>ฉบับล่าสุด</span>
+            <?php elseif ($isNew): ?><span class="dsh-flag new">ใหม่</span><?php endif; ?>
+          </span>
           <span class="dsh-t"><?= e($d['title']) ?></span>
-          <span class="dsh-m"><?= e(thai_date(docshelf_date($d))) ?><?php if (is_new($d['created_at'])): ?> <span class="badge gold" style="font-size:10.5px;padding:1px 7px;">ใหม่</span><?php endif; ?></span>
+          <span class="dsh-m"><?= e(thai_date(docshelf_date($d))) ?></span>
         </a>
         <?php endforeach; ?>
       </div>

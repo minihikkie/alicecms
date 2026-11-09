@@ -352,7 +352,7 @@ require __DIR__ . '/_top.php';
               <select name="vc[size]"><option value="sm" <?= $vc['size'] === 'sm' ? 'selected' : '' ?>>เล็ก (เห็นหลายเล่ม)</option><option value="md" <?= $vc['size'] === 'md' ? 'selected' : '' ?>>กลาง</option><option value="lg" <?= $vc['size'] === 'lg' ? 'selected' : '' ?>>ใหญ่</option></select></label>
             <label>เรียง
               <select name="vc[sort]"><option value="new" <?= $vc['sort'] === 'new' ? 'selected' : '' ?>>ใหม่ → เก่า</option><option value="old" <?= $vc['sort'] === 'old' ? 'selected' : '' ?>>เก่า → ใหม่</option></select></label>
-            <label class="dbk-radio"><input type="checkbox" name="vc[featured]" value="1" <?= $vc['featured'] ? 'checked' : '' ?>> แสดงฉบับล่าสุดเด่นด้านบน</label>
+            <label class="dbk-radio"><input type="checkbox" name="vc[featured]" value="1" <?= $vc['featured'] ? 'checked' : '' ?>> ติดป้าย "ฉบับล่าสุด" บนชั้นวาง</label>
             <p class="text-muted" style="font-size:12px;margin:0;">จัดกลุ่ม/ขนาดปก/ฉบับเด่น ใช้กับรูปแบบ "ชั้นวางแบบมีปก" · "เมื่อกดเอกสาร" ใช้กับทุกรูปแบบ</p>
           </div>
           <div>

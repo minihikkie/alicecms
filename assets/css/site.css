@@ -1644,19 +1644,6 @@ mark.bk-mark { background: color-mix(in srgb, var(--gold) 38%, transparent); col
 .dsh-head-m { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
 .dsh-head-m b { color: var(--ink); }
 
-/* ฉบับล่าสุด */
-.dsh-feat { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 30px; align-items: center; margin: 0 0 22px; padding: 26px 30px;
-  border-radius: var(--r24); border: 1px solid var(--border); box-shadow: var(--shadow-soft);
-  background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--blue) 10%, var(--card)) 0%, var(--card) 62%); }
-.dsh-feat-cv { display: block; font-size: 19px; transition: transform .25s; }
-.dsh-feat-cv:hover { transform: translateY(-4px) rotate(-1deg); }
-.dsh-kick { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; padding: 4px 11px; border-radius: 999px;
-  color: #8a5a00; background: color-mix(in srgb, var(--gold) 22%, var(--card)); }
-.dsh-feat-t h2 { margin: 10px 0 6px; font-size: clamp(21px, 2.4vw, 28px); line-height: 1.35; }
-.dsh-feat-t h2 a { color: var(--ink); text-decoration: none; } .dsh-feat-t h2 a:hover { color: var(--blue-ink); }
-.dsh-feat-m { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
-.dsh-feat-s { margin: 0 0 14px; font-size: 15px; line-height: 1.7; color: var(--text); }
-.dsh-feat-a { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
 /* แถบเครื่องมือ */
 .dsh-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 18px; padding: 10px; border-radius: 20px;
@@ -1705,24 +1692,37 @@ mark.bk-mark { background: color-mix(in srgb, var(--gold) 38%, transparent); col
 .ddoc-rel { margin: 0 0 32px; }
 
 @media (max-width: 760px) {
-  .dsh-feat { grid-template-columns: 130px minmax(0, 1fr); gap: 18px; padding: 18px; }
-  .dsh-feat-cv { font-size: 13px; }
   .ddoc { grid-template-columns: minmax(0, 1fr); padding: 20px 18px; }
   .ddoc-cv { width: 190px; margin: 0 auto; font-size: 17px; }
 }
 @media (max-width: 520px) {
-  .dsh-feat { grid-template-columns: minmax(0, 1fr); text-align: center; }
-  .dsh-feat-cv { width: 150px; margin: 0 auto; }
-  .dsh-feat-a { justify-content: center; }
   .dsh-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 14px; }
   .dsh.size-lg, .dsh.size-md { font-size: 14px; }
   .dsh-head { gap: 14px; } .dsh-head-cv { width: 70px; }
   .ddoc-nav { grid-template-columns: minmax(0, 1fr); } .ddoc-nav a.next { grid-column: 1; }
 }
-@media (prefers-reduced-motion: reduce) { .dsh-card:hover .dcv, .dsh-feat-cv:hover { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .dsh-card:hover .dcv { transform: none; } }
 
 /* ── ชั้นวาง: หัวหมวดเป็นกล่องปกใหญ่แบบเดียวกับหน้าสารบัญ (v1.64.1) ── */
 .dsh-cover { margin-bottom: 18px; }
 .dsh-cover .bk-art { background: linear-gradient(150deg, var(--blue) 0%, var(--blue-700) 100%); }
 .dsh-cover .bk-art.has-img { background: var(--card-soft); }
-.dsh-cover + .dsh-feat { margin-top: 0; }
+
+/* ── ชั้นวาง: ป้าย "ฉบับล่าสุด" / "ใหม่" บนปก แทนกล่องเด่นด้านบน (v1.64.2) ──
+   ป้ายเป็นแถบโผล่พ้นขอบบนของปกแบบที่คั่นหนังสือ ไม่ทับหัวปกจริง (ปกวารสารมักมีชื่อหัวหนังสือตรงมุมบน)
+   ขยับไปพร้อมปกตอนชี้ (ทั้งก้อนยกขึ้นด้วยกัน) */
+.dsh-cvw { position: relative; display: block; margin-bottom: 8px; transition: transform .25s; }
+/* ป้ายโผล่ขึ้นไปในช่องว่างเหนือการ์ด (หัวกลุ่มเว้นไว้ 14px และระยะห่างแถว 26px) การ์ดทุกใบจึงยังเรียงแนวเดียวกัน */
+.dsh-card .dsh-cvw .dcv { margin-bottom: 0; }
+.dsh-card:hover .dsh-cvw { transform: translateY(-5px) rotate(-1deg); }
+.dsh-card:hover .dsh-cvw .dcv { transform: none; }
+.dsh-flag { position: absolute; z-index: 3; top: -12px; right: 10px; display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px 4px 9px; border-radius: 7px; font-size: 12px; font-weight: 700; line-height: 1.3; white-space: nowrap;
+  color: #3d2a00; background: linear-gradient(135deg, #FFE082, #F9A825); box-shadow: 0 4px 10px rgba(0,0,0,.22); }
+.dsh-flag .material-symbols-rounded { font-size: 15px; }
+.dsh-flag.new { color: #fff; background: linear-gradient(135deg, #FF6B5B, #E53935); }
+.dsh-card.is-latest .dcv { box-shadow: 0 0 0 3px color-mix(in srgb, #F9A825 75%, transparent), 0 16px 32px color-mix(in srgb, #F9A825 30%, transparent); }
+.dsh-card.is-latest .dsh-t { color: var(--ink); }
+.dsh-card.is-latest .dsh-m { color: #9a6700; font-weight: 600; }
+.dsh.size-sm .dsh-flag { font-size: 11px; padding: 3px 8px 3px 7px; top: -10px; right: 6px; }
+@media (prefers-reduced-motion: reduce) { .dsh-card:hover .dsh-cvw { transform: none; } }
