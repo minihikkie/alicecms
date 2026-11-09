@@ -578,3 +578,16 @@ textarea { resize: vertical; min-height: 90px; }
   border-radius: 12px; background: var(--card-soft); border: 1px solid var(--border); }
 .dcat-more-in > p { grid-column: 1 / -1; }
 .dcat-more-in label { font-size: 13px; }
+
+/* ── เอกสารแบบชั้นวาง: ข้อมูลเสริมรายฉบับ + ปกเร็วรายแถว + ค่าตั้งการแสดงผลของหมวด (v1.64.0) ── */
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.doc-xcover { display: flex; gap: 12px; align-items: flex-start; }
+.doc-qcover { display: inline-flex; margin: 0; }
+.doc-qcover .dcat-thumb { cursor: pointer; position: relative; border: 1px dashed color-mix(in srgb, var(--blue) 40%, var(--border)); }
+.doc-qcover .dcat-thumb.has-img { border: 0; }
+.doc-qcover .dcat-thumb:hover { outline: 2px solid var(--blue); outline-offset: 1px; }
+.doc-qcover .dcat-thumb:focus-within { outline: 2px solid var(--blue); outline-offset: 1px; }
+.dcat-vc { display: grid; gap: 8px; padding-bottom: 10px; border-bottom: 1px dashed var(--border); }
+.dcat-vc label { display: grid; gap: 4px; font-size: 13px; margin: 0; }
+.dcat-vc label.dbk-radio { display: inline-flex; }
+.dcat-vc select { padding: 7px 10px; }

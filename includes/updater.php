@@ -421,10 +421,27 @@ function up_perform(array $m, ?callable $progress = null, ?string $localPackageP
                              . 'ชุดสำรองอยู่ที่ storage/updates/' . basename($bakdir) . ')');
     }
     $add("ติดตั้งไฟล์ใหม่ $n รายการ");
+
+    /* 6) migrate ฐานข้อมูล (ใช้ไฟล์เวอร์ชันใหม่ที่เพิ่งติดตั้ง) — ทำ "ก่อน" ปิดโหมดปิดปรับปรุง
+       โค้ดใหม่อาจใช้คอลัมน์ที่ migration เพิ่งสร้างทันที (เช่น documents.cover ใน v1.64.0)
+       ถ้าเปิดเว็บก่อน ระหว่างรอขั้น 5.1 (ทดสอบตัวเองผ่าน HTTP ซึ่งเครือข่ายราชการอาจรอนานหลายวินาที)
+       หน้าเว็บจะ error แล้ว CDN อาจเก็บหน้าพังไว้ — migration ไม่ต้องใช้ HTTP จึงทำระหว่างปิดปรับปรุงได้ */
+    $add('กำลังอัปเดตโครงสร้างฐานข้อมูล...');
+    $migrate_error = '';
+    try {
+        require APP_ROOT . '/includes/migrations.php';
+        run_migrations(db(), function ($mm) use ($add) { $add('  ' . $mm); });
+        $add('อัปเดตฐานข้อมูลเสร็จ');
+    } catch (Throwable $e) {
+        $migrate_error = $e->getMessage();
+        $add('✗ อัปเดตโครงสร้างฐานข้อมูลล้มเหลว: ' . $migrate_error);
+    }
+
     up_maintenance_off();
     $add('ปิดโหมดปิดปรับปรุง — เว็บกลับมาให้บริการแล้ว');
 
-    /* 5.1) ซ่อมไฟล์ป้องกัน .htaccess ที่อาจขาด (uploads/storage/backups ไม่ได้มากับแพ็กเกจ) */
+    /* 5.1) ซ่อมไฟล์ป้องกัน .htaccess ที่อาจขาด (uploads/storage/backups ไม่ได้มากับแพ็กเกจ)
+       ต้องทำหลังเปิดเว็บแล้ว เพราะมีการทดสอบตัวเองผ่าน HTTP (ระหว่างปิดปรับปรุงจะได้ 503) */
     try {
         require_once APP_ROOT . '/includes/hardening.php';
         $hard = ensure_hardening_files(APP_ROOT);
@@ -448,19 +465,7 @@ function up_perform(array $m, ?callable $progress = null, ?string $localPackageP
         $add('⚠ ตรวจไฟล์ความปลอดภัยไม่สำเร็จ: ' . $e->getMessage());
     }
 
-    /* 6) migrate ฐานข้อมูล (ใช้ไฟล์เวอร์ชันใหม่ที่เพิ่งติดตั้ง) */
-    $add('กำลังอัปเดตโครงสร้างฐานข้อมูล...');
-    $migrate_error = '';
-    try {
-        require APP_ROOT . '/includes/migrations.php';
-        run_migrations(db(), function ($mm) use ($add) { $add('  ' . $mm); });
-        $add('อัปเดตฐานข้อมูลเสร็จ');
-    } catch (Throwable $e) {
-        $migrate_error = $e->getMessage();
-        $add('✗ อัปเดตโครงสร้างฐานข้อมูลล้มเหลว: ' . $migrate_error);
-    }
-
-    /* 7) บันทึกเวอร์ชัน + log */
+    /* 7) บันทึกเวอร์ชัน + log (migration ทำไปแล้วในขั้น 6 ระหว่างปิดปรับปรุง) */
     setting_set('installed_version', $to);
     setting_set('last_update_at', date('c'));
 

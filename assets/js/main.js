@@ -1006,3 +1006,69 @@
     open(b);
   });
 })();
+
+/* ══ ชั้นวางแบบมีปก — ค้นหาฉบับ · สลับใหม่/เก่า · กระโดดไปกลุ่ม (เนื้อหาครบโดยไม่ต้องมี JS) ══ */
+(function () {
+  var root = document.querySelector('[data-dsh]');
+  if (!root) return;
+  var tools = document.querySelector('[data-dsh-tools]');
+  if (tools) tools.hidden = false;
+  var input = document.querySelector('[data-dsh-q]');
+  var countEl = document.querySelector('[data-dsh-count]');
+  var none = root.querySelector('[data-dsh-none]');
+  var groups = Array.prototype.slice.call(root.querySelectorAll('[data-dsh-group]'));
+  var TH = '๐๑๒๓๔๕๖๗๘๙';
+  function fold(s) { return String(s || '').toLowerCase().replace(/[๐-๙]/g, function (d) { return String(TH.indexOf(d)); }); }
+  var total = root.querySelectorAll('.dsh-card').length;
+
+  function apply() {
+    var terms = fold(input ? input.value : '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    var shown = 0;
+    groups.forEach(function (g) {
+      var n = 0;
+      g.querySelectorAll('.dsh-card').forEach(function (c) {
+        var s = c.getAttribute('data-s') || '';
+        var ok = !terms.length || terms.every(function (t) { return s.indexOf(t) > -1; });
+        c.hidden = !ok; if (ok) n++;
+      });
+      g.hidden = n === 0; shown += n;
+    });
+    if (none) none.hidden = shown > 0;
+    if (countEl) countEl.textContent = terms.length ? 'พบ ' + shown + ' จาก ' + total + ' ฉบับ' : '';
+  }
+  var tm;
+  if (input) {
+    input.addEventListener('input', function () { clearTimeout(tm); tm = setTimeout(apply, 120); });
+    input.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && input.value) { input.value = ''; apply(); } });
+  }
+
+  /* สลับลำดับ: กลับด้านทั้งลำดับกลุ่มและลำดับฉบับในกลุ่ม (เรียงไว้แล้วจากฝั่งเซิร์ฟเวอร์) */
+  var order = root.getAttribute('data-sort') || 'new';
+  document.querySelectorAll('[data-dsh-sort]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var want = b.getAttribute('data-dsh-sort');
+      document.querySelectorAll('[data-dsh-sort]').forEach(function (x) { x.setAttribute('aria-checked', x === b ? 'true' : 'false'); });
+      if (want === order) return;
+      order = want;
+      groups.slice().reverse().forEach(function (g) { root.insertBefore(g, none); });
+      groups.forEach(function (g) {
+        var grid = g.querySelector('.dsh-grid');
+        Array.prototype.slice.call(grid.children).reverse().forEach(function (c) { grid.appendChild(c); });
+      });
+      groups.reverse();
+      var jump = document.querySelector('.dsh-jump');
+      if (jump) Array.prototype.slice.call(jump.children).reverse().forEach(function (a) { jump.appendChild(a); });
+    });
+  });
+
+  /* กระโดดไปกลุ่ม — เลื่อนทันที (scroll-behavior: smooth ของทั้งเว็บถูกขัดจังหวะง่ายเมื่อรูปปกทยอยโหลด) */
+  document.querySelectorAll('[data-dsh-jump]').forEach(function (a) {
+    a.addEventListener('click', function (ev) {
+      var t = document.getElementById(a.getAttribute('href').slice(1));
+      if (!t) return;
+      ev.preventDefault();
+      if (input && input.value) { input.value = ''; apply(); }
+      t.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    });
+  });
+})();

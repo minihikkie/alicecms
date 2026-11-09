@@ -47,15 +47,29 @@ if ($isBookCat && ($_GET['view'] ?? '') !== 'list' && $q === '') {
     $bookConf = docbook_conf($catRow);
 }
 $showBook = (bool)$bookTree;
+/* หมวดแบบ "ชั้นวางแบบมีปก" (วารสาร/รายงานประจำปี) → ชั้นหนังสือรายฉบับ (includes/doc-shelf.php)
+   ?view=list / ค้นหา / ยังไม่มีเอกสาร → รายการแบบเดิม */
+$showShelf = false;
+$shelfDocs = [];
+if ($catRow && ($catRow['layout'] ?? 'list') === 'shelf' && ($_GET['view'] ?? '') !== 'list' && $q === '') {
+    require_once __DIR__ . '/includes/doc-shelf.php';
+    $shelfConf = docshelf_conf($catRow);
+    $st = db()->prepare('SELECT * FROM documents WHERE category_id = ? ORDER BY sort_order ASC, id DESC LIMIT 1000');
+    $st->execute([$cat]);
+    $shelfDocs = $st->fetchAll();
+    $showShelf = (bool)$shelfDocs;
+}
 /* หมวดแบบรายการที่มีภาพปก (และไม่ได้กำลังค้นหา) → หัวหน้าแบบปกเล่มเข้าชุดกับหน้าสารบัญ */
-$listCover = !$showBook && $catRow && !empty($catRow['cover']) && $q === '';
+$listCover = !$showBook && !$showShelf && $catRow && !empty($catRow['cover']) && $q === '';
 /* หน้า "ทั้งหมด" (ไม่ได้เลือกหมวด ไม่ได้ค้นหา) → ชั้นหนังสือ: เลือกหมวดจากปก แทนแถบปุ่มหมวด */
 $isShelf = $cat === 0 && $q === '' && $cats;
 /* หน้าชั้นหนังสือมีชั้น "มาใหม่" และ "ยอดนิยม" (จากยอดเปิดที่ download.php นับอยู่แล้ว)
    ยอดนิยมแสดงเมื่อมีเอกสารที่ถูกเปิดอย่างน้อย 3 รายการ ไม่งั้นจะดูโหรงเหรง */
 $newDocs = $popDocs = [];
 if ($isShelf) {
-    $sel = 'SELECT d.id, d.title, d.ext, d.ext_url, d.created_at, d.downloads, c.name AS cat_name, c.icon AS cat_icon, c.cover AS cat_cover
+    /* d.* (ไม่ระบุ d.cover ตรงๆ) — ระหว่างอัปเดตจากเวอร์ชันเก่า ไฟล์ใหม่มาถึงก่อน migration เพิ่มคอลัมน์
+       ถ้าระบุชื่อคอลัมน์ใหม่ หน้านี้จะ error ช่วงสั้นๆ นั้น */
+    $sel = 'SELECT d.*, c.name AS cat_name, c.icon AS cat_icon, c.cover AS cat_cover
             FROM documents d LEFT JOIN doc_categories c ON c.id = d.category_id';
     $newDocs = db()->query("$sel ORDER BY d.created_at DESC, d.id DESC LIMIT 6")->fetchAll();
     $popDocs = db()->query("$sel WHERE d.downloads > 0 ORDER BY d.downloads DESC, d.created_at DESC LIMIT 6")->fetchAll();
@@ -65,8 +79,8 @@ if ($isShelf) {
 $miniRow = function (array $d, string $meta, string $lead = ''): string {
     $isExt = !empty($d['ext_url']);
     $href = url('download.php?id=' . (int)$d['id']);
-    $thumb = !empty($d['cat_cover'])
-        ? '<span class="dmini-cv"><img src="' . e(url($d['cat_cover'])) . '" alt="" loading="lazy" decoding="async"></span>'
+    $thumb = (!empty($d['cover']) || !empty($d['cat_cover']))
+        ? '<span class="dmini-cv"><img src="' . e(url(($d['cover'] ?? '') ?: $d['cat_cover'])) . '" alt="" loading="lazy" decoding="async"></span>'
         : '<span class="dmini-ic"><span class="material-symbols-rounded" aria-hidden="true">' . e($d['cat_icon'] ?: 'description') . '</span></span>';
     return '<li class="dmini">' . $lead
          . '<a class="dmini-a" href="' . e($href) . '"' . ($isExt ? ' target="_blank" rel="noopener"' : '') . '>' . $thumb
@@ -77,7 +91,8 @@ $miniRow = function (array $d, string $meta, string $lead = ''): string {
 $page_title = $cat_name !== '' ? $cat_name : section_title('documents');
 if ($showBook && trim((string)($catRow['intro'] ?? '')) !== '') $meta_description = mb_substr(trim($catRow['intro']), 0, 160);
 /* แชร์ลิงก์หมวดที่เป็นเล่มไปโซเชียล ใช้ภาพปกเป็นภาพตัวอย่าง */
-if (($showBook || $listCover) && !empty($catRow['cover'])) $og_image = $catRow['cover'];
+if (($showBook || $listCover || $showShelf) && !empty($catRow['cover'])) $og_image = $catRow['cover'];
+if ($showShelf && trim((string)($catRow['intro'] ?? '')) !== '') $meta_description = mb_substr(trim($catRow['intro']), 0, 160);
 if ($listCover && trim((string)($catRow['intro'] ?? '')) !== '') $meta_description = mb_substr(trim($catRow['intro']), 0, 160);
 require __DIR__ . '/includes/header.php';
 $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: null, 'q' => $q, 'view' => $isBookCat && !$showBook && ($_GET['view'] ?? '') === 'list' ? 'list' : null]));
@@ -86,7 +101,7 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
   <div class="page-head reveal">
     <div class="crumb"><a href="<?= e(url('index.php')) ?>">หน้าแรก</a> <span class="material-symbols-rounded icon-sm">chevron_right</span>
       <?php if ($cat_name !== ''): ?><a href="<?= e(url('documents.php')) ?>">เอกสารเผยแพร่</a> <span class="material-symbols-rounded icon-sm">chevron_right</span> <?= e($cat_name) ?><?php else: ?>เอกสารเผยแพร่<?php endif; ?></div>
-    <?php if (!$showBook && !$listCover): ?><h1><?= e($page_title) ?></h1><?php endif; ?>
+    <?php if (!$showBook && !$listCover && !$showShelf): ?><h1><?= e($page_title) ?></h1><?php endif; ?>
     <?php if ($isShelf): ?><p class="text-muted dshelf-lead">คู่มือ ระเบียบ วารสาร และเอกสารเผยแพร่ของหน่วยงาน — <?= number_format($total) ?> รายการ ใน <?= count($cats) ?> หมวด</p><?php endif; ?>
     <?php if ($isBookCat && !$showBook && !$listCover && ($_GET['view'] ?? '') === 'list'): ?>
     <a class="btn small mt-1" href="<?= e(url('documents.php?cat=' . $cat)) ?>"><span class="material-symbols-rounded icon-sm">menu_book</span>กลับไปดูแบบสารบัญ</a>
@@ -153,7 +168,7 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
       </a>
       <?php endforeach; ?>
     </nav>
-    <?php if (!$showBook): ?>
+    <?php if (!$showBook && !$showShelf): ?>
     <form class="searchbar" style="max-width:320px;margin:0;margin-left:auto;box-shadow:var(--shadow-soft);" action="<?= e(url('documents.php')) ?>" method="get" role="search">
       <?php if ($cat): ?><input type="hidden" name="cat" value="<?= $cat ?>"><?php endif; ?>
       <span class="material-symbols-rounded" style="color:var(--muted)">search</span>
@@ -236,6 +251,78 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
       </div>
     </div>
   </div>
+  <?php elseif ($showShelf):
+    $shGroups = docshelf_groups($shelfDocs, $shelfConf);
+    /* ฉบับล่าสุด = วันที่ใหม่สุดเสมอ (ไม่ขึ้นกับการเรียงที่ผู้ดูแลเลือก) */
+    $latest = null;
+    foreach ($shelfDocs as $d) { if (!$latest || docshelf_date($d) . sprintf('%010d', $d['id']) > docshelf_date($latest) . sprintf('%010d', $latest['id'])) $latest = $d; }
+    $showFeat = $shelfConf['featured'] && $latest && count($shelfDocs) > 1;
+  ?>
+  <section class="dsh-head reveal" aria-labelledby="dsh-title">
+    <?php if (!empty($catRow['cover'])): ?>
+    <a class="dsh-head-cv" href="<?= e(url($catRow['cover'])) ?>" data-lightbox="<?= e(url($catRow['cover'])) ?>" aria-label="ดูภาพปก <?= e($cat_name) ?> ขนาดเต็ม"><img src="<?= e(url($catRow['cover'])) ?>" alt="" width="900" height="1200"></a>
+    <?php endif; ?>
+    <div class="dsh-head-t">
+      <span class="bk-kicker"><span class="material-symbols-rounded icon-sm" aria-hidden="true"><?= e($catRow['icon'] ?: 'auto_stories') ?></span>เอกสารเผยแพร่</span>
+      <h1 id="dsh-title"><?= e($cat_name) ?></h1>
+      <?php if (trim((string)($catRow['intro'] ?? '')) !== ''): ?><p class="bk-intro"><?= e($catRow['intro']) ?></p><?php endif; ?>
+      <p class="dsh-head-m"><b><?= number_format(count($shelfDocs)) ?></b> ฉบับ<?php if (count($shGroups) > 1): ?> · <?= count($shGroups) ?> กลุ่ม<?php endif; ?><?php if ($latest): ?> · ล่าสุด <?= e(thai_date(docshelf_date($latest))) ?><?php endif; ?></p>
+    </div>
+  </section>
+
+  <?php if ($showFeat): $fHref = docshelf_href($latest, $shelfConf); ?>
+  <section class="dsh-feat reveal" aria-labelledby="dsh-feat-t">
+    <a class="dsh-feat-cv" href="<?= e($fHref) ?>"<?= $shelfConf['open'] === 'file' && !empty($latest['ext_url']) ? ' target="_blank" rel="noopener"' : '' ?> tabindex="-1" aria-hidden="true"><?= docshelf_cover($latest, $catRow, 'lg') ?></a>
+    <div class="dsh-feat-t">
+      <span class="dsh-kick"><span class="material-symbols-rounded icon-sm" aria-hidden="true">auto_awesome</span>ฉบับล่าสุด</span>
+      <h2 id="dsh-feat-t"><a href="<?= e($fHref) ?>"<?= $shelfConf['open'] === 'file' && !empty($latest['ext_url']) ? ' target="_blank" rel="noopener"' : '' ?>><?= e($latest['title']) ?></a></h2>
+      <p class="dsh-feat-m"><?= e(implode(' · ', array_filter([docshelf_group($latest, $shelfConf), thai_date(docshelf_date($latest), false), docshelf_filemeta($latest)]))) ?></p>
+      <?php if (trim((string)$latest['summary']) !== ''): ?><p class="dsh-feat-s"><?= e($latest['summary']) ?></p><?php endif; ?>
+      <div class="dsh-feat-a">
+        <a class="btn primary" href="<?= e(url('download.php?id=' . (int)$latest['id'])) ?>"<?= !empty($latest['ext_url']) ? ' target="_blank" rel="noopener"' : '' ?>><span class="material-symbols-rounded icon-sm" aria-hidden="true"><?= !empty($latest['ext_url']) ? 'menu_book' : 'download' ?></span><?= !empty($latest['ext_url']) ? 'อ่านฉบับนี้' : 'ดาวน์โหลด' ?></a>
+        <?php if ($shelfConf['open'] === 'page'): ?><a class="btn" href="<?= e(url('doc.php?id=' . (int)$latest['id'])) ?>">รายละเอียด</a><?php endif; ?>
+        <?= share_btn($latest['title'], url('download.php?id=' . (int)$latest['id']), 'd=' . (int)$latest['id']) ?>
+      </div>
+    </div>
+  </section>
+  <?php endif; ?>
+
+  <div class="dsh-tools reveal" data-dsh-tools hidden>
+    <label class="bk-search"><span class="material-symbols-rounded" aria-hidden="true">search</span>
+      <input type="search" data-dsh-q placeholder="ค้นหาฉบับ เช่น ปีที่ 62, 487, ม.ค." aria-label="ค้นหาฉบับในหมวดนี้" autocomplete="off"></label>
+    <?php if (count($shGroups) > 1): ?>
+    <nav class="dsh-jump" aria-label="ไปที่กลุ่ม">
+      <?php foreach ($shGroups as $i => [$g]): ?><a href="#g<?= $i ?>" data-dsh-jump><?= e($g !== '' ? $g : 'ทั้งหมด') ?></a><?php endforeach; ?>
+    </nav>
+    <?php endif; ?>
+    <div class="bk-seg" role="radiogroup" aria-label="เรียงลำดับ">
+      <button type="button" role="radio" aria-checked="<?= $shelfConf['sort'] === 'new' ? 'true' : 'false' ?>" data-dsh-sort="new">ใหม่ → เก่า</button>
+      <button type="button" role="radio" aria-checked="<?= $shelfConf['sort'] === 'old' ? 'true' : 'false' ?>" data-dsh-sort="old">เก่า → ใหม่</button>
+    </div>
+    <p class="bk-count" data-dsh-count aria-live="polite"></p>
+  </div>
+
+  <div class="dsh size-<?= e($shelfConf['size']) ?>" data-dsh data-sort="<?= e($shelfConf['sort']) ?>">
+    <?php foreach ($shGroups as $i => [$g, $list]): ?>
+    <section class="dsh-group" id="g<?= $i ?>" data-dsh-group>
+      <?php if ($g !== '' || count($shGroups) > 1): ?>
+      <div class="dsh-gh"><h2><?= e($g !== '' ? $g : 'อื่นๆ') ?></h2><span><?= count($list) ?> ฉบับ</span></div>
+      <?php endif; ?>
+      <div class="dsh-grid">
+        <?php foreach ($list as $d): $h = docshelf_href($d, $shelfConf); ?>
+        <a class="dsh-card" href="<?= e($h) ?>"<?= $shelfConf['open'] === 'file' && !empty($d['ext_url']) ? ' target="_blank" rel="noopener"' : '' ?>
+           data-s="<?= e(mb_strtolower(docshelf_digits($d['title'] . ' ' . $g . ' ' . $d['summary']))) ?>">
+          <?= docshelf_cover($d, $catRow) ?>
+          <span class="dsh-t"><?= e($d['title']) ?></span>
+          <span class="dsh-m"><?= e(thai_date(docshelf_date($d))) ?><?php if (is_new($d['created_at'])): ?> <span class="badge gold" style="font-size:10.5px;padding:1px 7px;">ใหม่</span><?php endif; ?></span>
+        </a>
+        <?php endforeach; ?>
+      </div>
+    </section>
+    <?php endforeach; ?>
+    <div class="bk-none" data-dsh-none hidden><span class="material-symbols-rounded" aria-hidden="true">search_off</span><p>ไม่พบฉบับที่ค้นหา</p></div>
+  </div>
+  <p class="text-center mb-4"><a class="btn small ghost" href="<?= e(url('documents.php?cat=' . $cat . '&view=list')) ?>"><span class="material-symbols-rounded icon-sm" aria-hidden="true">format_list_bulleted</span>ดูแบบรายการไฟล์</a></p>
   <?php else: ?>
 
   <?php if ($listCover):
@@ -275,7 +362,7 @@ $base_qs = 'documents.php?' . http_build_query(array_filter(['cat' => $cat ?: nu
       <?php $dHref = url('download.php?id=' . $d['id']); $dTarget = $isExt ? ' target="_blank" rel="noopener"' : ''; ?>
       <div class="list-row doc-row">
       <a class="doc-row-a" href="<?= e($dHref) ?>"<?= $dTarget ?>>
-        <?php if (!empty($d['cat_cover'])): ?><span class="dmini-cv"><img src="<?= e(url($d['cat_cover'])) ?>" alt="" loading="lazy" decoding="async"></span>
+        <?php if (!empty($d['cover']) || !empty($d['cat_cover'])): ?><span class="dmini-cv"><img src="<?= e(url(($d['cover'] ?? '') ?: $d['cat_cover'])) ?>" alt="" loading="lazy" decoding="async"></span>
         <?php else: ?><div class="lr-icon" style="background:rgba(234,67,53,.08);color:var(--danger);"><span class="material-symbols-rounded"><?= e($d['cat_icon'] ?: ($isExt ? 'cloud' : 'picture_as_pdf')) ?></span></div><?php endif; ?>
         <div style="flex:1;min-width:0;">
           <div class="lr-title"><?= e($d['title']) ?>

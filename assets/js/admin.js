@@ -1118,3 +1118,10 @@
   });
   paint();
 })();
+
+/* ══ อัปโหลดปกเร็วรายแถว (เอกสารเผยแพร่ → มุมมองแยกหมวด): เลือกไฟล์แล้วส่งทันที ══ */
+(function () {
+  document.querySelectorAll('input[type=file][data-autosubmit]').forEach(function (inp) {
+    inp.addEventListener('change', function () { if (inp.files && inp.files.length && inp.form) inp.form.submit(); });
+  });
+})();

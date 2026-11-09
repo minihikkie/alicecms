@@ -3,6 +3,40 @@
 require dirname(__DIR__) . '/includes/init.php';
 require __DIR__ . '/_auth.php';
 require_once APP_ROOT . '/includes/doc-book.php';
+require_once APP_ROOT . '/includes/doc-shelf.php';
+
+/**
+ * ข้อมูลเสริมของเอกสารรายฉบับ (ใช้กับหมวดแบบชั้นวาง/หน้ารายละเอียด): ปก · กลุ่ม · วันที่เผยแพร่ · คำอธิบาย
+ * คืนข้อความเตือน (ภาพปกผิด/สัดส่วนไม่ตรง) — ข้อมูลอื่นบันทึกได้แม้ภาพปกมีปัญหา
+ */
+function doc_extra_save(int $id, bool $withFields): array {
+    $warn = [];
+    if ($withFields) {
+        $grp  = mb_substr(trim((string)($_POST['doc_grp'] ?? '')), 0, 80);
+        $pd   = (string)($_POST['doc_pub_date'] ?? '');
+        $pd   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $pd) && strtotime($pd) ? $pd : null;
+        $sum  = mb_substr(trim((string)($_POST['doc_summary'] ?? '')), 0, 600);
+        db()->prepare('UPDATE documents SET grp = ?, pub_date = ?, summary = ? WHERE id = ?')->execute([$grp, $pd, $sum, $id]);
+    }
+    $st = db()->prepare('SELECT cover FROM documents WHERE id = ?');
+    $st->execute([$id]);
+    $old = $st->fetchColumn() ?: null;
+    if (!empty($_POST['remove_doc_cover'])) {
+        db()->prepare('UPDATE documents SET cover = NULL WHERE id = ?')->execute([$id]);
+        if ($old) delete_upload($old);
+        return $warn;
+    }
+    foreach (['doc_cover', 'quick_cover'] as $field) {
+        try { $up = handle_upload($field, 'doccovers', upload_image_exts(), 5); }
+        catch (RuntimeException $ex) { $warn[] = 'ภาพปกไม่ถูกบันทึก: ' . $ex->getMessage(); continue; }
+        if (!$up) continue;
+        db()->prepare('UPDATE documents SET cover = ? WHERE id = ?')->execute([$up['path'], $id]);
+        if ($old) delete_upload($old);
+        $warn = array_merge($warn, docbook_cover_tips($up['path']));
+        break;
+    }
+    return $warn;
+}
 
 $errors = [];
 $edit = null;
@@ -32,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cstyle_in = (string)($_POST['cat_style'] ?? '');
             $style = in_array($cstyle_in, ['', 'special', 'warning'], true) ? $cstyle_in : '';
             $sort = (int)($_POST['cat_sort'] ?? 0);
-            $layout = ($_POST['cat_layout'] ?? 'list') === 'book' ? 'book' : 'list';
+            $layout = in_array($_POST['cat_layout'] ?? '', ['book', 'shelf'], true) ? $_POST['cat_layout'] : 'list';
             if ($name !== '') {
                 $oldCover = null;
                 if ($act === 'edit' && $cid > 0) {
@@ -50,6 +84,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (isset($_POST['cat_intro'])) {
                     db()->prepare('UPDATE doc_categories SET intro = ? WHERE id = ?')
                         ->execute([mb_substr(trim((string)$_POST['cat_intro']), 0, 600), $cid]);
+                }
+                /* การแสดงผล (เมื่อกดเอกสาร · จัดกลุ่ม · ขนาดปก · ฉบับเด่น · การเรียง) */
+                if (isset($_POST['vc']) && is_array($_POST['vc'])) {
+                    db()->prepare('UPDATE doc_categories SET view_conf = ? WHERE id = ?')->execute([docshelf_conf_from_post($_POST['vc']), $cid]);
                 }
                 /* ภาพปกของหมวด — ใช้ได้ทั้งแบบรายการและแบบสารบัญ */
                 $msg = 'บันทึกหมวดเอกสารเรียบร้อยแล้ว';
@@ -78,6 +116,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         redirect('admin/documents.php');
+    }
+
+    /* ── อัปโหลดปกเร็ว (แถวในมุมมองแยกหมวด) ── */
+    if (($_POST['action'] ?? '') === 'doc_cover') {
+        $cid = (int)($_POST['doc_id'] ?? 0);
+        $st = db()->prepare('SELECT title FROM documents WHERE id = ?');
+        $st->execute([$cid]);
+        if ($t = $st->fetchColumn()) {
+            $w = doc_extra_save($cid, false);
+            log_action('เปลี่ยนภาพปกเอกสาร', (string)$t);
+            flash_set($w && str_starts_with($w[0], 'ภาพปกไม่ถูก') ? 'danger' : 'success', 'บันทึกภาพปก "' . mb_strimwidth((string)$t, 0, 50, '…') . '"' . ($w ? ' · ' . implode(' · ', $w) : ''));
+        }
+        redirect('admin/documents.php' . (($_POST['back_qs'] ?? '') !== '' ? '?' . $_POST['back_qs'] : ''));
     }
 
     /* ── ลบเอกสาร ── */
@@ -124,7 +175,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 db()->prepare('UPDATE documents SET title=?, category_id=? WHERE id=?')
                     ->execute([$title, $catId, $id]);
             }
-            flash_set('success', 'บันทึกเอกสารเรียบร้อยแล้ว');
+            $xw = doc_extra_save($id, true);
+            flash_set('success', 'บันทึกเอกสารเรียบร้อยแล้ว' . ($xw ? ' · ' . implode(' · ', $xw) : ''));
         } else {
             /* เอกสารใหม่ขึ้นบนสุดเสมอ (เลขน้อยกว่าที่มีอยู่ทั้งหมด) — เหมือนพฤติกรรมเดิมก่อนมีลำดับเอง
                ผู้ดูแลลากจัดใหม่ทีหลังได้ที่มุมมองแยกตามหมวด */
@@ -137,7 +189,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 db()->prepare("INSERT INTO documents (title, category_id, file, ext_url, file_size, ext, sort_order) VALUES (?,?,'',?,0,?,?)")
                     ->execute([$title, $catId, $extUrl, ext_from_url($extUrl), $newSort]);
             }
-            flash_set('success', 'เพิ่มเอกสารเรียบร้อยแล้ว');
+            $xw = doc_extra_save((int)db()->lastInsertId(), true);
+            flash_set('success', 'เพิ่มเอกสารเรียบร้อยแล้ว' . ($xw ? ' · ' . implode(' · ', $xw) : ''));
         }
         redirect('admin/documents.php' . (($_POST['back_qs'] ?? '') !== '' ? '?' . $_POST['back_qs'] : ''));
     }
@@ -226,6 +279,28 @@ require __DIR__ . '/_top.php';
       <div class="or-divider"><span>หรือ</span></div>
       <label>ลิงก์ภายนอก <span class="text-muted">(Google Drive / OneDrive / URL ไฟล์ — ไม่ต้องอัปโหลด)</span></label>
       <input type="url" name="ext_url" value="<?= e(old('ext_url', $edit['ext_url'] ?? '')) ?>" class="mb-2" placeholder="https://drive.google.com/file/d/.../view">
+      <?php $hasExtra = !empty($edit['cover']) || trim((string)($edit['grp'] ?? '')) !== '' || !empty($edit['pub_date']) || trim((string)($edit['summary'] ?? '')) !== ''; ?>
+      <details class="dcat-more mb-2" <?= $hasExtra ? 'open' : '' ?>>
+        <summary><span class="material-symbols-rounded icon-sm">auto_stories</span>ภาพปก · กลุ่ม · วันที่เผยแพร่ · คำอธิบาย <span class="text-muted">(สำหรับหมวดแบบชั้นวาง และหน้ารายละเอียด)</span></summary>
+        <div class="dcat-more-in">
+          <div class="doc-xcover">
+            <?php if (!empty($edit['cover'])): ?><span class="dcat-thumb has-img" style="width:48px;height:64px;"><img src="<?= e(url($edit['cover'])) ?>" alt=""></span><?php endif; ?>
+            <div style="flex:1;min-width:0;">
+              <label>ภาพปกฉบับนี้ <span class="text-muted">(แนวตั้ง 3:4 · 900 × 1200 px · ไม่ใส่ = ระบบวาดปกจากเลขฉบับให้)</span></label>
+              <input type="file" name="doc_cover" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+              <?php if (!empty($edit['cover'])): ?><label class="dbk-radio mt-1"><input type="checkbox" name="remove_doc_cover" value="1"> ลบภาพปก</label><?php endif; ?>
+            </div>
+          </div>
+          <div class="grid" style="grid-template-columns:minmax(0,1fr) 170px;gap:10px;">
+            <div><label>กลุ่ม <span class="text-muted">(เว้นว่าง = อ่านจากชื่อเรื่อง)</span></label>
+              <input type="text" name="doc_grp" value="<?= e(old('doc_grp', $edit['grp'] ?? '')) ?>" maxlength="80" placeholder="เช่น ปีที่ 62 / ปีงบประมาณ 2568"></div>
+            <div><label>วันที่เผยแพร่</label>
+              <input type="date" name="doc_pub_date" value="<?= e(old('doc_pub_date', $edit['pub_date'] ?? '')) ?>"></div>
+          </div>
+          <div><label>คำอธิบาย <span class="text-muted">(ไม่เกิน 600 ตัวอักษร · เช่น เรื่องเด่นในฉบับ)</span></label>
+            <textarea name="doc_summary" rows="2" maxlength="600"><?= e(old('doc_summary', $edit['summary'] ?? '')) ?></textarea></div>
+        </div>
+      </details>
       <button class="btn primary" type="submit"><span class="material-symbols-rounded icon-sm">save</span><?= $edit ? 'บันทึกการแก้ไข' : 'เพิ่มเอกสาร' ?></button>
     </form>
   </div>
@@ -253,8 +328,9 @@ require __DIR__ . '/_top.php';
         <option value="warning" <?= $c['style'] === 'warning' ? 'selected' : '' ?>>ส้ม</option>
       </select>
       <select name="cat_layout" style="width:150px;padding:8px;" title="รูปแบบการแสดงบนหน้าเว็บ">
-        <option value="list" <?= ($c['layout'] ?? 'list') !== 'book' ? 'selected' : '' ?>>แสดงเป็นรายการ</option>
+        <option value="list" <?= !in_array($c['layout'] ?? 'list', ['book', 'shelf'], true) ? 'selected' : '' ?>>แสดงเป็นรายการ</option>
         <option value="book" <?= ($c['layout'] ?? '') === 'book' ? 'selected' : '' ?>>สารบัญแบบหนังสือ</option>
+        <option value="shelf" <?= ($c['layout'] ?? '') === 'shelf' ? 'selected' : '' ?>>ชั้นวางแบบมีปก</option>
       </select>
       <input type="number" name="cat_sort" value="<?= (int)$c['sort_order'] ?>" class="sort-input" title="ลำดับ">
       <button class="btn small" type="submit" name="cat_action" value="edit">บันทึก</button>
@@ -263,8 +339,22 @@ require __DIR__ . '/_top.php';
       <a class="btn small primary" href="<?= e(url('admin/doc-book.php?cat=' . (int)$c['id'])) ?>"><span class="material-symbols-rounded icon-sm">menu_book</span>จัดการสารบัญ</a>
       <?php endif; ?>
       <details class="dcat-more">
-        <summary><span class="material-symbols-rounded icon-sm">image</span>ภาพปก · คำอธิบายหมวด<?= !empty($c['cover']) ? ' <span class="badge success" style="font-size:11px;">มีภาพปก</span>' : '' ?></summary>
+        <summary><span class="material-symbols-rounded icon-sm">tune</span>ภาพปก · คำอธิบาย · การแสดงผล<?= !empty($c['cover']) ? ' <span class="badge success" style="font-size:11px;">มีภาพปก</span>' : '' ?></summary>
         <div class="dcat-more-in">
+          <?php $vc = docshelf_conf($c); ?>
+          <div class="dcat-vc">
+            <b>การแสดงผล</b>
+            <label>เมื่อกดเอกสาร
+              <select name="vc[open]"><option value="file" <?= $vc['open'] === 'file' ? 'selected' : '' ?>>เปิดไฟล์ทันที</option><option value="page" <?= $vc['open'] === 'page' ? 'selected' : '' ?>>ไปหน้ารายละเอียดก่อน</option></select></label>
+            <label>จัดกลุ่มชั้นวาง
+              <select name="vc[group]"><option value="auto" <?= $vc['group'] === 'auto' ? 'selected' : '' ?>>อัตโนมัติ (ช่องกลุ่ม / อ่านจากชื่อเรื่อง)</option><option value="year" <?= $vc['group'] === 'year' ? 'selected' : '' ?>>ตามปี พ.ศ. ที่เผยแพร่</option><option value="none" <?= $vc['group'] === 'none' ? 'selected' : '' ?>>ไม่แบ่งกลุ่ม</option></select></label>
+            <label>ขนาดปก
+              <select name="vc[size]"><option value="sm" <?= $vc['size'] === 'sm' ? 'selected' : '' ?>>เล็ก (เห็นหลายเล่ม)</option><option value="md" <?= $vc['size'] === 'md' ? 'selected' : '' ?>>กลาง</option><option value="lg" <?= $vc['size'] === 'lg' ? 'selected' : '' ?>>ใหญ่</option></select></label>
+            <label>เรียง
+              <select name="vc[sort]"><option value="new" <?= $vc['sort'] === 'new' ? 'selected' : '' ?>>ใหม่ → เก่า</option><option value="old" <?= $vc['sort'] === 'old' ? 'selected' : '' ?>>เก่า → ใหม่</option></select></label>
+            <label class="dbk-radio"><input type="checkbox" name="vc[featured]" value="1" <?= $vc['featured'] ? 'checked' : '' ?>> แสดงฉบับล่าสุดเด่นด้านบน</label>
+            <p class="text-muted" style="font-size:12px;margin:0;">จัดกลุ่ม/ขนาดปก/ฉบับเด่น ใช้กับรูปแบบ "ชั้นวางแบบมีปก" · "เมื่อกดเอกสาร" ใช้กับทุกรูปแบบ</p>
+          </div>
           <div>
             <label>ภาพปก <span class="text-muted">(แนวตั้ง 3:4 · แนะนำ 900 × 1200 px · JPG/WebP)</span></label>
             <input type="file" name="cat_cover" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
@@ -290,7 +380,7 @@ require __DIR__ . '/_top.php';
         <option value="">น้ำเงิน</option><option value="special">ม่วง</option><option value="warning">ส้ม</option>
       </select>
       <select name="cat_layout" style="width:150px;padding:8px;" title="รูปแบบการแสดงบนหน้าเว็บ">
-        <option value="list">แสดงเป็นรายการ</option><option value="book">สารบัญแบบหนังสือ</option>
+        <option value="list">แสดงเป็นรายการ</option><option value="book">สารบัญแบบหนังสือ</option><option value="shelf">ชั้นวางแบบมีปก</option>
       </select>
       <input type="number" name="cat_sort" value="<?= count($cats) + 1 ?>" class="sort-input">
       <button class="btn small primary" type="submit" name="cat_action" value="add"><span class="material-symbols-rounded icon-sm">add</span>เพิ่มหมวด</button>
@@ -328,6 +418,13 @@ require __DIR__ . '/_top.php';
       <li class="doc-li" draggable="true" data-id="<?= (int)$d['id'] ?>">
         <div class="doc-row">
           <span class="doc-grip material-symbols-rounded">drag_indicator</span>
+          <form method="post" action="" enctype="multipart/form-data" class="doc-qcover" title="<?= !empty($d['cover']) ? 'เปลี่ยนภาพปก' : 'ใส่ภาพปก' ?>">
+            <?= csrf_field() ?><input type="hidden" name="action" value="doc_cover"><input type="hidden" name="doc_id" value="<?= (int)$d['id'] ?>"><input type="hidden" name="back_qs" value="<?= e($backQs) ?>">
+            <label class="dcat-thumb<?= !empty($d['cover']) ? ' has-img' : '' ?>">
+              <?php if (!empty($d['cover'])): ?><img src="<?= e(url($d['cover'])) ?>" alt=""><?php else: ?><span class="material-symbols-rounded icon-sm" aria-hidden="true">add_photo_alternate</span><?php endif; ?>
+              <input type="file" name="quick_cover" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" data-autosubmit class="sr-only" aria-label="ภาพปก <?= e($d['title']) ?>">
+            </label>
+          </form>
           <span class="doc-name"><?= e(mb_strimwidth($d['title'], 0, 70, '…')) ?></span>
           <span class="badge" style="font-size:11px;"><?= $isExt ? 'LINK' : e(strtoupper((string)$d['ext'])) ?></span>
           <span class="doc-actions">

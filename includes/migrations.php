@@ -553,6 +553,13 @@ function run_migrations(PDO $pdo, ?callable $log = null): void {
     migr_add_col($pdo, 'doc_categories', 'book_conf', "book_conf TEXT NULL AFTER intro", $log);
     /* v1.60.0 — ภาพปกเล่ม (แนวตั้ง 3:4) แสดงแทนปกสีที่ระบบวาดให้บนหน้าสารบัญ */
     migr_add_col($pdo, 'doc_categories', 'cover', "cover VARCHAR(300) NULL AFTER book_conf", $log);
+    /* v1.64.0 — เอกสารแบบเล่มมีปก (ชั้นวาง): ปก/กลุ่ม/วันที่เผยแพร่/คำอธิบายรายฉบับ + ค่าตั้งการแสดงผลของหมวด
+       ทุกคอลัมน์ว่างได้ — ฉบับที่ไม่กรอก ระบบวาดปกและอ่านกลุ่มจากชื่อเรื่องให้ (includes/doc-shelf.php) */
+    migr_add_col($pdo, 'doc_categories', 'view_conf', "view_conf TEXT NULL AFTER cover", $log);
+    migr_add_col($pdo, 'documents', 'cover',    "cover VARCHAR(300) NULL AFTER ext", $log);
+    migr_add_col($pdo, 'documents', 'grp',      "grp VARCHAR(80) NOT NULL DEFAULT '' AFTER cover", $log);
+    migr_add_col($pdo, 'documents', 'pub_date', "pub_date DATE NULL AFTER grp", $log);
+    migr_add_col($pdo, 'documents', 'summary',  "summary VARCHAR(600) NOT NULL DEFAULT '' AFTER pub_date", $log);
     $pdo->exec("CREATE TABLE IF NOT EXISTS doc_toc (
   id INT AUTO_INCREMENT PRIMARY KEY,
   category_id INT NOT NULL,
