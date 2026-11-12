@@ -2,7 +2,7 @@
 /** admin/activity.php — บันทึกการใช้งานของผู้ดูแล (เฉพาะ admin) */
 require dirname(__DIR__) . '/includes/init.php';
 require __DIR__ . '/_auth.php';
-require_admin();
+/* สิทธิ์ตรวจที่ _auth.php (perm_enforce) — มอบให้กลุ่มสิทธิ์ได้ตั้งแต่ v1.66.0 */
 
 /* ลบ log เก่าเกิน 90 วัน (ทำเงียบๆ) */
 try { db()->exec("DELETE FROM activity_logs WHERE created_at < (NOW() - INTERVAL 90 DAY)"); } catch (Throwable $e) {}

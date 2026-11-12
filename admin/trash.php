@@ -6,7 +6,28 @@ require __DIR__ . '/_auth.php';
 /* ลบของเก่าเกินกำหนดอัตโนมัติทุกครั้งที่เปิดหน้านี้ */
 $purged_auto = trash_autopurge();
 
+/** รายการในถังขยะนี้ผู้ใช้มีสิทธิ์ระดับ $level ในเมนูต้นทางหรือไม่
+ *  (กู้คืน = ต้องแก้ไขเมนูนั้นได้ · ลบถาวร = ต้องลบในเมนูนั้นได้ · เห็นในรายการ = ดูเมนูนั้นได้) */
+function trash_item_allowed(?array $t, int $level): bool {
+    if (!$t) return false;
+    if (is_admin_role()) return true;
+    $m = perm_table_module((string)$t['table_name']);
+    return $m !== '' && can($m, $level);
+}
+function trash_row(int $id): ?array {
+    $st = db()->prepare('SELECT id, table_name, label FROM trash WHERE id = ?');
+    $st->execute([$id]);
+    return $st->fetch() ?: null;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    foreach (['restore_id' => PERM_EDIT, 'purge_id' => PERM_FULL] as $k => $need) {
+        if (isset($_POST[$k]) && !trash_item_allowed(trash_row((int)$_POST[$k]), $need)) {
+            log_action('ถูกปฏิเสธสิทธิ์', 'ถังขยะ · ' . ($k === 'restore_id' ? 'กู้คืน' : 'ลบถาวร') . ' #' . (int)$_POST[$k]);
+            flash_set('danger', 'คุณไม่มีสิทธิ์' . ($k === 'restore_id' ? 'กู้คืน' : 'ลบถาวร') . 'รายการนี้ (ต้องมีสิทธิ์ในเมนูที่เป็นเจ้าของรายการ)');
+            redirect('admin/trash.php');
+        }
+    }
     if (isset($_POST['restore_id'])) {
         [$ok, $msg] = trash_restore((int)$_POST['restore_id']);
         log_action($ok ? 'กู้คืนจากถังขยะ' : 'กู้คืนล้มเหลว', mb_substr($msg, 0, 200));
@@ -31,7 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$items = db()->query('SELECT * FROM trash ORDER BY deleted_at DESC, id DESC')->fetchAll();
+$items = array_values(array_filter(db()->query('SELECT * FROM trash ORDER BY deleted_at DESC, id DESC')->fetchAll(),
+                                  fn($t) => trash_item_allowed($t, PERM_VIEW)));
 $admin_title = 'ถังขยะ';
 require __DIR__ . '/_top.php';
 ?>
@@ -74,17 +96,21 @@ require __DIR__ . '/_top.php';
       <td class="lr-date" style="white-space:nowrap;"><?= e(thai_date($t['deleted_at'])) ?></td>
       <td class="lr-date"><?= e($t['deleted_by'] ?: '—') ?></td>
       <td style="white-space:nowrap;">
+        <?php if (can('trash', PERM_EDIT) && trash_item_allowed($t, PERM_EDIT)): ?>
         <form method="post" action="" style="display:inline;">
           <?= csrf_field() ?>
           <input type="hidden" name="restore_id" value="<?= (int)$t['id'] ?>">
           <button class="btn small primary" type="submit"><span class="material-symbols-rounded icon-sm">restore_from_trash</span>กู้คืน</button>
         </form>
+        <?php endif; ?>
+        <?php if (can('trash', PERM_FULL) && trash_item_allowed($t, PERM_FULL)): ?>
         <form method="post" action="" style="display:inline;">
           <?= csrf_field() ?>
           <input type="hidden" name="purge_id" value="<?= (int)$t['id'] ?>">
           <button class="btn small danger" type="submit"
                   data-confirm="ลบ «<?= e(mb_strimwidth($t['label'], 0, 40, '…')) ?>» อย่างถาวร? กู้คืนไม่ได้อีก">ลบถาวร</button>
         </form>
+        <?php endif; ?>
       </td>
     </tr>
     <?php endforeach; ?>

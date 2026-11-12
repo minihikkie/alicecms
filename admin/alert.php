@@ -2,7 +2,7 @@
 /** admin/alert.php — แถบประกาศด่วนบนสุดของเว็บ (ปิดหน่วยงาน/ภัยพิบัติ/ประกาศสำคัญ) */
 require dirname(__DIR__) . '/includes/init.php';
 require __DIR__ . '/_auth.php';
-require_admin();
+/* สิทธิ์ตรวจที่ _auth.php (perm_enforce) — มอบให้กลุ่มสิทธิ์ได้ตั้งแต่ v1.66.0 */
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     setting_set('alert_enabled', !empty($_POST['alert_enabled']) ? '1' : '0');

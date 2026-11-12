@@ -1125,3 +1125,47 @@
     inp.addEventListener('change', function () { if (inp.files && inp.files.length && inp.form) inp.form.submit(); });
   });
 })();
+
+/* ── สิทธิ์การใช้งาน (v1.66.0) ──
+   - หน้า "ดูอย่างเดียว": ปิดปุ่มส่งฟอร์ม POST ทุกปุ่ม (เซิร์ฟเวอร์ปฏิเสธซ้ำอยู่แล้ว — นี่แค่บอกผู้ใช้ล่วงหน้า)
+   - หน้ากลุ่มสิทธิ์: ปุ่มแม่แบบ + ปุ่มตั้งทั้งกลุ่มเมนู */
+(function () {
+  if (document.body.dataset.perm === '1') {
+    document.querySelectorAll('form[method="post" i]').forEach(function (f) {
+      f.querySelectorAll('button[type="submit"], button:not([type]), input[type="submit"]').forEach(function (b) {
+        b.disabled = true; b.title = 'สิทธิ์ของคุณในเมนูนี้คือดูอย่างเดียว';
+      });
+    });
+  }
+  var form = document.querySelector('[data-perm-form]');
+  if (!form) return;
+  function setLevel(row, lv) {
+    var inputs = row.querySelectorAll('input[type="radio"]');
+    if (!inputs.length) return;
+    var best = null;   /* ระดับที่ขอเกินที่เมนูนั้นมี → ใช้ระดับสูงสุดที่มี */
+    inputs.forEach(function (i) { if (+i.value <= lv) best = i; });
+    (best || inputs[0]).checked = true;
+  }
+  document.querySelectorAll('[data-perm-tpl]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var tpl = {};
+      try { tpl = JSON.parse(btn.getAttribute('data-perm-tpl')) || {}; } catch (e) {}
+      form.querySelectorAll('.perm-row').forEach(function (row) {
+        var any = row.querySelector('input[type="radio"]');
+        if (!any) return;
+        var key = any.name.replace(/^perm\[|\]$/g, '');
+        setLevel(row, +(tpl[key] || 0));
+      });
+      var n = form.querySelector('input[name="name"]'), d = form.querySelector('input[name="description"]');
+      if (btn.dataset.permName && n && !n.value) n.value = btn.dataset.permName;
+      if (btn.dataset.permDesc && d && !d.value) d.value = btn.dataset.permDesc;
+    });
+  });
+  form.querySelectorAll('[data-perm-col]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var lv = +btn.getAttribute('data-perm-col');
+      var row = btn.closest('.perm-group').nextElementSibling;
+      while (row && row.classList.contains('perm-row')) { setLevel(row, lv); row = row.nextElementSibling; }
+    });
+  });
+})();

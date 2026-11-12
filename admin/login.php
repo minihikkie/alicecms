@@ -12,6 +12,16 @@ if (!empty($_SESSION['admin_id'])) redirect('admin/index.php');
 $error = '';
 $show_2fa = false;
 if (isset($_GET['timeout'])) $error = 'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่';
+if (isset($_GET['disabled'])) $error = 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ';
+
+/** บันทึกเวลาเข้าระบบล่าสุด (โชว์ในหน้าผู้ใช้งานระบบ) — ฐานข้อมูลเก่าที่ยังไม่มีคอลัมน์ก็ไม่พัง */
+function login_mark(int $uid): void {
+    try { db()->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([$uid]); } catch (Throwable $e) {}
+}
+/** บัญชีถูกระงับหรือไม่ (v1.66.0) */
+function login_disabled(array $u): bool {
+    return array_key_exists('is_active', $u) && (int)$u['is_active'] !== 1;
+}
 
 /* ยกเลิกการยืนยัน 2FA (กลับไปกรอกรหัสผ่านใหม่) */
 if (isset($_GET['cancel'])) {
@@ -42,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['totp_step'])) {
             $user = $st->fetch();
             $code = trim((string)($_POST['totp_code'] ?? ''));
             $ok = false; $usedBackup = -1;
-            if ($user && (int)$user['totp_enabled'] === 1) {
+            if ($user && (int)$user['totp_enabled'] === 1 && !login_disabled($user)) {
                 if (totp_verify($user['totp_secret'], $code)) {
                     $ok = true;
                 } else {
@@ -62,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['totp_step'])) {
                 } else {
                     login_log($uname, true);
                 }
+                login_mark($uid);
                 session_regenerate_id(true);
                 $_SESSION['admin_id'] = $uid;
                 $_SESSION['last_activity'] = time();
@@ -94,7 +105,10 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $st->execute([$username]);
         $user = $st->fetch();
 
-        if ($user && password_verify($password, $user['password_hash'])) {
+        if ($user && password_verify($password, $user['password_hash']) && login_disabled($user)) {
+            login_log($username . ' (บัญชีถูกระงับ)', false);
+            $error = 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ';
+        } elseif ($user && password_verify($password, $user['password_hash'])) {
             if ((int)$user['totp_enabled'] === 1 && $user['totp_secret'] !== '') {
                 /* รหัสผ่านถูก → ไปขั้นยืนยัน 2FA (ยังไม่ล็อกอิน) */
                 session_regenerate_id(true);
@@ -105,6 +119,7 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $show_2fa = true;
             } else {
                 login_log($username, true);
+                login_mark((int)$user['id']);
                 session_regenerate_id(true);
                 $_SESSION['admin_id'] = (int)$user['id'];
                 $_SESSION['last_activity'] = time();

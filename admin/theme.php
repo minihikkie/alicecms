@@ -2,7 +2,7 @@
 /** admin/theme.php — ธีมสำเร็จรูป + สีทั้งชุด + ภาพฉากหลัง + หน้าตาเว็บ + อนิเมชัน */
 require dirname(__DIR__) . '/includes/init.php';
 require __DIR__ . '/_auth.php';
-require_admin();
+/* สิทธิ์ตรวจที่ _auth.php (perm_enforce) — มอบให้กลุ่มสิทธิ์ได้ตั้งแต่ v1.66.0 */
 
 $errors = [];
 

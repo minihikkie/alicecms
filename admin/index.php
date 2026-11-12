@@ -22,7 +22,8 @@ $max_day = max(1, max($days));
 $latest = db()->query('SELECT id, title, type, status FROM posts ORDER BY id DESC LIMIT 6')->fetchAll();
 
 /* เรื่องร้องเรียนล่าสุด */
-$latest_compl = db()->query('SELECT id, subject, name, status, created_at FROM complaints ORDER BY id DESC LIMIT 6')->fetchAll();
+/* เรื่องร้องเรียนมีชื่อผู้ร้อง (ข้อมูลส่วนบุคคล) — โหลดเฉพาะผู้ที่มีสิทธิ์เมนูเรื่องร้องเรียน */
+$latest_compl = can('complaints') ? db()->query('SELECT id, subject, name, status, created_at FROM complaints ORDER BY id DESC LIMIT 6')->fetchAll() : [];
 $compl_badge = ['new' => ['danger', 'ใหม่'], 'progress' => ['', 'กำลังดำเนินการ'], 'done' => ['success', 'เสร็จสิ้น']];
 
 /* ตรวจสุขภาพที่เก็บเซสชัน — ถ้าเขียนไม่ได้ ล็อกอินจะหลุดและทุกฟอร์มจะขึ้น CSRF ล้มเหลว
@@ -61,11 +62,32 @@ require __DIR__ . '/_top.php';
   </div>
 </div>
 
+<?php if (!is_admin_role()):
+  /* เจ้าหน้าที่: สรุปเมนูที่ตัวเองดูแลและระดับสิทธิ์ ให้รู้ว่าทำอะไรได้บ้าง */
+  $myMods = array_filter(perm_modules(), fn($m, $k) => can($k), ARRAY_FILTER_USE_BOTH);
+  $lvName = perm_level_names(); ?>
+<div class="card mb-2">
+  <div class="section-head" style="margin-bottom:8px;">
+    <div><span class="tag">MY ACCESS</span><h3>เมนูที่คุณดูแล</h3>
+    <p>กลุ่มสิทธิ์: <b><?= e(perm_role_label()) ?></b> — ต้องการสิทธิ์เพิ่ม ติดต่อผู้ดูแลระบบ</p></div>
+  </div>
+  <?php if (!$myMods): ?>
+  <p class="text-muted">ยังไม่ได้รับสิทธิ์เมนูใด — ติดต่อผู้ดูแลระบบเพื่อกำหนดกลุ่มสิทธิ์ให้บัญชีนี้</p>
+  <?php else: ?>
+  <div class="my-access">
+    <?php foreach ($myMods as $k => $m): $lv = perm_level($k); ?>
+    <a href="<?= e(url('admin/' . $k . '.php')) ?>"><b><?= e($m[0]) ?></b><span class="badge <?= $lv === PERM_FULL ? 'danger' : ($lv === PERM_EDIT ? 'special' : '') ?>" style="font-size:10.5px;"><?= e($lvName[$lv]) ?></span></a>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
+
 <!-- กราฟผู้เข้าชม 14 วัน -->
 <div class="card mb-2">
   <div class="section-head" style="margin-bottom:4px;">
     <div><span class="tag">ANALYTICS</span><h3>ผู้เข้าชม 14 วันล่าสุด</h3></div>
-    <a class="btn small" href="<?= e(url('admin/stats.php')) ?>">ดูสถิติทั้งหมด <span class="material-symbols-rounded icon-sm">arrow_forward</span></a>
+    <?php if (can('stats')): ?><a class="btn small" href="<?= e(url('admin/stats.php')) ?>">ดูสถิติทั้งหมด <span class="material-symbols-rounded icon-sm">arrow_forward</span></a><?php endif; ?>
   </div>
   <div class="chart">
     <?php foreach ($days as $d => $n): ?>
@@ -78,11 +100,12 @@ require __DIR__ . '/_top.php';
 </div>
 
 <div class="grid grid-2">
+  <?php if (can('posts')): ?>
   <!-- ตารางข่าวล่าสุด -->
   <div class="card">
     <div class="section-head" style="margin-bottom:8px;">
       <div><span class="tag">POSTS</span><h3>ข่าวล่าสุด</h3></div>
-      <a class="btn small primary" href="<?= e(url('admin/post-edit.php')) ?>"><span class="material-symbols-rounded icon-sm">add</span>เพิ่มข่าว</a>
+      <?php if (can('posts', PERM_EDIT)): ?><a class="btn small primary" href="<?= e(url('admin/post-edit.php')) ?>"><span class="material-symbols-rounded icon-sm">add</span>เพิ่มข่าว</a><?php endif; ?>
     </div>
     <?php if ($latest): ?>
     <table class="admin-table">
@@ -93,7 +116,7 @@ require __DIR__ . '/_top.php';
           <?php if ($p['status'] === 'draft'): ?><span class="badge" style="font-size:10px;padding:1px 7px;">ร่าง</span><?php endif; ?>
         </td>
         <td><span class="badge <?= e($types[$p['type']]['badge'] ?? '') ?>"><?= e(post_type_label($p['type'])) ?></span></td>
-        <td style="white-space:nowrap;"><a class="btn small" href="<?= e(url('admin/post-edit.php?id=' . $p['id'])) ?>">แก้ไข</a></td>
+        <td style="white-space:nowrap;"><a class="btn small" href="<?= e(url('admin/post-edit.php?id=' . $p['id'])) ?>"><?= can('posts', PERM_EDIT) ? 'แก้ไข' : 'ดู' ?></a></td>
       </tr>
       <?php endforeach; ?>
     </table>
@@ -101,7 +124,9 @@ require __DIR__ . '/_top.php';
     <p class="text-muted text-center" style="padding:24px;">ยังไม่มีข่าว — เริ่มเพิ่มข่าวแรกได้เลย</p>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 
+  <?php if (can('complaints')): ?>
   <!-- เรื่องร้องเรียนล่าสุด -->
   <div class="card">
     <div class="section-head" style="margin-bottom:8px;">
@@ -125,5 +150,6 @@ require __DIR__ . '/_top.php';
     <p class="text-muted text-center" style="padding:24px;">ยังไม่มีเรื่องร้องเรียน</p>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 </div>
 <?php require __DIR__ . '/_bottom.php'; ?>

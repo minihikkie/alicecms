@@ -604,3 +604,57 @@ textarea { resize: vertical; min-height: 90px; }
 .dcat-stat .sort-input, .dcat-custom .sort-input { width: 64px; padding: 5px 8px; }
 .dcat-custom { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 92px 64px; gap: 6px; }
 .dcat-custom input, .dcat-custom select { padding: 6px 8px; font-size: 13px; }
+
+/* ── สิทธิ์การใช้งาน (v1.66.0) ── */
+.alert.perm-note { background: color-mix(in srgb, var(--blue) 8%, var(--card)); border-left: 4px solid var(--blue); }
+.perm-chip { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 12px; padding: 4px 12px; border-radius: 999px;
+  font-size: 12.5px; color: var(--muted); background: color-mix(in srgb, var(--ink) 5%, transparent); }
+/* สิทธิ์ "เพิ่ม · แก้ไข": ซ่อนปุ่มลบ (เซิร์ฟเวอร์ปฏิเสธซ้ำเสมอ) */
+body[data-perm="2"] form:has(input[name="delete_id"]),
+body[data-perm="2"] form:has(input[name="del_response"]),
+body[data-perm="2"] form:has(input[name="purge_id"]),
+body[data-perm="2"] form:has(input[name="empty_all"]),
+body[data-perm="2"] button[name="action"][value="delete"],
+body[data-perm="2"] button[name="cat_action"][value="delete"],
+body[data-perm="2"] button[name="del_att"] { display: none !important; }
+/* สิทธิ์ "ดูอย่างเดียว": ปุ่มส่งฟอร์มถูกปิด (admin.js ใส่ disabled ให้) */
+body[data-perm="1"] form[method="post" i] :is(button[type="submit"], button:not([type]), input[type="submit"]) { opacity: .45; cursor: not-allowed; }
+.user-off td { opacity: .6; }
+.user-off td:last-child { opacity: 1; }
+
+/* หน้ากลุ่มสิทธิ์: ตารางเมนู × ระดับ */
+.perm-tpl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 14px; }
+.perm-matrix { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-top: 6px; }
+.perm-head, .perm-row { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(4, minmax(0, 1fr)); align-items: center; }
+.perm-head { background: color-mix(in srgb, var(--blue) 7%, var(--card)); font-size: 12px; font-weight: 600; color: var(--ink); }
+.perm-head span { padding: 9px 10px; text-align: center; }
+.perm-head span:first-child { text-align: left; padding-left: 14px; }
+.perm-group { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px;
+  padding: 10px 14px 6px; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.perm-group b { font-size: 13.5px; color: var(--ink); }
+.perm-all { font-size: 11.5px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.perm-all button { border: 1px solid var(--border); background: var(--card); border-radius: 999px; padding: 2px 9px; font: inherit; font-size: 11px; cursor: pointer; color: var(--muted); }
+.perm-all button:hover { color: var(--blue); border-color: var(--blue); }
+.perm-row { border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+.perm-row:hover { background: color-mix(in srgb, var(--blue) 4%, transparent); }
+.perm-name { padding: 8px 14px; font-size: 13.5px; color: var(--ink); }
+.perm-name small { display: block; font-size: 11.5px; color: var(--muted); }
+.perm-row.is-sensitive .perm-name::after { content: "ข้อมูลสำคัญ"; display: inline-block; margin-top: 3px; font-size: 10.5px; padding: 0 7px;
+  border-radius: 999px; background: color-mix(in srgb, #E8710A 14%, transparent); color: #B3500A; }
+.perm-cell { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; padding: 8px 4px; cursor: pointer; font-size: 12px; }
+.perm-cell input { width: 18px; height: 18px; margin: 0; accent-color: var(--blue); cursor: pointer; }
+.perm-cell.na { color: var(--border); cursor: default; }
+.perm-cell .perm-mob { display: none; }
+@media (max-width: 760px) {
+  .perm-head { display: none; }
+  .perm-row { grid-template-columns: 1fr 1fr; padding-bottom: 6px; }
+  .perm-name { grid-column: 1 / -1; padding-bottom: 2px; }
+  .perm-cell { justify-content: flex-start; padding: 4px 14px; }
+  .perm-cell .perm-mob { display: inline; }
+  .perm-cell.na { display: none; }
+}
+.my-access { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.my-access a { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 12px;
+  border: 1px solid var(--border); text-decoration: none; color: var(--ink); font-size: 13.5px; }
+.my-access a:hover { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 5%, transparent); }
+.my-access b { font-weight: 500; }

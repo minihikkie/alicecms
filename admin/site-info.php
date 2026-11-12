@@ -2,7 +2,7 @@
 /** admin/site-info.php — ตั้งค่าเว็บไซต์: ข้อมูลหน่วยงาน, โลโก้/favicon, เกี่ยวกับ, จัดการ section หน้าแรก */
 require dirname(__DIR__) . '/includes/init.php';
 require __DIR__ . '/_auth.php';
-require_admin();
+/* สิทธิ์ตรวจที่ _auth.php (perm_enforce) — มอบให้กลุ่มสิทธิ์ได้ตั้งแต่ v1.66.0 */
 require dirname(__DIR__) . '/includes/blocks.php';
 
 $errors = [];

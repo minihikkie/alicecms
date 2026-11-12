@@ -18,7 +18,8 @@ $n_trash = trash_count();
 require_once APP_ROOT . '/includes/autobackup.php';
 $auto_backup_msg = ab_maybe_run();
 
-/* เมนูซ้ายแบบจัดกลุ่ม: [หัวข้อกลุ่ม, [[ไฟล์, ไอคอน, ชื่อ, เฉพาะ admin?], ...]] */
+/* เมนูซ้ายแบบจัดกลุ่ม: [หัวข้อกลุ่ม, [[ไฟล์, ไอคอน, ชื่อ, (ไม่ใช้แล้ว)], ...]]
+   แสดงเฉพาะเมนูที่ผู้ใช้มีสิทธิ์ "ดู" ขึ้นไป (includes/permissions.php) — v1.66.0 */
 $is_admin = is_admin_role();
 $menu_groups = [
     ['', [
@@ -63,6 +64,7 @@ $menu_groups = [
         ['site-info.php',    'settings',         'ตั้งค่าเว็บไซต์',    true],
         ['stats.php',        'monitoring',       'สถิติผู้เข้าชม',     false],
         ['users.php',        'group',            'ผู้ใช้งานระบบ',      true],
+        ['roles.php',        'admin_panel_settings', 'กลุ่มสิทธิ์',     true],
         ['activity.php',     'history',          'บันทึกการใช้งาน',    true],
         ['trash.php',        'delete',           'ถังขยะ',             false],
         ['backup.php',       'cloud_download',   'สำรองข้อมูล',        true],
@@ -77,8 +79,10 @@ $menu_groups = [
 ];
 $current = basename($_SERVER['SCRIPT_NAME'] ?? '');
 /* หน้าย่อยที่ไม่มีเมนูของตัวเอง → ให้เมนูแม่ติดสถานะ "กำลังอยู่" */
-$current = ['doc-book.php' => 'documents.php'][$current] ?? $current;
+$current = ['doc-book.php' => 'documents.php', 'post-edit.php' => 'posts.php'][$current] ?? $current;
 $flash = flash_get();
+/* ระดับสิทธิ์ของหน้านี้ — ใช้ซ่อนปุ่มลบ/ปิดปุ่มบันทึกให้ตรงกับสิทธิ์ (ฝั่งเซิร์ฟเวอร์ตรวจซ้ำเสมอ) */
+$page_perm = perm_level(perm_page_module($_SERVER['SCRIPT_NAME'] ?? ''));
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -98,7 +102,7 @@ $flash = flash_get();
 <link rel="icon" type="image/svg+xml" href="<?= e(setting('favicon') ? url(setting('favicon')) : asset_url('assets/img/alicecms-mark.svg')) ?>">
 <style>:root { --blue: <?= e($theme) ?>; --blue-700: <?= e($theme700) ?>; }</style>
 </head>
-<body class="anim-<?= e(in_array($anim, ['full','min','off'], true) ? $anim : 'full') ?>">
+<body class="anim-<?= e(in_array($anim, ['full','min','off'], true) ? $anim : 'full') ?>" data-perm="<?= (int)$page_perm ?>">
 
 <header class="topbar">
   <div class="container topbar-inner">
@@ -111,7 +115,7 @@ $flash = flash_get();
     <div class="brand">AliceCMS<small>ระบบจัดการเว็บไซต์ของ<?= e(setting('site_name', 'หน่วยงาน')) ?></small></div>
     <nav class="nav">
       <a class="badge" href="<?= e(url('index.php')) ?>" target="_blank" rel="noopener"><span class="material-symbols-rounded icon-sm">open_in_new</span>ดูหน้าเว็บ</a>
-      <span class="badge success"><span class="material-symbols-rounded icon-sm">verified_user</span><?= e($ADMIN['display_name'] ?: $ADMIN['username']) ?> · <?= $is_admin ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่' ?></span>
+      <span class="badge success"><span class="material-symbols-rounded icon-sm">verified_user</span><?= e($ADMIN['display_name'] ?: $ADMIN['username']) ?> · <?= e(perm_role_label()) ?></span>
       <a class="btn danger small" href="<?= e(url('admin/logout.php')) ?>"><span class="material-symbols-rounded icon-sm">logout</span>ออกจากระบบ</a>
     </nav>
   </div>
@@ -130,7 +134,7 @@ $flash = flash_get();
     <!-- เมนูซ้าย (จัดกลุ่ม) -->
     <div class="card card-compact side-menu">
       <?php foreach ($menu_groups as [$gtitle, $gitems]):
-        $vis = array_values(array_filter($gitems, fn($m) => !$m[3] || $is_admin));
+        $vis = array_values(array_filter($gitems, fn($m) => can(perm_page_module($m[0]), PERM_VIEW)));
         if (!$vis) continue; ?>
         <?php if ($gtitle !== ''): ?><div class="menu-group-label"><?= e($gtitle) ?></div><?php endif; ?>
         <?php foreach ($vis as [$file, $icon, $label]): ?>
@@ -149,3 +153,9 @@ $flash = flash_get();
 
     <!-- เนื้อหาหลัก -->
     <div>
+<?php if ($page_perm === PERM_VIEW): ?>
+<div class="alert perm-note"><span class="material-symbols-rounded">visibility</span>
+  <div><b>ดูอย่างเดียว</b> — กลุ่มสิทธิ์ของคุณดูข้อมูลในเมนูนี้ได้ แต่เพิ่ม แก้ไข หรือลบไม่ได้</div></div>
+<?php elseif ($page_perm === PERM_EDIT): ?>
+<div class="perm-chip" title="กลุ่มสิทธิ์ของคุณเพิ่มและแก้ไขในเมนูนี้ได้ แต่ลบไม่ได้"><span class="material-symbols-rounded icon-sm">edit_note</span>สิทธิ์ของคุณ: เพิ่ม · แก้ไข (ลบไม่ได้)</div>
+<?php endif; ?>

@@ -578,6 +578,34 @@ function run_migrations(PDO $pdo, ?callable $log = null): void {
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     $log("= doc_toc (ตาราง)");
 
+    /* v1.66.0 — กลุ่มสิทธิ์ (กำหนดสิทธิ์รายเมนูเอง) + ระงับบัญชี + เข้าระบบล่าสุด */
+    $pdo->exec("CREATE TABLE IF NOT EXISTS roles (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  description VARCHAR(255) NOT NULL DEFAULT '',
+  perms TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    migr_add_col($pdo, 'users', 'role_id',       "role_id INT NULL AFTER role", $log);
+    migr_add_col($pdo, 'users', 'is_active',     "is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER role_id", $log);
+    migr_add_col($pdo, 'users', 'last_login_at', "last_login_at DATETIME NULL AFTER is_active", $log);
+    /* เจ้าหน้าที่เดิมที่ยังไม่มีกลุ่ม → กลุ่ม "เจ้าหน้าที่ (แก้เนื้อหา)" ที่มีสิทธิ์เท่าเดิมทุกประการ */
+    if ((int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'editor' AND role_id IS NULL")->fetchColumn() > 0) {
+        require_once __DIR__ . '/permissions.php';
+        $rid = (int)$pdo->query("SELECT id FROM roles WHERE name = 'เจ้าหน้าที่ (แก้เนื้อหา)' ORDER BY id LIMIT 1")->fetchColumn();
+        if ($rid === 0) {
+            $pdo->prepare('INSERT INTO roles (name, description, perms) VALUES (?, ?, ?)')->execute([
+                'เจ้าหน้าที่ (แก้เนื้อหา)', 'สิทธิ์เดียวกับ "เจ้าหน้าที่" ก่อนเวอร์ชัน 1.66 — แก้เนื้อหาได้ทุกเมนู ไม่แตะการตั้งค่า',
+                json_encode(perm_legacy_editor()),
+            ]);
+            $rid = (int)$pdo->lastInsertId();
+        }
+        $n = $pdo->exec("UPDATE users SET role_id = $rid WHERE role = 'editor' AND role_id IS NULL");
+        $log("+ ผูกเจ้าหน้าที่เดิม $n คน กับกลุ่มสิทธิ์ #$rid");
+    }
+    $log("= roles (ตาราง)");
+
     /* settings เริ่มต้นใหม่ (เพิ่มเฉพาะที่ยังไม่มี) */
     $ins = $pdo->prepare('INSERT IGNORE INTO settings (skey, sval) VALUES (?, ?)');
     $ins->execute(['a11y_bar', '1']);

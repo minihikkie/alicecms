@@ -46,6 +46,9 @@
 | **เพิ่ม/แก้ section หน้าแรกหรือเมนูอัตโนมัติ** | ดูหัวข้อ "ระบบ section/เมนู" ด้านล่าง — มีหลายไฟล์ผูกกัน |
 | **เพิ่มโฟลเดอร์ข้อมูลที่ต้องกันไม่ให้อัปเดตทับ** | `includes/updater.php` → `up_is_protected()` (เพิ่ม path) + `tools/build-release.php` → `$skip_prefix` |
 | **เปลี่ยนรูปแบบ dump SQL** (`up_backup_db`) | ต้องเข้ากันได้กับตัวอ่าน `transfer_run_sql()` (parser แยกคำสั่งที่ `;` นอก string) |
+| **เพิ่มหน้า admin ใหม่** | ⚠️ เพิ่มใน `perm_modules()` (`includes/permissions.php`) — ถ้าไม่เพิ่ม หน้านั้นจะเป็นของ**ผู้ดูแลระบบสูงสุดเท่านั้น** (ด่าน `perm_enforce()` ปฏิเสธไว้ก่อน) · หน้าย่อยผูกเมนูแม่ใน `perm_page_module()` · ใส่เมนูใน `admin/_top.php` |
+| **เพิ่มปุ่มลบรูปแบบใหม่ในหน้า admin** | ชื่อฟิลด์ POST ต้องอยู่ใน `perm_is_delete_request()` (ปัจจุบัน `delete_id`, `action=delete` ฯลฯ) — ไม่งั้นคนที่มีแค่สิทธิ์ "เพิ่ม · แก้ไข" จะลบได้ |
+| **เพิ่มตารางที่ลบลงถังขยะ** | `trash_types()` + `perm_table_module()` (ผูกตารางกับเมนู ให้ถังขยะกรอง/ตรวจสิทธิ์กู้คืนถูก) |
 | **เพิ่มไฟล์ dev/ทดสอบชั่วคราว** | ต้องลบก่อน build (เช่น `admin/_vh.php`) — build-release ข้ามแค่ `^_tmp` ไม่ได้ข้าม `_xxx` ทั้งหมด |
 
 ---
@@ -118,6 +121,7 @@
 - [ ] ถ้าแตะ schema → migration idempotent + ทดสอบ migrate ในเครื่อง
 - [ ] ถ้าแตะที่เก็บไฟล์/ตาราง → **ทดสอบ round-trip โอนย้าย** (export→import) ผ่าน
 - [ ] ถ้าแตะ section/เมนู → เช็ค header + footer + sitemap + homepage admin
+- [ ] ถ้าเพิ่มหน้า admin / ปุ่มลบแบบใหม่ → เช็ค `includes/permissions.php` (เมนู · รูปแบบ POST ลบ) แล้วลองด้วยบัญชีสิทธิ์ "ดูอย่างเดียว" และ "เพิ่ม · แก้ไข"
 - [ ] ลบไฟล์ dev/ทดสอบ (`admin/_vh.php`, `_ttest.php`, ฯลฯ)
 - [ ] bump `version.php`
 - [ ] `php tools/build-release.php` → ตรวจรายการไฟล์ในแพ็กเกจ (ไม่มีไฟล์ dev/ความลับ)

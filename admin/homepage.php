@@ -3,7 +3,7 @@
  *  เปิด/ปิด เรียงลำดับ และตั้งชื่อหัวข้อ section ทั้งหมดจากที่เดียว */
 require dirname(__DIR__) . '/includes/init.php';
 require __DIR__ . '/_auth.php';
-require_admin();
+/* สิทธิ์ตรวจที่ _auth.php (perm_enforce) — มอบให้กลุ่มสิทธิ์ได้ตั้งแต่ v1.66.0 */
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_sections'])) {
     $defaults = section_defaults();
